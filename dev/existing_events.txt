@@ -1,0 +1,221 @@
+c_first_word — Tiếng gọi đầu đời
+c_first_steps — Những bước chân đầu tiên
+c_thoi_noi — Thôi nôi bốc đồ
+c_teething — Sốt mọc răng
+c_vaccine — Mũi tiêm chủng
+c_night_cry — Ca sĩ ba giờ sáng
+c_baby_market — Em bé đi chợ
+c_baby_lullaby — Trưa hè tiếng ru
+c_baby_blackout — Cúp điện giữa trưa
+c_baby_porridge — Giờ ăn dặm
+c_kinder_cry — Cuộc chia ly mỗi sáng
+c_toy_sibling — Tranh giành robot
+c_market_tantrum — Ăn vạ giữa chợ
+c_tet_lixi — Lì xì ngày Tết
+c_midautumn — Đêm rước đèn
+c_neighbor_dog — Con Vện nhà bên
+c_wall_drawing — Hoạ sĩ nhí
+c_candy_meal — Kẹo trước bữa cơm
+c_lost_market — Lạc giữa chợ
+c_hide_seek — Vua trốn tìm
+c_rare_lizard — Thầy bói thạch sùng
+c_kid_haircut — Tiệm hớt tóc đầu hẻm
+c_pet_mischief — Thủ phạm bốn chân
+c_bad_grade — Con điểm 3 đỏ chót
+c_bullied_friend — Giờ ra chơi không vui
+c_found_money — Tờ tiền trên vỉa hè
+c_chicks — Gà con bảy màu
+c_class_duty — Ngày trực nhật
+c_o_an_quan — Giờ ra chơi
+c_school_snacks — Thiên đường quà vặt
+c_trading_cards — Cơn sốt thẻ bài
+c_rain_bath — Tắm mưa
+c_summer_countryside — Hè về quê
+c_kite — Cánh diều chiều gió
+c_keo_keo — Đổi dép lấy kẹo kéo
+c_lost_tooth — Chiếc răng sữa
+c_teacher_day — Ngày Nhà giáo 20/11
+c_class_monitor — Bầu lớp trưởng
+c_piggy_bank — Đập hay không đập?
+c_rare_buffalo — Cưỡi trâu
+c_rare_tv — Lên sóng truyền hình
+c_storm — Đêm bão về
+c_football_window — Cú sút định mệnh
+c_rare_ghost_night — Chuyện ma đêm cúp điện
+c_crush — Rung động đầu đời
+c_extra_class — Chạy sô học thêm
+c_cheat — Tờ phao định mệnh
+c_net_cafe — Cúp tiết đi net
+c_first_phone — Chiếc điện thoại đầu tiên
+c_social_drama — Drama trên mạng
+c_cigarette — Điếu thuốc sau nhà xe
+c_fight — Xô xát ở nhà xe
+c_idol — Đêm nhạc thần tượng
+c_summer_job — Làm thêm mùa hè
+c_underage_bike — Tập xe máy lén
+c_heartbreak — Thất tình tuổi mười lăm
+c_parents_fight — Tiếng cãi vã sau cánh cửa
+c_grandparent_sick — Thăm {grandparent.k} nằm viện
+c_friend_birthday — Sinh nhật {friend}
+c_game_scam — Quà khủng miễn phí?
+c_scholarship — Học bổng khuyến học
+c_school_show — Tiết mục văn nghệ
+c_bike_puncture — Thủng săm giữa đường
+c_dye_hair — Mái tóc nâu khói
+c_curfew — Về nhà quá giờ
+c_volunteer — Dọn rác bãi biển
+c_diary — Cuốn nhật ký bị lộ
+c_tourist — Khách nước ngoài hỏi đường
+c_acne — Nốt mụn trước ngày chụp ảnh
+c_rare_lottery — Tờ vé số cuối cùng
+a_tro_tang_gia — Chủ trọ tăng giá
+a_mi_tom_cuoi_thang — Mì tôm cuối tháng
+a_ban_cung_phong — Bạn cùng phòng
+a_thi_lai — Thi lại
+a_clb — Ngày hội câu lạc bộ
+a_tinh_dau_dai_hoc — Bàn cuối thư viện
+a_lam_them_cafe — Ca tối ở quán cà phê
+a_diem_danh_ho — Điểm danh hộ
+a_nhom_bai_tap — Bài tập nhóm
+a_hoc_bong — Suất trao đổi duy nhất
+a_phong_van — Buổi phỏng vấn
+a_tim_viec — Lướt nhóm tìm việc
+a_sep_kho_tinh — Sếp khó tính
+a_dong_nghiep_choi_xau — Ý tưởng bị cướp
+a_tang_ca — 5 giờ 29 phút
+a_team_building — Team building
+a_nhau_voi_sep — Nhậu với sếp
+a_cat_luong — Email cắt lương
+a_nhay_viec — Lời mời nhảy việc
+a_kpi — KPI 62%
+a_hop_nua_dem — Họp online lúc nửa đêm
+a_sep_tre — Sếp mới kém tuổi
+a_gop_tien_qua — Góp tiền mua quà sếp
+a_shipper_bom_hang — Nồi lẩu bị bom
+a_taixe_quen_do — Chiếc túi bỏ quên
+a_bacsi_truc_dem — Ca trực 2 giờ sáng
+a_giaovien_phong_bi — Phong bì sau buổi họp
+a_laptrinh_sap_he_thong — Sập hệ thống chiều thứ Sáu
+a_streamer_anti — Hội anti-fan
+a_quan_khach_che — Khách chê mà ăn sạch
+a_congnhan_thuong_tet — Tăng ca tháng Chạp
+a_kinhdoanh_mat_bang — Mặt bằng tăng giá
+a_ket_xe — Kẹt xe giờ cao điểm
+a_ngap_nuoc — Phố thành sông
+a_mat_xe — Hai phút định mệnh
+a_csgt — Bị thổi phạt
+a_giao_nham — Giao nhầm hàng
+a_cuoc_goi_lua_dao — Cuộc gọi lạ
+a_tien_dien — Hóa đơn tháng Sáu
+a_karaoke_hang_xom — Karaoke xuyên đêm
+a_chuyen_tro — Chuyển nhà trọ
+a_tai_nan_giup — Người ngã giữa đường
+a_hen_ho_app — Gặp mặt người quen qua app
+a_nguoi_yeu_cu — Tin nhắn lúc 11 giờ đêm
+a_ghen_tuong — Ghen
+a_ra_mat — Ra mắt nhà người yêu
+a_me_giuc_cuoi — Mẹ giục cưới
+a_tet_ho_hang_hoi — Câu hỏi ngày Tết
+a_dam_cuoi_ban — Thiệp hồng
+a_cai_nhau_tien — Khoản “linh tinh”
+a_quen_ky_niem — Hôm nay là ngày gì?
+a_crush_dong_nghiep — Ly cà phê thứ hai
+a_chia_viec_nha — Ai rửa bát?
+a_giang_sinh — Đêm Giáng sinh
+a_con_sot_dem — Con sốt lúc 2 giờ sáng
+a_chon_mam_non — Chọn trường mầm non
+a_hop_phu_huynh — Họp phụ huynh
+a_ong_ba_chieu_chau — Bà chiều cháu
+a_con_doi_dien_thoai — Con đòi điện thoại
+a_trung_thu_long_den — Lồng đèn ông sao
+a_gui_tien_ve_que — Mái nhà dột
+a_em_vay_tien — Lần thứ tư trong năm
+a_bo_nam_vien — Bố nằm viện
+a_da_cap — Cơ hội làm giàu
+a_tien_ao — Đồng xu thần kỳ
+a_ban_vay_tien — Bạn hỏi vay tiền
+a_choi_hui — Chơi hụi
+a_vang_tang_gia — Vàng lại lập đỉnh
+a_mo_quan_cafe — Giấc mơ quán cà phê
+a_livestream_ban_hang — Lên sóng chốt đơn
+a_ve_so — Tờ vé số cuối cùng
+a_burnout — Kiệt sức
+a_dau_da_day — Cơn đau lúc nửa đêm
+a_khung_hoang_30 — Ba mươi
+a_du_lich_mot_minh — Đi một mình
+a_meo_hien_nha — Mèo con dưới mái hiên
+a_the_gym — Thẻ tập một năm
+a_tu_thien_mien_trung — Hướng về miền Trung
+a_hien_mau — Giọt máu hồng
+a_clip_te_nga — Cú ngã triệu view
+a_thay_boi_go_da — Ông thầy dưới gốc đa
+a_ga_trong_hang_xom — Con gà trống 3 giờ sáng
+a_ve_xe_tet — Vé xe ngày 27 Tết
+a_mua_nha_tra_gop — Căn hộ trả góp 25 năm
+m_midlife_crisis — Khủng hoảng tuổi 40
+m_teen_rebel — Con tuổi nổi loạn
+m_child_crush — Con yêu sớm
+m_child_motorbike — Con đòi xe máy
+m_child_uni_exam — Mùa thi của con
+m_reunion20 — Họp lớp 20 năm
+m_friend_loan — Bạn cũ hỏi vay tiền
+m_young_boss — Sếp mới kém mười lăm tuổi
+m_early_layoff — Nghỉ việc sớm
+m_mother_frail — Mẹ già yếu
+m_father_hospital — Bố nhập viện
+m_land_dispute — Mảnh đất hương hỏa
+m_health_check — Khám sức khỏe định kỳ
+m_buy_hometown_land — Mua đất về quê
+m_anniversary20 — Hai mươi năm ngày cưới
+m_in_laws — Gặp mặt thông gia
+m_gray_hair — Tóc bạc
+m_family_chat — Nhóm chat đại gia đình
+m_side_hustle — Bán hàng online buổi tối
+m_wedding_season — Mùa cưới
+m_insurance_relative — Người quen bán bảo hiểm
+m_parent_meeting — Họp phụ huynh
+m_spouse_snore — Tiếng ngáy như sấm
+m_badminton_club — Hội cầu lông 5 giờ sáng
+m_child_work_abroad — Con đi làm nước ngoài
+m_noisy_neighbor — Hàng xóm hát karaoke
+m_storm — Bão về
+m_tet_reunion — Tết đoàn viên
+m_charity_flood — Hướng về miền Trung
+m_death_anniversary — Đám giỗ họ
+m_grave_sweeping — Tảo mộ tiết Thanh minh
+m_retire_bored — Rảnh đến phát ốm
+m_park_exercise — Thể dục buổi sáng
+m_chinese_chess — Ván cờ tướng vỉa hè
+m_full_moon_temple — Đi chùa ngày rằm
+m_songbird — Chú chim chào mào
+m_balcony_garden — Vườn rau ban công
+m_babysit_grandchild — Trông cháu
+m_smartphone_lesson — Cháu dạy dùng điện thoại
+m_video_call — Cuộc gọi từ phương xa
+m_child_study_abroad — Con muốn đi du học
+m_supplement_scam — Hội thảo tặng quà
+m_elder_club — Hội người cao tuổi
+m_old_friend_passes — Chiếc ghế trống
+m_write_will — Viết di chúc
+m_back_pain — Cái lưng biểu tình
+m_bad_eyes — Mắt kém
+m_forgetful — Hay quên
+m_bathroom_fall — Ngã trong nhà tắm
+m_longevity_party — Tiệc mừng thọ
+m_old_stories — Ngày xưa ấy
+m_hometown_visit — Về thăm quê
+m_first_love — Gặp lại mối tình đầu
+m_live_with_kids — Ở với con hay ở riêng
+m_grandchild_gaming — Cháu mê game
+m_grandchild_uni — Cháu đỗ đại học
+m_dentures — Hàm răng giả
+m_midautumn — Trung thu cùng cháu
+m_blood_pressure — Huyết áp lên xuống
+m_old_couple_walk — Tình già
+m_tea_morning — Ấm trà buổi sớm
+m_old_photos — Album ảnh cũ
+m_lottery_dream — Giấc mơ con rắn trắng
+m_viral_dance — Nổi tiếng bất đắc dĩ
+m_stray_dog — Vị khách bốn chân
+m_tv_gameshow — Lên truyền hình
+m_centenarian — Bí quyết sống lâu

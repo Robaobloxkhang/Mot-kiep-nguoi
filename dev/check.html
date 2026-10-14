@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>KN self-check</title>
+<style>
+  body { font: 13px/1.45 ui-monospace, Consolas, monospace; background: #10131f; color: #e8e6df; margin: 0; padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  .ok { color: #39cf98; } .bad { color: #ff6b6b; } .warn { color: #ffcf4d; } .dim { color: #8d8ba3; }
+  pre { white-space: pre-wrap; margin: 0; }
+  #stage { width: 480px; height: 300px; position: relative; border: 1px solid #333; margin: 8px 0; }
+  section { border-top: 1px solid #2a2f48; padding: 6px 0; }
+</style>
+</head>
+<body>
+<h1>Một Kiếp Người — self-check <span class="dim">(?only=events,env,chars,fx,game,world · &years=100 · &lives=3)</span></h1>
+<div id="stage"></div>
+<div id="out"></div>
+<script>
+(function () {
+  const out = document.getElementById('out');
+  const R = (window.__KN_TEST_RESULT = { done: false, loadErrors: [], sections: {}, errors: 0, warnings: 0 });
+  const qs = new URLSearchParams(location.search);
+  const only = (qs.get('only') || 'events,env,chars,fx,game,world').split(',');
+  const YEARS = +(qs.get('years') || 110);
+  const LIVES = +(qs.get('lives') || 3);
+  function line(cls, msg) { const p = document.createElement('pre'); p.className = cls; p.textContent = msg; out.appendChild(p); }
+  function section(name) { const s = { name, errors: [], warnings: [], info: [] }; R.sections[name] = s; line('', '\n== ' + name + ' =='); return s; }
+  function err(s, msg) { s.errors.push(msg); R.errors++; line('bad', '  ✗ ' + msg); }
+  function warn(s, msg) { s.warnings.push(msg); R.warnings++; line('warn', '  ! ' + msg); }
+  function info(s, msg) { s.info.push(msg); line('dim', '  · ' + msg); }
+  function ok(msg) { line('ok', '  ✓ ' + msg); }
+
+  window.addEventListener('error', (e) => {
+    const msg = (e.filename || '').split('/').slice(-2).join('/') + ':' + e.lineno + ':' + e.colno + ' ' + e.message;
+    R.loadErrors.push(msg); line('bad', 'JS ERROR ' + msg);
+  });
+  window.addEventListener('unhandledrejection', (e) => { const m = 'Unhandled rejection: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason); R.loadErrors.push(m); line('bad', m); });
+
+  const STORY_FILES = ['love', 'school', 'crime', 'money', 'accident', 'work', 'family', 'life'].map((n) => '../js/events_story_' + n + '.js');
+  const SCRIPTS = ['https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js', '../js/kn_boot.js', '../js/data.js', '../js/events_early.js', '../js/events_adult.js', '../js/events_mature.js'].concat(STORY_FILES, [
+    '../js/characters.js', '../js/fx.js', '../js/env_core.js', '../js/env_indoor.js', '../js/env_outdoor.js', '../js/world.js', '../js/audio.js', '../js/game.js']);
+  function load(i) {
+    if (i >= SCRIPTS.length) return run();
+    const s = document.createElement('script');
+    s.src = SCRIPTS[i] + (SCRIPTS[i].startsWith('http') ? '' : '?t=' + Date.now());
+    s.onload = () => load(i + 1);
+    s.onerror = () => { R.loadErrors.push('missing/failed: ' + SCRIPTS[i]); line('bad', 'LOAD FAIL ' + SCRIPTS[i]); load(i + 1); };
+    document.body.appendChild(s);
+  }
+
+  const ANIMS = ['idle','walk','run','dance','cry','sad','talk','think','sit','sleep','eat','drink','study','type','phone','sick','crawl','lift','pray','swim','drive','cook','sing','dead','wave','cheer','jump','angry','laugh','shrug','hug','love','fall','bow','clap','point','facepalm','scared','nod','shake'];
+  const EXPRS = ['neutral','happy','sad','angry','surprised','sleepy','love','sick','scared'];
+  const LOCS = ['home','bedroom','hospital','school','office','gym','karaoke','cafe','street','market','park','beach','countryside','temple','university','wedding'];
+  const FX = ['confetti','hearts','heartbreak','money','sparkle','tears','zzz','fireworks','smoke','anger','question','exclaim','idea','sweat','music','stars','petals','bubbles','levelup','sick','steam','flash','dust'];
+  const REL_ROLES = ['mother','father','sibling','grandparent','friend','partner','spouse','child','grandchild','pet','ex'];
+  const GEN_ROLES = ['stranger','kid','baby','teacher','classmate','boss','coworker','doctor','police','vendor','neighbor','relative','crowd','thief','thug'];
+  const ROLES = REL_ROLES.concat(GEN_ROLES);
+  const REQ_KEYS = ['stage','gender','has','lacks','flag','notFlag','since','school','eduLevel','degree','job','jobId','minMoney','maxMoney','minStat','maxStat','asset','noAsset','married','minKarma','maxKarma','city','illness','cond'];
+  const EFF_KEYS = ['happy','health','smarts','looks','karma','money','moneyPct','rel','flag','unflag','addPerson','removePerson','kill','marry','divorce','baby','job','school','asset','illness','cure','die','achievement','log','followUp'];
+  const SCENE_KEYS = ['loc','time','weather','decor','anim','expr','say','npcs','fx','shot','npcFx'];
+  const OSCENE_KEYS = ['anim','expr','say','fx','shot','loc','time','weather','decor','npcAnim','npcSay','npcExpr','npcFx','npcs'];
+  const JOBS = ['phucvu','shipper','congnhan','taixe','banhang','thocattoc','daubep','laptrinh','bacsi','giaovien','ketoan','marketing','kysu','luatsu','nhabao','thietke','casi','streamer','cauthu','kinhdoanh','congchuc'];
+  const TOKEN_BASE = ['name','fullname','age','city','job','school'];
+
+  function checkTokens(s, where, str) {
+    if (typeof str !== 'string') return;
+    const re = /\{([^}]+)\}/g; let m;
+    while ((m = re.exec(str))) {
+      const t = m[1];
+      if (TOKEN_BASE.includes(t)) continue;
+      if (/^money:-?\d+$/.test(t)) continue;
+      const [role, sub] = t.split('.');
+      if (!ROLES.includes(role) || (sub && !['k', 'K', 'full'].includes(sub))) err(s, where + ' bad token {' + t + '}');
+    }
+  }
+  function checkOScene(s, where, sc) {
+    if (!sc) return;
+    Object.keys(sc).forEach((k) => { if (!OSCENE_KEYS.includes(k)) warn(s, where + ' unknown outcome-scene key ' + k); });
+    if (sc.anim && !ANIMS.includes(sc.anim)) err(s, where + ' bad anim ' + sc.anim);
+    if (sc.expr && !EXPRS.includes(sc.expr)) err(s, where + ' bad expr ' + sc.expr);
+    if (sc.loc && !LOCS.includes(sc.loc)) err(s, where + ' bad loc ' + sc.loc);
+    [].concat(sc.fx || []).forEach((f) => { if (!FX.includes(f)) err(s, where + ' bad fx ' + f); });
+    ['npcAnim', 'npcSay', 'npcExpr', 'npcFx'].forEach((k) => { if (sc[k]) Object.keys(sc[k]).forEach((r) => { if (r !== 'all' && !ROLES.includes(r)) err(s, where + ' ' + k + ' bad role ' + r); }); });
+    if (sc.npcAnim) Object.values(sc.npcAnim).forEach((a) => { if (!ANIMS.includes(a)) err(s, where + ' npcAnim bad anim ' + a); });
+    if (sc.npcFx) Object.values(sc.npcFx).forEach((a) => { if (!FX.includes(a)) err(s, where + ' npcFx bad fx ' + a); });
+    if (sc.say) checkTokens(s, where + '.say', sc.say);
+    if (sc.npcSay) Object.values(sc.npcSay).forEach((t) => checkTokens(s, where + '.npcSay', t));
+  }
+  function checkEffects(s, where, ef) {
+    if (!ef) return;
+    Object.keys(ef).forEach((k) => { if (!EFF_KEYS.includes(k)) err(s, where + ' unknown effect ' + k); });
+    if (ef.rel) Object.keys(ef.rel).forEach((r) => { if (r !== 'all' && !REL_ROLES.includes(r)) err(s, where + ' rel bad role ' + r); });
+    if (ef.job && typeof ef.job === 'object' && ef.job.hire && !JOBS.includes(ef.job.hire)) err(s, where + ' hire unknown job ' + ef.job.hire);
+  }
+
+  function testEvents() {
+    const s = section('events');
+    const E = window.KN && KN.EVENTS;
+    if (!Array.isArray(E)) return err(s, 'KN.EVENTS missing');
+    const ids = new Set();
+    const byFile = { c_: 0, a_: 0, m_: 0, s_: 0 };
+    // story-chain bookkeeping: flags set/read, follow-up targets
+    const flagsSet = new Set(), flagsRead = [], fuTargets = [], fuIds = new Set();
+    const eachEff = (ev, fn) => (ev.choices || []).forEach((c) => { if (c.effects) fn(c.effects, c); (c.outcomes || []).forEach((o) => { if (o.effects) fn(o.effects, o); if (o.followUp) fn({ followUp: o.followUp }, o); }); if (c.followUp) fn({ followUp: c.followUp }, c); });
+    const readReq = (q, w) => { if (!q) return; [].concat(q.flag || []).forEach((f) => flagsRead.push([f, w])); Object.keys(q.since || {}).forEach((f) => flagsRead.push([f, w])); };
+    E.forEach((ev) => {
+      if (!ev || !ev.id) return;
+      readReq(ev.req, ev.id); (ev.choices || []).forEach((c) => readReq(c.req, ev.id));
+      eachEff(ev, (ef) => { [].concat(ef.flag || []).forEach((f) => flagsSet.add(f)); if (ef.followUp) { fuTargets.push([ef.followUp.id, ev.id]); fuIds.add(ef.followUp.id); } });
+    });
+    E.forEach((ev) => {
+      if (!ev || !ev.id) return;
+      if (ev.chainOnly && !fuIds.has(ev.id)) err(s, ev.id + ' is chainOnly but no followUp leads to it');
+    });
+    const ageHist = new Array(101).fill(0);
+    E.forEach((ev, i) => {
+      const w = 'event[' + i + '] ' + (ev && ev.id);
+      if (!ev || !ev.id) return err(s, w + ' no id');
+      if (ids.has(ev.id)) err(s, w + ' duplicate id'); ids.add(ev.id);
+      const pre = ev.id.slice(0, 2); if (byFile[pre] != null) byFile[pre]++; else warn(s, w + ' id prefix');
+      if (!ev.title) err(s, w + ' no title');
+      if (!ev.text) err(s, w + ' no text');
+      if (!Array.isArray(ev.age) || ev.age.length !== 2 || ev.age[0] > ev.age[1]) err(s, w + ' bad age'); else for (let a = Math.max(0, ev.age[0]); a <= Math.min(100, ev.age[1]); a++) ageHist[a]++;
+      if (ev.req) Object.keys(ev.req).forEach((k) => { if (!REQ_KEYS.includes(k)) err(s, w + ' unknown req ' + k); });
+      if (ev.req && ev.req.jobId) [].concat(ev.req.jobId).forEach((j) => { if (!JOBS.includes(j)) err(s, w + ' req.jobId unknown ' + j); });
+      [ev.title, ev.text].forEach((t) => checkTokens(s, w, t));
+      const sc = ev.scene;
+      if (!sc) err(s, w + ' no scene');
+      else {
+        Object.keys(sc).forEach((k) => { if (!SCENE_KEYS.includes(k)) warn(s, w + ' unknown scene key ' + k); });
+        if (!LOCS.includes(sc.loc)) err(s, w + ' bad loc ' + sc.loc);
+        if (sc.anim && !ANIMS.includes(sc.anim)) err(s, w + ' bad anim ' + sc.anim);
+        if (sc.expr && !EXPRS.includes(sc.expr)) err(s, w + ' bad expr ' + sc.expr);
+        [].concat(sc.fx || []).forEach((f) => { if (!FX.includes(f)) err(s, w + ' bad fx ' + f); });
+        (sc.npcs || []).forEach((n) => {
+          if (!ROLES.includes(n.role)) err(s, w + ' npc bad role ' + n.role);
+          if (n.anim && !ANIMS.includes(n.anim)) err(s, w + ' npc bad anim ' + n.anim);
+          if (n.expr && !EXPRS.includes(n.expr)) err(s, w + ' npc bad expr ' + n.expr);
+          if (n.say) checkTokens(s, w + ' npc.say', n.say);
+        });
+        if ((sc.npcs || []).length > 4) err(s, w + ' >4 npcs');
+        if (sc.say) checkTokens(s, w + '.say', sc.say);
+      }
+      if (!Array.isArray(ev.choices) || ev.choices.length < 1 || ev.choices.length > 4) err(s, w + ' choices count');
+      (ev.choices || []).forEach((c, ci) => {
+        const cw = w + ' choice' + ci;
+        if (!c.label) err(s, cw + ' no label');
+        checkTokens(s, cw, c.label);
+        if (c.req) Object.keys(c.req).forEach((k) => { if (!REQ_KEYS.includes(k)) err(s, cw + ' unknown req ' + k); });
+        if (c.outcomes) {
+          if (!Array.isArray(c.outcomes) || !c.outcomes.length) err(s, cw + ' outcomes empty');
+          if (c.success && c.outcomes.length !== 2) err(s, cw + ' success needs exactly 2 outcomes');
+          if (c.success && !['happy', 'health', 'smarts', 'looks', 'karma', 'money'].includes(c.success.stat)) err(s, cw + ' success.stat ' + c.success.stat);
+          c.outcomes.forEach((o, oi) => { if (!o.text) err(s, cw + ' outcome' + oi + ' no text'); checkTokens(s, cw, o.text); checkEffects(s, cw + '.o' + oi, o.effects); checkOScene(s, cw + '.o' + oi, o.scene); });
+        } else {
+          if (!c.text) err(s, cw + ' no text and no outcomes');
+          checkTokens(s, cw, c.text); checkEffects(s, cw, c.effects); checkOScene(s, cw, c.scene);
+        }
+      });
+    });
+    const known = new Set(E.filter((e) => e && e.id).map((e) => e.id).concat(['ms_grade10_fail', 'ms_uni_fail', 'ms_uni', 'ms_retake', 'ms_uni_late']));
+    fuTargets.forEach(([id, from]) => { if (!known.has(id)) err(s, from + ' followUp → unknown event ' + id); });
+    const GAME_FLAGS = ['had_job', 'retake', 'retireAsked', 'marriedYear'];
+    flagsRead.forEach(([f, w]) => { if (!flagsSet.has(f) && !GAME_FLAGS.includes(f)) warn(s, w + ' reads flag "' + f + '" that no event sets'); });
+    info(s, 'total ' + E.length + ' events · early ' + byFile.c_ + ' · adult ' + byFile.a_ + ' · mature ' + byFile.m_ + ' · story ' + byFile.s_ + ' · chain links ' + fuTargets.length);
+    const thin = []; for (let a = 0; a <= 95; a++) if (ageHist[a] < 6) thin.push(a + ':' + ageHist[a]);
+    if (thin.length) warn(s, 'ages with < 6 eligible-by-age events: ' + thin.join(' '));
+    if (!s.errors.length) ok('event DSL valid');
+  }
+
+  function testEnv() {
+    const s = section('env');
+    if (!window.KN || !KN.Env) return err(s, 'KN.Env missing');
+    const list = KN.Env.list();
+    LOCS.forEach((l) => { if (!list.includes(l)) err(s, 'location not registered: ' + l); });
+    list.forEach((id) => {
+      [null, 'tet', 'funeral'].forEach((decor) => {
+        try {
+          const t0 = performance.now();
+          const inst = KN.Env.build(id, { decor });
+          const ms = performance.now() - t0;
+          if (!inst || !inst.group) return err(s, id + ' build returned nothing');
+          let meshes = 0, tris = 0;
+          inst.group.traverse((o) => { if (o.isMesh) { meshes++; const g = o.geometry; const n = g.index ? g.index.count / 3 : (g.attributes.position ? g.attributes.position.count / 3 : 0); tris += n * (o.isInstancedMesh ? o.count : 1); } });
+          const box = new THREE.Box3().setFromObject(inst.group);
+          ['day', 'night', 'dusk'].forEach((t) => inst.setTime(t));
+          for (let k = 0; k < 5; k++) inst.update(0.016, k * 0.016);
+          if (!decor) info(s, id + ': ' + meshes + ' meshes, ' + Math.round(tris / 1000) + 'k tris, ' + ms.toFixed(0) + 'ms, bounds x[' + box.min.x.toFixed(1) + ',' + box.max.x.toFixed(1) + '] y[' + box.min.y.toFixed(1) + ',' + box.max.y.toFixed(1) + '] z[' + box.min.z.toFixed(1) + ',' + box.max.z.toFixed(1) + ']');
+          if (meshes > 260) warn(s, id + ' many meshes: ' + meshes);
+          if (box.max.x > 6.5 || box.min.x < -6.5 || box.max.z > 6.5 || box.min.z < -6.5) warn(s, id + ' exceeds footprint');
+          if (!inst.playerSpot || !inst.npcSpots || inst.npcSpots.length < 4) err(s, id + ' spots missing');
+          inst.dispose();
+        } catch (e) { err(s, id + ' (' + decor + ') threw: ' + (e.stack || e)); }
+      });
+    });
+    if (!s.errors.length) ok('all environments build');
+  }
+
+  function testChars() {
+    const s = section('chars');
+    if (!window.KN || !KN.Characters) return err(s, 'KN.Characters missing');
+    const app = (KN.DATA && KN.DATA.randomAppearance) ? null : { skin: '#e6b48f', hair: '#1c1410', hairStyle: 'short', eyes: '#2a1b12', top: '#d9534f', topStyle: 'tshirt', bottom: '#2f3b52', shoes: '#222', glasses: false, beard: false, hat: null, build: 0.5, height: 0.5 };
+    const styles = ['tshirt', 'shirt', 'hoodie', 'dress', 'aodai', 'suit', 'coat', 'uniform', 'school', 'polo'];
+    const hairs = ['short', 'long', 'bun', 'ponytail', 'spiky', 'bob', 'curly', 'bald', 'buzz'];
+    const hats = [null, 'cap', 'conical', 'helmet', 'beanie'];
+    let n = 0;
+    [0, 1, 4, 8, 13, 17, 25, 40, 66, 82].forEach((age, i) => {
+      ['m', 'f'].forEach((g) => {
+        try {
+          const a = app ? Object.assign({}, app) : KN.DATA.randomAppearance(g, age);
+          a.topStyle = styles[(i + (g === 'f' ? 3 : 0)) % styles.length]; a.hairStyle = hairs[(i * 2 + (g === 'f' ? 1 : 0)) % hairs.length]; a.hat = hats[i % hats.length]; a.glasses = i % 3 === 0; a.beard = g === 'm' && i % 4 === 1;
+          const c = KN.Characters.create({ kind: 'human', appearance: a, age, gender: g, name: 'T' });
+          if (!c || !c.root) return err(s, 'create returned nothing age ' + age);
+          ANIMS.forEach((an) => { c.play(an); for (let k = 0; k < 4; k++) c.update(0.05, k * 0.05); });
+          EXPRS.forEach((e) => c.setExpression(e));
+          c.setExpression(null); c.lookAt(new THREE.Vector3(1, 1, 2)); c.lookAt(null);
+          c.setAge(age + 30); c.setAppearance(a); c.update(0.016, 1);
+          const v = c.getHeadWorldPosition(new THREE.Vector3());
+          if (!(v && isFinite(v.y))) err(s, 'getHeadWorldPosition bad');
+          if (age >= 25 && age < 60 && (c.height < 1.4 || c.height > 1.95)) warn(s, 'adult height odd: ' + c.height);
+          c.dispose(); n++;
+        } catch (e) { err(s, 'human age ' + age + ' ' + g + ' threw: ' + (e.stack || e)); }
+      });
+    });
+    ['dog', 'cat'].forEach((k) => {
+      try { const c = KN.Characters.create({ kind: k, petColor: '#c08040', age: 3 }); ANIMS.forEach((an) => { c.play(an); c.update(0.05, 0.1); }); c.dispose(); n++; }
+      catch (e) { err(s, k + ' threw: ' + (e.stack || e)); }
+    });
+    try { const c = KN.Characters.create({ kind: 'human', appearance: null, age: 30, gender: 'm' }); c.play('nonexistent_anim'); c.update(0.016, 0); c.dispose(); } catch (e) { err(s, 'fail-soft (null appearance / bad anim) threw: ' + e); }
+    info(s, n + ' characters exercised with all ' + ANIMS.length + ' anims');
+    if (!s.errors.length) ok('characters ok');
+  }
+
+  function testFx() {
+    const s = section('fx');
+    if (!window.KN || !KN.FX) return err(s, 'KN.FX missing');
+    try {
+      const scene = new THREE.Scene(); const cam = new THREE.PerspectiveCamera(35, 1.5, 0.1, 100);
+      const fx = KN.FX.create(scene, cam);
+      FX.forEach((f) => fx.spawn(f, new THREE.Vector3(0, 1.8, 0)));
+      fx.spawn('nope', new THREE.Vector3());
+      for (let k = 0; k < 400; k++) fx.update(0.016);
+      fx.clear(); fx.dispose && fx.dispose();
+      ok('fx ok');
+    } catch (e) { err(s, 'fx threw: ' + (e.stack || e)); }
+  }
+
+  function validScene(s, where, sc) {
+    if (!sc) return;
+    if (!LOCS.includes(sc.loc)) err(s, where + ' scene.loc ' + sc.loc);
+    if (!sc.player || !sc.player.appearance) err(s, where + ' scene.player missing/appearance');
+    else if (sc.player.anim && !ANIMS.includes(sc.player.anim)) err(s, where + ' player anim ' + sc.player.anim);
+    (sc.npcs || []).forEach((n) => {
+      if (!n.id) err(s, where + ' npc without id');
+      if ((n.kind || 'human') === 'human' && !n.appearance) err(s, where + ' human npc without appearance (' + n.name + ')');
+      if (n.anim && !ANIMS.includes(n.anim)) err(s, where + ' npc anim ' + n.anim);
+    });
+    if ((sc.npcs || []).length > 4) err(s, where + ' >4 npcs');
+    const unresolved = JSON.stringify(sc).match(/\{[a-z_]+(\.[kK]|\.full)?\}/g);
+    if (unresolved) err(s, where + ' unresolved tokens in scene ' + unresolved.join(','));
+  }
+  function checkResult(s, where, r) {
+    if (!r || typeof r !== 'object') return err(s, where + ' returned ' + r);
+    if (r.ok === false) return;
+    if (typeof r.text !== 'string') err(s, where + ' result.text missing');
+    const toks = (r.text || '').match(/\{[^}]+\}/g); if (toks) err(s, where + ' unresolved tokens: ' + toks.join(',') + ' in "' + r.text.slice(0, 80) + '"');
+    validScene(s, where, r.scene);
+  }
+
+  function testGame() {
+    const s = section('game');
+    if (!window.KN || !KN.Game) return err(s, 'KN.Game missing');
+    const G = KN.Game;
+    const seenEvents = new Map();
+    let deaths = [], totalYears = 0;
+    for (let life = 0; life < LIVES; life++) {
+      let r;
+      try { r = G.newLife(life === 1 ? { gender: 'f', firstName: 'Lan', city: 'hcm' } : {}); checkResult(s, 'newLife', r); }
+      catch (e) { err(s, 'newLife threw: ' + (e.stack || e)); return; }
+      for (let y = 0; y < YEARS; y++) {
+        let v;
+        try { v = G.view(); } catch (e) { err(s, 'view threw: ' + (e.stack || e)); break; }
+        if (!v.alive) break;
+        try {
+          const ar = G.ageUp(); totalYears++;
+          if (!ar || ar.ok === false) { err(s, 'ageUp refused at ' + v.age + ': ' + (ar && ar.reason)); break; }
+          validScene(s, 'ageUp@' + v.age, ar.scene);
+          (ar.logs || []).forEach((l) => { if (/\{[^}]+\}/.test(l.text)) err(s, 'unresolved token in log: ' + l.text); });
+          let guard = 0;
+          while (G.pending().length && guard++ < 12) {
+            const ev = G.pending()[0];
+            seenEvents.set(ev.id, (seenEvents.get(ev.id) || 0) + 1);
+            validScene(s, 'event ' + ev.id, ev.scene);
+            if (/\{[^}]+\}/.test(ev.text + ev.title + ev.choices.map((c) => c.label).join(''))) err(s, 'unresolved token in event ' + ev.id + ': ' + ev.text.slice(0, 90));
+            const opts = ev.choices.filter((c) => !c.disabled);
+            const pickC = opts.length ? opts[(y + guard) % opts.length] : ev.choices[0];
+            const cr = G.choose(ev.uid, pickC.index);
+            checkResult(s, 'choose ' + ev.id, cr);
+            if (cr && cr.ok === false && !opts.length) break;
+          }
+          if (G.view().alive && y % 3 === 0) {
+            const acts = G.activities().filter((a) => a.available);
+            acts.slice(0, 4).forEach((a) => { const rr = G.doActivity(a.id); checkResult(s, 'activity ' + a.id, rr); while (G.pending().length) { const ev = G.pending()[0]; G.choose(ev.uid, ev.choices.findIndex((c) => !c.disabled) >= 0 ? ev.choices.find((c) => !c.disabled).index : 0); } });
+            const vv = G.view();
+            (vv.people || []).filter((p) => p.alive).slice(0, 3).forEach((p) => { (p.actions || []).filter((a) => !a.disabled).slice(0, 2).forEach((a) => { const rr = G.interact(p.id, a.id); checkResult(s, 'interact ' + p.role + '.' + a.id, rr); while (G.pending().length) { const ev = G.pending()[0]; G.choose(ev.uid, (ev.choices.find((c) => !c.disabled) || ev.choices[0]).index); } }); });
+            if (vv.education && vv.education.actions) vv.education.actions.filter((a) => !a.disabled && a.id !== 'dropout').slice(0, 1).forEach((a) => checkResult(s, 'edu ' + a.id, G.eduAction(a.id)));
+            if (!vv.job && vv.age >= 18) { const jl = G.jobListings().filter((j) => j.eligible); if (jl.length) checkResult(s, 'applyJob', G.applyJob(jl[y % jl.length].id)); }
+            if (vv.job && vv.job.actions) vv.job.actions.filter((a) => !a.disabled && a.id === 'workhard').forEach((a) => checkResult(s, 'job ' + a.id, G.jobAction(a.id)));
+            const shop = G.shopItems().filter((it) => it.affordable && !it.owned);
+            if (shop.length && y % 9 === 0) checkResult(s, 'buy', G.buy(shop[0].id));
+            while (G.pending().length) { const ev = G.pending()[0]; G.choose(ev.uid, (ev.choices.find((c) => !c.disabled) || ev.choices[0]).index); }
+          }
+        } catch (e) { err(s, 'year ' + y + ' threw: ' + (e.stack || e)); break; }
+      }
+      try {
+        const v = G.view();
+        if (!v.alive) {
+          const d = G.deathInfo(); deaths.push(d.age + ' (' + d.cause + ', score ' + d.score + ', ' + d.rank + ')');
+          validScene(s, 'deathScene', G.deathScene());
+          if (life === 0 && d.heirs && d.heirs.length) { const cr = G.continueAs(d.heirs[0].id); checkResult(s, 'continueAs', cr); }
+        } else warn(s, 'life ' + life + ' still alive after ' + YEARS + ' years at age ' + v.age);
+      } catch (e) { err(s, 'death flow threw: ' + (e.stack || e)); }
+    }
+    try { for (let n = 0; n < 20; n++) validScene(s, 'demoScene' + n, G.demoScene(n)); } catch (e) { err(s, 'demoScene threw: ' + e); }
+    try { const m = G.meta(); info(s, 'meta lives ' + (m.lives || []).length + ', best ' + m.bestScore); } catch (e) { err(s, 'meta threw ' + e); }
+    info(s, 'years simulated ' + totalYears + ' · deaths at: ' + deaths.join(' | '));
+    info(s, 'distinct events seen: ' + seenEvents.size + ' / ' + ((window.KN && KN.EVENTS) || []).length);
+    R.sections.game.seen = Array.from(seenEvents.keys());
+    if (!s.errors.length) ok('game loop ok');
+  }
+
+  async function testWorld() {
+    const s = section('world');
+    if (!window.KN || !KN.World) return err(s, 'KN.World missing');
+    try {
+      const okInit = KN.World.init(document.getElementById('stage'));
+      if (!okInit) { warn(s, 'World.init returned false (no WebGL?)'); return; }
+      const sc = (KN.Game && KN.Game.hasLife && KN.Game.hasLife()) ? KN.Game.currentScene() : (KN.Game ? KN.Game.demoScene(0) : null);
+      if (sc) await Promise.race([KN.World.playScene(sc), new Promise((r) => setTimeout(r, 4000))]);
+      for (let n = 1; n < 6 && KN.Game; n++) await Promise.race([KN.World.playScene(KN.Game.demoScene(n)), new Promise((r) => setTimeout(r, 4000))]);
+      const p = KN.World.screenPos('player'); info(s, 'screenPos(player) ' + JSON.stringify(p));
+      ['wide', 'close', 'low', 'top', 'dramatic', 'orbit'].forEach((sh) => KN.World.shot(sh));
+      KN.World.setAmbience({ time: 'night', weather: 'rain' }); KN.World.setAmbience({ time: 'day', weather: 'clear' });
+      ok('world ran scenes');
+    } catch (e) { err(s, 'world threw: ' + (e.stack || e)); }
+  }
+
+  async function run() {
+    line('', 'scripts loaded; KN keys: ' + Object.keys(window.KN || {}).join(', '));
+    const steps = { events: testEvents, env: testEnv, chars: testChars, fx: testFx, game: testGame, world: testWorld };
+    for (const k of only) { if (steps[k]) { try { await steps[k](); } catch (e) { line('bad', k + ' crashed ' + (e.stack || e)); R.errors++; } } }
+    R.done = true;
+    line(R.errors || R.loadErrors.length ? 'bad' : 'ok', '\nDONE — errors: ' + R.errors + ', load errors: ' + R.loadErrors.length + ', warnings: ' + R.warnings);
+    document.title = 'KN check: ' + (R.errors + R.loadErrors.length) + ' errors';
+  }
+  load(0);
+})();
+</script>
+</body>
+</html>

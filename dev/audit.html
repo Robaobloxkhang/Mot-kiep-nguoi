@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>KN spot audit</title>
+<style>body{font:12.5px/1.45 ui-monospace,Consolas,monospace;background:#10131f;color:#e8e6df;margin:0;padding:14px}.bad{color:#ff6b6b}.warn{color:#ffcf4d}.ok{color:#39cf98}.dim{color:#8d8ba3}pre{margin:0;white-space:pre-wrap}</style>
+</head><body><h3>Spot / collision audit <span class="dim">(?loc=home,street · &decor=tet)</span></h3><div id="out"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="../js/kn_boot.js"></script>
+<script src="../js/characters.js"></script>
+<script src="../js/env_core.js"></script>
+<script src="../js/env_indoor.js"></script>
+<script src="../js/env_outdoor.js"></script>
+<script>
+(function () {
+  const out = document.getElementById('out');
+  const line = (cls, s) => { const p = document.createElement('pre'); p.className = cls; p.textContent = s; out.appendChild(p); };
+  const qs = new URLSearchParams(location.search);
+  const LOCS = (qs.get('loc') || KN.Env.list().join(',')).split(',');
+  const DECORS = (qs.get('decor') || ',tet,birthday,funeral,midautumn').split(',').map((d) => d || null);
+  const R = 0.24, TOP = 1.6, FLOOR = 0.08;
+  const f = (v) => v.toFixed(2);
+  function obstacles(group) {
+    group.updateMatrixWorld(true);
+    const list = [];
+    const m4 = new THREE.Matrix4(), bb = new THREE.Box3();
+    group.traverse((o) => {
+      if (!o.isMesh || !o.visible) return;
+      const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (mat && (mat.blending === THREE.AdditiveBlending || (mat.transparent && mat.opacity < 0.6))) return;
+      const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
+      const push = (box) => {
+        const sx = box.max.x - box.min.x, sz = box.max.z - box.min.z, sy = box.max.y - box.min.y;
+        if (box.max.y < 0.15 && sy < 0.12) return;          // floor decals, rugs
+        if (box.min.y > 1.85) return;                         // overhead lamps, wires, roofs
+        if (sx * sz > 30) return;                             // slab / ground
+        if (box.max.y < FLOOR || box.min.y > TOP) return;
+        list.push({ box: box.clone(), name: o.name || (o.isInstancedMesh ? 'inst:' : '') + g.type.replace('Geometry', '') + (o.parent && o.parent.name ? '<' + o.parent.name : '') });
+      };
+      if (o.isInstancedMesh) { for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m4); m4.premultiply(o.matrixWorld); push(bb.copy(g.boundingBox).applyMatrix4(m4)); } }
+      else push(bb.copy(g.boundingBox).applyMatrix4(o.matrixWorld));
+    });
+    return list;
+  }
+  function hitsAt(obs, x, z, r) {
+    return obs.filter((o) => x > o.box.min.x - r && x < o.box.max.x + r && z > o.box.min.z - r && z < o.box.max.z + r);
+  }
+  const report = {};
+  const ray = new THREE.Raycaster();
+  LOCS.forEach((loc) => {
+    DECORS.forEach((decor) => {
+      let inst; try { inst = KN.Env.build(loc, { decor }); } catch (e) { line('bad', loc + ' build error ' + e.message); return; }
+      const obs = obstacles(inst.group);
+      const key = loc + (decor ? '+' + decor : '');
+      const issues = [];
+      const spots = [['player', inst.playerSpot]].concat(inst.npcSpots.slice(0, 4).map((s, i) => ['npc' + i, s]));
+      spots.forEach(([nm, s]) => {
+        const [x, , z] = s.pos;
+        if (Math.abs(x) > 4.6 || Math.abs(z) > 4.6) issues.push(nm + ' off slab (' + f(x) + ',' + f(z) + ')');
+        const h = hitsAt(obs, x, z, R);
+        h.slice(0, 4).forEach((o) => issues.push(nm + ' (' + f(x) + ',' + f(z) + ') inside ' + o.name + ' x[' + f(o.box.min.x) + ',' + f(o.box.max.x) + '] y[' + f(o.box.min.y) + ',' + f(o.box.max.y) + '] z[' + f(o.box.min.z) + ',' + f(o.box.max.z) + ']'));
+        // seated pose: stool + thighs toward local +Z (~0.55 m in front of the root)
+        const fx = x + Math.sin(s.rotY || 0) * 0.45, fz = z + Math.cos(s.rotY || 0) * 0.45;
+        const hs = hitsAt(obs, fx, fz, 0.16).filter((o) => o.box.min.y < 0.7);
+        if (hs.length && !h.length) issues.push(nm + ' seated knees hit ' + hs[0].name);
+      });
+      for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) {
+        const a = spots[i][1].pos, b = spots[j][1].pos, d = Math.hypot(a[0] - b[0], a[2] - b[2]);
+        if (d < 0.62) issues.push(spots[i][0] + '↔' + spots[j][0] + ' too close ' + f(d));
+      }
+      // player lying on the floor (no bed anchor): body spans ±0.9 m along local X
+      if (!(inst.anchors && inst.anchors.bed)) {
+        const p = inst.playerSpot.pos, ry = inst.playerSpot.rotY || 0;
+        [-0.85, 0.85].forEach((t) => { const lx = p[0] + Math.cos(ry) * t, lz = p[2] - Math.sin(ry) * t; const h = hitsAt(obs, lx, lz, 0.18).filter((o) => o.box.min.y < 0.4); if (h.length) issues.push('player lying end (' + f(lx) + ',' + f(lz) + ') hits ' + h[0].name); });
+        spots.slice(1).forEach(([nm, s]) => { [-0.85, 0, 0.85].forEach((t) => { const lx = p[0] + Math.cos(ry) * t, lz = p[2] - Math.sin(ry) * t; if (Math.hypot(lx - s.pos[0], lz - s.pos[2]) < 0.4) issues.push('player lying overlaps ' + nm); }); });
+      }
+      // camera line of sight (wide shot) to each head
+      const cam = (inst.camera && inst.camera.wide) || { pos: [7, 5.9, 10.3] };
+      const meshes = []; inst.group.traverse((o) => { if (o.isMesh && o.visible) meshes.push(o); });
+      spots.forEach(([nm, s]) => {
+        const from = new THREE.Vector3().fromArray(cam.pos), to = new THREE.Vector3(s.pos[0], 1.35, s.pos[2]);
+        const dir = to.clone().sub(from); const dist = dir.length(); ray.set(from, dir.normalize()); ray.far = dist - 0.45;
+        const hit = ray.intersectObjects(meshes, false).find((h) => { const m = Array.isArray(h.object.material) ? h.object.material[0] : h.object.material; return !(m && (m.transparent && m.opacity < 0.6)) && h.object.geometry.type !== 'PlaneGeometry'; });
+        if (hit) issues.push(nm + ' head hidden from wide camera by ' + (hit.object.name || hit.object.geometry.type) + ' at (' + f(hit.point.x) + ',' + f(hit.point.y) + ',' + f(hit.point.z) + ')');
+      });
+      report[key] = { spots: spots.map(([nm, s]) => nm + '(' + s.pos.map(f).join(',') + ' r' + f(s.rotY || 0) + ')'), anchors: inst.anchors || {}, issues };
+      line(issues.length ? 'warn' : 'ok', key + ': ' + (issues.length ? issues.length + ' issue(s)' : 'ok'));
+      issues.forEach((s) => line('dim', '   ' + s));
+      inst.dispose();
+    });
+  });
+  window.__AUDIT = report;
+  window.__AUDIT_DONE = true;
+})();
+</script>
+</body></html>

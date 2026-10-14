@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>KN view</title>
+<style>html,body{margin:0;height:100%;background:#111}#s{position:absolute;inset:0}#i{position:absolute;left:8px;top:8px;color:#fff;font:12px monospace;background:#0008;padding:4px 8px}</style>
+</head><body><div id="s"></div><div id="i"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="../js/kn_boot.js"></script>
+<script src="../js/characters.js"></script>
+<script src="../js/fx.js"></script>
+<script src="../js/env_core.js"></script>
+<script src="../js/env_indoor.js"></script>
+<script src="../js/env_outdoor.js"></script>
+<script src="../js/world.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const A = (o) => Object.assign({ skin: '#e6b48f', hair: '#1c1410', hairStyle: 'short', eyes: '#2a1b12', top: '#d9534f', topStyle: 'tshirt', bottom: '#2f3b52', shoes: '#2b2b2b', glasses: false, beard: false, hat: null, build: 0.5, height: 0.5 }, o);
+KN.World.init(document.getElementById('s'));
+window.show = (loc, o = {}) => KN.World.playScene({
+  loc, decor: o.decor || null, time: o.time || 'day', weather: o.weather || 'clear', shot: o.shot || 'wide',
+  player: { id: 'player', name: 'Minh', age: +(o.age ?? 24), gender: 'm', anim: o.anim || 'idle', appearance: A({ topStyle: o.style || 'shirt', top: '#2d6cdf', hat: o.hat || null }) },
+  npcs: (o.n ?? 3) ? [
+    { id: 'a', name: 'Lan', age: 50, gender: 'f', anim: o.na || 'talk', appearance: A({ hairStyle: 'bun', topStyle: 'aodai', top: '#c62828', bottom: '#fafafa', skin: '#eac0a0' }) },
+    { id: 'b', name: 'Bé', age: 6, gender: 'f', anim: 'wave', appearance: A({ hairStyle: 'ponytail', topStyle: 'school', top: '#fff', skin: '#f0c8a8' }) },
+    { id: 'c', name: 'Ông', age: 80, gender: 'm', anim: 'idle', appearance: A({ hairStyle: 'short', topStyle: 'polo', top: '#7a8f6a', glasses: true, beard: true }) },
+    { id: 'd', name: 'Mực', kind: 'dog', age: 3, petColor: '#c08040', anim: 'idle' },
+  ].slice(0, +(o.n ?? 3)) : [],
+  fx: o.fx || null,
+});
+show(q.get('loc') || 'home', Object.fromEntries(q));
+setInterval(() => { document.getElementById('i').textContent = JSON.stringify(KN.World.debug()); }, 500);
+</script>
+</body></html>
