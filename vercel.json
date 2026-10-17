@@ -1,0 +1,1 @@
+{"buildCommand":"","installCommand":"","outputDirectory":"dist","headers":[{"source":"/(index.html|version.json|sw.js|manifest.webmanifest)?","headers":[{"key":"Cache-Control","value":"no-cache, must-revalidate"}]},{"source":"/version.json","headers":[{"key":"Cache-Control","value":"no-store"}]}]}
