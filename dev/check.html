@@ -37,9 +37,10 @@
   });
   window.addEventListener('unhandledrejection', (e) => { const m = 'Unhandled rejection: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason); R.loadErrors.push(m); line('bad', m); });
 
-  const STORY_FILES = ['love', 'school', 'crime', 'money', 'accident', 'work', 'family', 'life'].map((n) => '../js/events_story_' + n + '.js');
+  const STORY_FILES = ['love', 'crime', 'money', 'accident', 'family', 'school', 'work', 'life', 'parenting', 'football', 'society', 'action', 'romance', 'era', 'giangho', 'study', 'twist'].map((n) => '../js/events_story_' + n + '.js')
+    .concat(['sport', 'star', 'office', 'service'].map((n) => '../js/events_career_' + n + '.js'), ['../js/events_global.js']);
   const SCRIPTS = ['https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js', '../js/kn_boot.js', '../js/data.js', '../js/events_early.js', '../js/events_adult.js', '../js/events_mature.js'].concat(STORY_FILES, [
-    '../js/characters.js', '../js/fx.js', '../js/env_core.js', '../js/env_indoor.js', '../js/env_outdoor.js', '../js/world.js', '../js/audio.js', '../js/game.js']);
+    '../js/characters.js', '../js/fx.js', '../js/env_core.js', '../js/env_indoor.js', '../js/env_outdoor.js', '../js/env_sport.js', '../js/world.js', '../js/audio.js', '../js/jobs_tasks.js', '../js/game.js']);
   function load(i) {
     if (i >= SCRIPTS.length) return run();
     const s = document.createElement('script');
@@ -49,18 +50,18 @@
     document.body.appendChild(s);
   }
 
-  const ANIMS = ['idle','walk','run','dance','cry','sad','talk','think','sit','sleep','eat','drink','study','type','phone','sick','crawl','lift','pray','swim','drive','cook','sing','dead','wave','cheer','jump','angry','laugh','shrug','hug','love','fall','bow','clap','point','facepalm','scared','nod','shake'];
+  const ANIMS = ['idle','walk','run','dance','cry','sad','talk','think','sit','sleep','eat','drink','study','type','phone','sick','crawl','lift','pray','swim','drive','cook','sing','dead','wave','cheer','jump','angry','laugh','shrug','hug','love','fall','bow','clap','point','facepalm','scared','nod','shake','kick','dribble','swing','gamepad','guitar','box'];
   const EXPRS = ['neutral','happy','sad','angry','surprised','sleepy','love','sick','scared'];
-  const LOCS = ['home','bedroom','hospital','school','office','gym','karaoke','cafe','street','market','park','beach','countryside','temple','university','wedding'];
+  const LOCS = ['home','bedroom','hospital','school','office','gym','karaoke','cafe','street','market','park','beach','countryside','temple','university','wedding','stadium','court','ring','airport','studio'];
   const FX = ['confetti','hearts','heartbreak','money','sparkle','tears','zzz','fireworks','smoke','anger','question','exclaim','idea','sweat','music','stars','petals','bubbles','levelup','sick','steam','flash','dust'];
-  const REL_ROLES = ['mother','father','sibling','grandparent','friend','partner','spouse','child','grandchild','pet','ex'];
+  const REL_ROLES = ['mother','father','sibling','grandparent','friend','partner','spouse','child','grandchild','pet','ex','lover'];
   const GEN_ROLES = ['stranger','kid','baby','teacher','classmate','boss','coworker','doctor','police','vendor','neighbor','relative','crowd','thief','thug'];
   const ROLES = REL_ROLES.concat(GEN_ROLES);
-  const REQ_KEYS = ['stage','gender','has','lacks','flag','notFlag','since','school','eduLevel','degree','job','jobId','minMoney','maxMoney','minStat','maxStat','asset','noAsset','married','minKarma','maxKarma','city','illness','cond'];
-  const EFF_KEYS = ['happy','health','smarts','looks','karma','money','moneyPct','rel','flag','unflag','addPerson','removePerson','kill','marry','divorce','baby','job','school','asset','illness','cure','die','achievement','log','followUp'];
+  const REQ_KEYS = ['stage','gender','has','lacks','flag','notFlag','since','school','eduLevel','degree','job','jobId','minMoney','maxMoney','minStat','maxStat','asset','noAsset','married','minKarma','maxKarma','city','illness','cond','minEnglish','minFollowers','abroad','minYear','maxYear','jail'];
+  const EFF_KEYS = ['happy','health','smarts','looks','karma','money','moneyPct','rel','flag','unflag','addPerson','removePerson','kill','marry','divorce','baby','job','school','asset','illness','cure','die','achievement','log','followUp','english','followers','abroad','perf','jail','jailReason'];
   const SCENE_KEYS = ['loc','time','weather','decor','anim','expr','say','npcs','fx','shot','npcFx'];
   const OSCENE_KEYS = ['anim','expr','say','fx','shot','loc','time','weather','decor','npcAnim','npcSay','npcExpr','npcFx','npcs'];
-  const JOBS = ['phucvu','shipper','congnhan','taixe','banhang','thocattoc','daubep','laptrinh','bacsi','giaovien','ketoan','marketing','kysu','luatsu','nhabao','thietke','casi','streamer','cauthu','kinhdoanh','congchuc'];
+  const JOBS = ['phucvu','shipper','congnhan','taixe','banhang','thocattoc','daubep','laptrinh','bacsi','giaovien','ketoan','marketing','kysu','luatsu','nhabao','thietke','casi','streamer','cauthu','kinhdoanh','congchuc','phiendich','nganhang','kientrucsu','duocsi','dieuduong','huongdanvien','canhsat','kysunn','vdv_vo','caulong','esports','hlv','dienvien','nguoimau','tiepvien','phicong','cuuhoa','khoahoc','nongdan','bongro','chinhtri','boi','dienkinh','bongchuyen','hoasi','nhaccong','giangho'];
   const TOKEN_BASE = ['name','fullname','age','city','job','school'];
 
   function checkTokens(s, where, str) {
@@ -151,7 +152,7 @@
         if (c.outcomes) {
           if (!Array.isArray(c.outcomes) || !c.outcomes.length) err(s, cw + ' outcomes empty');
           if (c.success && c.outcomes.length !== 2) err(s, cw + ' success needs exactly 2 outcomes');
-          if (c.success && !['happy', 'health', 'smarts', 'looks', 'karma', 'money'].includes(c.success.stat)) err(s, cw + ' success.stat ' + c.success.stat);
+          if (c.success && !['happy', 'health', 'smarts', 'looks', 'karma', 'money', 'english'].includes(c.success.stat)) err(s, cw + ' success.stat ' + c.success.stat);
           c.outcomes.forEach((o, oi) => { if (!o.text) err(s, cw + ' outcome' + oi + ' no text'); checkTokens(s, cw, o.text); checkEffects(s, cw + '.o' + oi, o.effects); checkOScene(s, cw + '.o' + oi, o.scene); });
         } else {
           if (!c.text) err(s, cw + ' no text and no outcomes');

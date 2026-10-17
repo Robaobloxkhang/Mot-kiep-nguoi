@@ -50,7 +50,7 @@
             { text: 'Ba tháng sau bạn đàn trọn một bản tình ca. Cả nhà vỗ tay rần rần, con mèo cũng ngồi nghe.', effects: { happy: 10, smarts: 3, money: -3000000 }, scene: { anim: 'sing', expr: 'happy', fx: 'music' } },
             { text: 'Ngón tay sưng vù, dây đàn đứt hai lần. Cây guitar giờ thành giá treo áo đắt nhất nhà.', effects: { happy: -2, money: -3000000 }, scene: { anim: 'facepalm', fx: 'sweat' } }
           ] },
-        { label: 'Bỏ việc, đi phượt xuyên Việt', req: { job: true },
+        { label: 'Bỏ việc, đi phượt xuyên Việt', req: { job: 'any' },
           outcomes: [
             { p: 0.5, text: 'Một tháng rong ruổi từ đèo cao đến biển xanh, bạn trở về đen nhẻm nhưng thanh thản lạ. Công việc mới rồi sẽ tìm được.', effects: { job: 'fire', happy: 15, health: 3, money: -20000000 }, scene: { loc: 'countryside', time: 'day', anim: 'cheer', fx: 'sparkle', shot: 'wide' } },
             { p: 0.5, text: 'Đi được ba ngày thì đau lưng, nằm bẹp ở nhà nghỉ. Về nhà, ghế cũ ở công ty đã có người ngồi.', effects: { job: 'fire', happy: -8, health: -3, money: -8000000 }, scene: { anim: 'sick', fx: 'sweat' } }

@@ -215,7 +215,9 @@
       o = Object.assign({ top: '#8fbf6a', side: '#6b4f3a', under: '#4a3628', thickness: 0.7, edge: true }, o || {});
       const g = new THREE.Group();
       const top = H.rbox(w, 0.16, d, 0.07, o.top, { cast: false });
-      top.position.y = -0.08;
+      // mặt trên của khối bo góc phải nằm đúng y = 0 (bevel làm nó dày hơn 0.16) — nếu không sẽ che sàn phòng
+      top.geometry.computeBoundingBox();
+      top.position.y = -top.geometry.boundingBox.max.y - 0.001;
       g.add(top);
       const body = H.rbox(w - 0.04, o.thickness, d - 0.04, 0.12, o.side, { cast: false });
       body.position.y = -0.16 - o.thickness / 2 + 0.02;

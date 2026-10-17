@@ -497,7 +497,7 @@
           text: 'Bạn nắm tay {partner}: “Có video call, có vé máy bay giá rẻ, có mình.” Tuần sau, bạn tiễn người ấy ra sân bay, vẫy tay đến khi khuất bóng rồi mới cho phép mình khóc.',
           effects: { happy: 2, rel: { partner: 10 }, flag: 's_love_xa', followUp: { id: 's_love_xa_video', delay: 1 } },
           scene: { anim: 'hug', fx: 'tears', npcAnim: { partner: 'hug' } } },
-        { label: 'Bỏ việc, khăn gói đi theo người ấy', req: { job: true },
+        { label: 'Bỏ việc, khăn gói đi theo người ấy', req: { job: 'any' },
           outcomes: [
             { p: 0.5, text: 'Bạn nghỉ việc, khăn gói theo {partner} đến thành phố mới. Mất ba tháng mới tìm được việc, tiền tiết kiệm vơi dần, nhưng tối nào cũng được ăn cơm cùng nhau.',
               effects: { happy: 6, money: -15000000, job: 'fire', rel: { partner: 15 }, flag: ['s_love_xa', 's_love_xa_theo'], followUp: { id: 's_love_xa_quyet_dinh', delay: 2 } },

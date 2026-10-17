@@ -35,7 +35,12 @@ $html = @"
 <meta property="og:type" content="website">
 <meta property="og:title" content="Một Kiếp Người">
 <meta property="og:description" content="$desc">
-<link rel="icon" href="$icon">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kiếp Người">
 <style>:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 $headPart
 </head>
@@ -44,9 +49,27 @@ $bodyPart
 </body>
 </html>
 "@
+# mã bản dựng: trang tự kiểm tra version.json để báo người chơi tải lại khi có bản mới
+$build = (Get-Date).ToString('yyyyMMddHHmmss')
+$html = $html.Replace('<link rel="stylesheet" href="styles.css">', '<link rel="stylesheet" href="styles.css?v=' + $build + '">')
+$html = [regex]::Replace($html, '<script src="(js/[^"]+\.js)"></script>', { param($m) '<script src="' + $m.Groups[1].Value + '?v=' + $build + '"></script>' })
+$html = $html.Replace('</head>', "<script>window.KN_BUILD='$build'</script>`n</head>")
+# Vercel Web Analytics (bản HTML thuần, không cần npm/git): đếm lượt xem & khách truy cập
+$va = "<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>`n<script defer src=`"/_vercel/insights/script.js`"></script>`n"
+$html = $html.Replace('</head>', $va + '</head>')
 [IO.File]::WriteAllText((Join-Path $Dist 'index.html'), $html, $utf8)
+[IO.File]::WriteAllText((Join-Path $Dist 'version.json'), "{`"build`":`"$build`"}", $utf8)
+[IO.File]::WriteAllText((Join-Path $Dist 'vercel.json'), '{"headers":[{"source":"/(index.html|version.json|sw.js|manifest.webmanifest)?","headers":[{"key":"Cache-Control","value":"no-cache, must-revalidate"}]},{"source":"/version.json","headers":[{"key":"Cache-Control","value":"no-store"}]}]}', $utf8)
+# cài như app (PWA): manifest, service worker, biểu tượng
+foreach ($f in @('manifest.webmanifest', 'sw.js')) { if (Test-Path (Join-Path $Root $f)) { Copy-Item (Join-Path $Root $f) $Dist } }
+if (Test-Path (Join-Path $Root 'icons')) { New-Item -ItemType Directory -Force (Join-Path $Dist 'icons') | Out-Null; Copy-Item (Join-Path $Root 'icons\*.png') (Join-Path $Dist 'icons') }
 Copy-Item (Join-Path $Root 'styles.css') $Dist
 Copy-Item (Join-Path $Root 'js\*.js') (Join-Path $Dist 'js')
+# máy chủ phòng chơi online (Vercel Serverless Functions)
+if (Test-Path (Join-Path $Root 'api')) {
+  New-Item -ItemType Directory -Force (Join-Path $Dist 'api') | Out-Null
+  Copy-Item (Join-Path $Root 'api\*.js') (Join-Path $Dist 'api')
+}
 
 $all = Get-ChildItem -Path $Dist -Recurse -File
 $kb = [math]::Round((($all | Measure-Object Length -Sum).Sum) / 1KB)

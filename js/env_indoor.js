@@ -39,12 +39,83 @@
     g.add(H.at(H.sphere(0.13, '#3f8a3e', { seg: 8, flat: true }), x + 0.06, y - 0.12, z + 0.05));
   }
 
+  // đồ nội thất người chơi tự chọn (data.js FURNITURE) — mỗi món có chỗ đặt cố định trong phòng khách
+  function furniture(H, g, ids) {
+    const has = (id) => ids.includes(id);
+    // thảm giữa nhà
+    if (has('rug_batu') || has('rug_long')) {
+      const ba = has('rug_batu');
+      g.add(H.at(H.ground(3.2, 2.2, ba ? '#7a1f22' : '#a89276'), 0, 0.06, 0.6));
+      g.add(H.at(H.ground(3.0, 2.0, ba ? '#c9a227' : '#fbf6ec'), 0, 0.075, 0.6));
+      if (ba) g.add(H.at(H.ground(2.4, 1.4, '#8e2a2a'), 0, 0.09, 0.6));
+    }
+    // cây cảnh góc phải
+    if (has('plant_kimtien')) g.add(H.at(H.tree('potted', { leaves: '#2e8b3e', seed: 21 }), 4.2, 0, 0.8, 0, 1.0));
+    if (has('plant_bonsai')) { g.add(H.at(H.rbox(0.9, 0.3, 0.5, 0.05, '#4e342e'), 4.1, 0.15, 0.8)); g.add(H.at(H.tree('pine', { seed: 7 }), 4.1, 0.3, 0.8, 0, 0.45)); }
+    if (has('plant_dao')) { g.add(H.at(H.cyl(0.32, 0.26, 0.45, '#8e1b12', { seg: 14 }), 4.1, 0.22, 0.8)); g.add(H.at(H.tree('flower', { seed: 3 }), 4.1, 0.45, 0.8, 0, 1.4)); }
+    // đèn góc trái
+    if (has('lamp_bacau')) { g.add(H.at(H.cyl(0.18, 0.2, 0.04, '#222', { seg: 14 }), -3.6, 0.02, -2.4)); g.add(H.at(H.cyl(0.02, 0.02, 1.6, '#222', { seg: 6 }), -3.6, 0.8, -2.4)); g.add(H.at(H.cone(0.28, 0.3, H.glow('#fff1c4', { intensity: 1.6 })), -3.6, 1.7, -2.4)); H.nightLight(g, [-3.6, 1.6, -2.4], '#ffe0a8', 0.8, 4); }
+    if (has('lamp_hoian')) { [[-3.7, 2.3], [-3.2, 2.0], [-3.95, 1.85]].forEach(([x, y], i) => { g.add(H.at(H.cyl(0.004, 0.004, 3 - y, '#333', { seg: 4, cast: false }), x, (3 + y) / 2, -2.4)); g.add(H.at(H.sphere(0.16, H.glow(['#ff5252', '#ffd54f', '#ff9800'][i], { intensity: 1.6 }), { seg: 10, squash: [1, 1.25, 1] }), x, y, -2.4)); }); H.nightLight(g, [-3.6, 2.0, -2.4], '#ff9f6a', 0.9, 4); }
+    // tranh trên tường trái (trên TV)
+    const wallArt = (frame, inner, deco) => { const a = H.group(); a.add(H.at(H.box(0.04, 0.9, 1.4, frame), 0, 0, 0)); a.add(H.at(H.box(0.045, 0.78, 1.28, inner), 0.01, 0, 0)); if (deco) deco(a); a.position.set(-4.74, 2.25, 1.0); g.add(a); };
+    if (has('art_sonmai')) wallArt('#2b1a12', '#1a0f0a', (a) => { a.add(H.at(H.box(0.05, 0.3, 0.5, '#c9a227'), 0.02, 0.1, -0.2)); a.add(H.at(H.box(0.05, 0.2, 0.3, '#b3261e'), 0.02, -0.15, 0.3)); });
+    if (has('art_dongho')) wallArt('#8e1b12', '#f3e3c3', (a) => { a.add(H.at(H.sphere(0.13, '#e86f2c', { seg: 10, squash: [0.4, 1, 1.4] }), 0.03, 0, -0.25)); a.add(H.at(H.sphere(0.13, '#3f8f45', { seg: 10, squash: [0.4, 1, 1.4] }), 0.03, 0, 0.25)); });
+    if (has('art_truutuong')) wallArt('#f5f5f5', '#2d6cdf', (a) => { a.add(H.at(H.box(0.05, 0.4, 0.4, '#f2c14e'), 0.02, 0.12, -0.3)); a.add(H.at(H.box(0.05, 0.25, 0.6, '#e46aa0'), 0.02, -0.2, 0.25)); });
+    // món lớn góc phải phía trước
+    if (has('corner_aquarium')) { g.add(H.at(H.box(0.9, 0.55, 0.45, '#3e2723'), 4.0, 0.27, 2.6)); g.add(H.at(H.box(0.85, 0.5, 0.4, H.mat('#7fd3ff', { opacity: 0.45, rough: 0.1 })), 4.0, 0.8, 2.6)); ['#ff7043', '#ffd54f'].forEach((c, i) => { const f = H.at(H.sphere(0.05, c, { seg: 8, squash: [1.6, 1, 0.6] }), 3.8 + i * 0.3, 0.8, 2.6); g.add(f); H.onUpdate((dt, t) => { f.position.x = 3.8 + i * 0.3 + Math.sin(t * 0.9 + i) * 0.12; }); }); }
+    if (has('corner_ruou')) { g.add(H.at(H.box(1.0, 1.9, 0.45, '#4e342e'), 4.1, 0.95, 2.6)); g.add(H.at(H.box(0.9, 1.7, 0.02, H.mat('#cfe8ff', { opacity: 0.35 })), 4.1, 1.0, 2.38)); for (let r = 0; r < 3; r++) for (let i = 0; i < 4; i++) g.add(H.at(H.cyl(0.04, 0.04, 0.3, ['#4a148c', '#1b5e20', '#b71c1c', '#3e2723'][i], { seg: 8 }), 3.75 + i * 0.22, 0.45 + r * 0.55, 2.6)); }
+    if (has('corner_piano')) { g.add(H.at(H.box(1.4, 1.2, 0.55, '#111'), 4.0, 0.6, 2.7)); g.add(H.at(H.box(1.3, 0.05, 0.25, '#f5f5f5'), 4.0, 0.78, 2.35)); }
+    if (has('corner_tuong')) { g.add(H.at(H.cyl(0.35, 0.4, 0.5, '#5d4037', { seg: 14 }), 4.0, 0.25, 2.6)); g.add(H.at(H.sphere(0.35, '#c9a227', { seg: 14, metal: 0.4, rough: 0.4, squash: [1.1, 0.9, 1] }), 4.0, 0.75, 2.6)); g.add(H.at(H.sphere(0.2, '#c9a227', { seg: 12, metal: 0.4, rough: 0.4 }), 4.0, 1.2, 2.6)); }
+    // kệ / tủ bên trái phía trước
+    if (has('shelf_cup') || has('shelf_sach')) {
+      g.add(H.at(H.box(0.4, 1.8, 1.2, '#6d4c41'), -4.5, 0.9, 3.0));
+      [0.45, 1.0, 1.55].forEach((y, i) => {
+        if (has('shelf_sach')) { const b = books(H, 8, 30 + i); b.rotation.y = PI / 2; b.position.set(-4.45, y - 0.12, 2.55); g.add(b); }
+        else { g.add(H.at(H.cyl(0.07, 0.1, 0.22, '#ffd54f', { seg: 10, metal: 0.6, rough: 0.3 }), -4.45, y, 2.75)); g.add(H.at(H.sphere(0.08, '#ffd54f', { seg: 10, metal: 0.6, rough: 0.3 }), -4.45, y + 0.15, 3.2)); }
+      });
+    }
+    if (has('shelf_loa')) { [2.6, 3.4].forEach((z) => { g.add(H.at(H.box(0.45, 1.1, 0.45, '#1b1b1b'), -4.4, 0.55, z)); g.add(H.at(H.cyl(0.13, 0.13, 0.03, '#444', { seg: 14 }), -4.17, 0.75, z)); }); }
+  }
+
+  // đồ tự bày (chế độ trang trí 3D, js/decor.js): 'SXxSZ:k.x.z.r.w.d,...' — ô (0,0) là góc tường trái/tường sau
+  function parseDecor(s) {
+    if (!s) return null; const [sz, list] = s.split(':'); if (!list) return null;
+    const [SX, SZ] = sz.split('x').map(Number);
+    const items = list.split(',').map((x) => { const [k, a, b, r, w, d] = x.split('.'); return { k, x: +a, z: +b, r: +r, w: +w, d: +d }; }).filter((x) => x.k);
+    return items.length ? { SX, SZ, items } : null;
+  }
+  function placeDecor(g, own) {
+    if (!KN.Decor || !KN.Decor.model) return;
+    const s = Math.min(1, 9.4 / own.SX, 9.4 / own.SZ), X0 = -4.75, Z0 = -4.75;
+    own.items.forEach((it) => {
+      const m = KN.Decor.model(it.k, it.w, it.d); if (!m) return;
+      const w = it.r % 2 ? it.d : it.w, d = it.r % 2 ? it.w : it.d;
+      m.position.set(X0 + (it.x + w / 2) * s, it.k === 'thamtrai' ? 0.05 : 0.04, Z0 + (it.z + d / 2) * s); m.rotation.y = -it.r * Math.PI / 2; m.scale.setScalar(s);
+      g.add(m);
+    });
+  }
   // 1. HOME — phòng khách nhà ống ----------------------------------------------
   KN.Env.register('home', { name: 'Nhà', indoor: true, sky: ['#9ccbe8', '#fde9cf'] }, function (H, opts) {
     const g = H.group();
-    g.add(H.slab(10, 10, { top: '#cdb89a', side: '#7a5a42', under: '#5b4231' }));
-    g.add(H.room({ floor: '#ece0c8', wall: '#f4e3bd', wallSide: '#efd9ab', trim: '#8a5a3a', floorPattern: 'tile', windowSide: true }));
+    // mức nhà theo tài sản: tro (phòng trọ) · nha (nhà ống của bố mẹ) · canho · nhapho · bietthu · penthouse
+    // tier có thể kèm đồ nội thất người chơi đã mua: 'canho|plant_bonsai,art_son'
+    const [T0, FURN, DECO] = String(opts.tier || 'nha').split('|');
+    const own = parseDecor(DECO); // đồ người chơi tự bày trong chế độ trang trí 3D
+    const T = T0 || 'nha';
+    const PAL = {
+      tro: { floor: '#cfc7b8', wall: '#e4ddd0', wallSide: '#d9d1c2', trim: '#9e9e9e', pattern: 'tile' },
+      nha: { floor: '#ece0c8', wall: '#f4e3bd', wallSide: '#efd9ab', trim: '#8a5a3a', pattern: 'tile' },
+      canho: { floor: '#d8bf98', wall: '#f4f2ee', wallSide: '#e8e5df', trim: '#b0b0b0', pattern: 'wood' },
+      nhapho: { floor: '#e6d3b3', wall: '#f6ead2', wallSide: '#efdcb8', trim: '#7b4528', pattern: 'wood' },
+      bietthu: { floor: '#f3efe7', wall: '#f8eedb', wallSide: '#f0e2c6', trim: '#c9a227', pattern: 'tile' },
+      penthouse: { floor: '#3b4049', wall: '#eeeeee', wallSide: '#dedede', trim: '#1b1b1b', pattern: 'wood' },
+    };
+    const pal = PAL[T] || PAL.nha;
+    const trad = T === 'nha' || T === 'nhapho' || T === 'bietthu';
+    g.add(H.slab(10, 10, { top: T === 'bietthu' ? '#d9cfbd' : '#cdb89a', side: '#7a5a42', under: '#5b4231' }));
+    g.add(H.room({ floor: pal.floor, wall: pal.wall, wallSide: pal.wallSide, trim: pal.trim, floorPattern: pal.pattern, windowSide: true }));
     const wood = '#7b4528', woodD = '#5c321c';
+    if (trad) {
     // ancestral altar (bàn thờ treo) above the sofa
     g.add(H.at(H.box(2.0, 1.25, 0.04, '#8e1b12'), -0.5, 2.25, -4.79));
     g.add(H.at(H.sign('PHÚC  LỘC  THỌ', 1.7, 0.32, { bg: '#8e1b12', fg: '#ffd54f', font: '700 54px "Be Vietnam Pro", serif' }), -0.5, 2.62, -4.76));
@@ -58,38 +129,106 @@
     [-1.3, 0.3].forEach((x) => { g.add(H.at(H.cyl(0.05, 0.06, 0.18, lampM, { seg: 10 }), x, 2.11, -4.58)); });
     g.add(H.at(H.box(0.3, 0.38, 0.03, '#3e2723'), 0.05, 2.22, -4.7));
     g.add(H.at(H.box(0.24, 0.31, 0.035, '#cfd8dc'), 0.05, 2.22, -4.69));
+    } else if (T !== 'tro') {
+      // nhà hiện đại: tranh lớn treo tường thay cho bàn thờ
+      g.add(H.at(H.box(2.1, 1.1, 0.04, '#1f1f1f'), -0.5, 2.15, -4.79));
+      g.add(H.at(H.box(1.98, 0.98, 0.045, T === 'penthouse' ? '#2d6cdf' : '#e8833a'), -0.5, 2.15, -4.77));
+      g.add(H.at(H.box(0.9, 0.6, 0.05, T === 'penthouse' ? '#f2c14e' : '#2f9e9e'), -0.2, 2.25, -4.76));
+    }
+    if (T === 'tro' && !own) {
+      // phòng trọ: đệm trải sàn, móc treo quần áo, ghế nhựa, bát mì
+      g.add(H.at(H.rbox(2.0, 0.18, 1.4, 0.06, '#e8e8f0'), -1.2, 0.09, -3.9));
+      g.add(H.at(H.rbox(0.6, 0.12, 0.35, 0.05, '#9fc5e8'), -1.85, 0.24, -4.35));
+      g.add(H.at(H.rbox(1.6, 0.06, 1.0, 0.03, '#f4b6c2'), -1.0, 0.2, -3.7));
+      const line = H.at(H.cyl(0.015, 0.015, 3.2, '#9e9e9e', { seg: 6 }), 1.2, 2.2, -4.5); line.rotation.z = Math.PI / 2; g.add(line);
+      [['#e53935', 0.2], ['#1e88e5', 0.75], ['#fdd835', 1.3], ['#43a047', 1.85]].forEach(([c, x]) => g.add(H.at(H.box(0.4, 0.55, 0.03, c), x, 1.88, -4.5)));
+      g.add(H.at(H.plasticStool('#d93a3a'), 0.9, 0, -3.0));
+      g.add(H.at(H.cyl(0.11, 0.07, 0.08, '#f2f2ee', { seg: 12 }), 0.9, 0.5, -3.0));
+      g.add(H.at(H.cyl(0.1, 0.1, 0.02, '#f2b84b', { seg: 12 }), 0.9, 0.54, -3.0));
+      g.add(H.at(H.box(0.9, 1.8, 0.5, '#5c8cc4'), 3.6, 0.9, -4.5));
+    }
     // wooden sofa set along the back wall, facing the camera
     const sofa = H.group(); sofa.position.set(-0.5, 0, -4.15);
+    if (own) { /* nhà đã tự bày đồ: bỏ bộ đồ mặc định */ } else if (T === 'nha' || T === 'nhapho') {
     sofa.add(H.at(H.box(2.3, 0.08, 0.62, wood), 0, 0.42, 0));
     sofa.add(H.at(H.rbox(2.2, 0.1, 0.56, 0.04, '#b5562f'), 0, 0.5, 0.02));
     sofa.add(H.at(H.box(2.3, 0.62, 0.07, wood), 0, 0.78, -0.3));
     [-1.14, 1.14].forEach((x) => { sofa.add(H.at(H.box(0.08, 0.66, 0.62, wood), x, 0.55, 0)); sofa.add(H.at(H.box(0.06, 0.42, 0.06, woodD), x, 0.21, 0.27)); sofa.add(H.at(H.box(0.06, 0.42, 0.06, woodD), x, 0.21, -0.27)); });
     for (let i = 0; i < 4; i++) sofa.add(H.at(H.box(0.04, 0.42, 0.04, woodD), -0.75 + i * 0.5, 0.78, -0.27));
     [-0.7, 0.7].forEach((x, i) => sofa.add(H.at(H.rbox(0.42, 0.36, 0.14, 0.06, i ? '#e0a100' : '#2f7d6d'), x, 0.72, -0.2)));
+    } else if (T !== 'tro') {
+      // sofa nệm hiện đại (căn hộ, penthouse) hoặc sofa da (biệt thự)
+      const fab = T === 'bietthu' ? '#6d3b1f' : T === 'penthouse' ? '#2b2f38' : '#9aa3ad';
+      sofa.add(H.at(H.rbox(2.6, 0.42, 0.85, 0.12, fab), 0, 0.26, 0.05));
+      sofa.add(H.at(H.rbox(2.6, 0.55, 0.22, 0.1, fab), 0, 0.62, -0.32));
+      [-1.25, 1.25].forEach((x) => sofa.add(H.at(H.rbox(0.22, 0.55, 0.85, 0.1, fab), x, 0.38, 0.05)));
+      [-0.75, 0, 0.75].forEach((x, i) => sofa.add(H.at(H.rbox(0.5, 0.4, 0.14, 0.08, ['#f2c14e', '#e46aa0', '#f5f1e8'][i]), x, 0.64, -0.17)));
+    }
     g.add(sofa);
+    if (T !== 'tro' && !own) {
     // coffee table + tea set
     g.add(H.at(H.ground(2.7, 1.7, '#9b3a2a'), -0.5, 0, -3.15));
-    g.add(H.at(H.ground(2.4, 1.4, '#c9774f'), -0.5, 0.001, -3.15));
+    g.add(H.at(H.ground(2.4, 1.4, '#c9774f'), -0.5, 0.046, -3.15));
     g.add(H.at(H.box(1.3, 0.06, 0.66, wood), -0.5, 0.45, -3.15));
     [[-1.1, -3.4], [0.1, -3.4], [-1.1, -2.9], [0.1, -2.9]].forEach(([x, z]) => g.add(H.at(H.box(0.06, 0.42, 0.06, woodD), x, 0.21, z)));
     g.add(H.at(H.sphere(0.1, '#f2f2ee', { seg: 14, squash: [1, 0.85, 1] }), -0.65, 0.56, -3.15));
     const spout = H.at(H.cyl(0.015, 0.015, 0.1, '#f2f2ee', { seg: 6 }), -0.53, 0.58, -3.15); spout.rotation.z = -0.9; g.add(spout);
     for (let i = 0; i < 4; i++) g.add(H.at(H.cyl(0.03, 0.025, 0.045, '#f2f2ee', { seg: 10 }), -0.35 + (i % 2) * 0.1, 0.505, -3.22 + Math.floor(i / 2) * 0.12));
     g.add(H.at(H.cyl(0.13, 0.13, 0.015, '#c9a227', { seg: 16 }), -0.3, 0.485, -3.16));
+    }
     const teaSteam = H.group(); g.add(teaSteam);
     // TV on the left wall
+    if (!own) {
     g.add(H.at(H.box(0.5, 0.55, 1.8, woodD), -4.55, 0.275, 1.0));
     g.add(H.at(H.box(0.08, 0.78, 1.32, '#1d1d22'), -4.55, 1.0, 1.0));
     const screen = H.glow('#5aa9ff', { intensity: 0.9 });
     screen.emissiveIntensity = 0.8; screen.userData.glowMax = 1.0;
     g.add(H.at(H.box(0.02, 0.68, 1.2, screen), -4.5, 1.0, 1.0));
     g.add(H.at(H.box(0.3, 0.12, 0.3, '#333'), -4.55, 0.61, 1.65));
-    // motorbike parked inside — very Vietnamese
-    g.add(H.at(H.motorbike('#b71c1c'), 2.5, 0, -4.25, 0.04));
+    }
+    // motorbike parked inside — very Vietnamese (nhà ống, phòng trọ)
+    if ((T === 'nha' || T === 'tro') && !own) g.add(H.at(H.motorbike('#b71c1c'), 2.5, 0, T === 'tro' ? -2.6 : -4.25, 0.04));
+    if (T === 'nhapho') {
+      // bể cá cảnh
+      g.add(H.at(H.box(1.4, 0.7, 0.45, woodD), 2.6, 0.35, -4.45));
+      g.add(H.at(H.box(1.3, 0.7, 0.4, H.mat('#7fd3ff', { opacity: 0.45, rough: 0.1 })), 2.6, 1.05, -4.45));
+      ['#ff7043', '#ffd54f', '#ef5350'].forEach((c, i) => { const f = H.at(H.sphere(0.06, c, { seg: 8, squash: [1.6, 1, 0.6] }), 2.2 + i * 0.35, 1.0 + (i % 2) * 0.15, -4.4); g.add(f); H.onUpdate((dt, t) => { f.position.x = 2.2 + i * 0.35 + Math.sin(t * 0.8 + i) * 0.18; }); });
+    }
+    if (T === 'canho') {
+      // kệ sách + đèn cây
+      g.add(H.at(H.box(1.4, 2.0, 0.35, '#f5f1e8'), 2.8, 1.0, -4.6));
+      [0.45, 1.05, 1.65].forEach((y, i) => g.add(H.at(books(H, 9, 5 + i), 2.2, y, -4.55)));
+      g.add(H.at(H.cyl(0.015, 0.015, 1.6, '#333', { seg: 6 }), 1.6, 0.8, -4.3));
+      g.add(H.at(H.cone(0.2, 0.25, H.glow('#fff1c4', { intensity: 1.5 })), 1.6, 1.65, -4.3));
+    }
+    if (T === 'bietthu' || T === 'penthouse') {
+      // đèn chùm pha lê
+      const ch = H.group(); ch.position.set(-0.5, 2.75, -2.6);
+      const gl = H.glow('#fff4d6', { intensity: 2.2 });
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ch.add(H.at(H.sphere(0.07, gl, { seg: 8 }), Math.cos(a) * 0.45, 0, Math.sin(a) * 0.45)); }
+      const ring = H.at(H.torus(0.45, 0.02, '#c9a227'), 0, 0, 0); ring.rotation.x = Math.PI / 2; ch.add(ring);
+      ch.add(H.at(H.cyl(0.01, 0.01, 0.5, '#c9a227', { seg: 4 }), 0, 0.25, 0));
+      g.add(ch);
+    }
+    if (T === 'bietthu') {
+      // đàn piano + cây lớn + thảm hoa văn
+      g.add(H.at(H.rbox(1.5, 0.35, 1.0, 0.1, '#111'), 2.7, 0.85, -3.8));
+      g.add(H.at(H.box(1.5, 0.05, 0.2, '#f5f5f5'), 2.7, 0.75, -3.25));
+      [[2.1, -4.2], [3.3, -4.2], [2.7, -3.35]].forEach(([x, z]) => g.add(H.at(H.cyl(0.04, 0.04, 0.68, '#111', { seg: 6 }), x, 0.34, z)));
+      g.add(H.at(H.tree('potted', { leaves: '#2e7d32', seed: 11 }), 4.2, 0, -2.0, 0, 1.4));
+    }
+    if (T === 'penthouse') {
+      // vách kính nhìn thành phố về đêm
+      g.add(H.at(H.box(0.05, 2.6, 8.5, H.mat('#9ec9ff', { opacity: 0.25, rough: 0.05 })), -4.82, 1.4, 0));
+      const r = H.rng(7);
+      for (let i = 0; i < 14; i++) { const h = 0.6 + r() * 1.8; g.add(H.at(H.box(0.1, h, 0.4 + r() * 0.4, H.glow(r() < 0.5 ? '#ffd27a' : '#9ad1ff', { intensity: 1.2 })), -4.9, h / 2 + 0.05, -4 + i * 0.6)); }
+    }
     // fan, plant, calendar, clock, shoes
+    if (!own) {
     g.add(H.at(H.fan(), -2.35, 0, -3.95, 0.4));
     g.add(H.at(H.tree('potted', { leaves: '#3f8f45', seed: 4 }), -4.3, 0, -4.3));
     g.add(H.at(H.tree('flower', { seed: 9 }), 1.2, 0.48, -3.3, 0, 0.6));
+    }
     g.add(H.at(H.sign('2026\n13', 0.42, 0.58, { w: 160, h: 220, bg: '#ffffff', fg: '#c62828', font: '800 70px "Baloo 2", system-ui' }), 2.7, 1.75, -4.8));
     g.add(H.at(H.box(0.44, 0.1, 0.03, '#c62828'), 2.7, 2.1, -4.79));
     const clock = H.group(H.at(H.cyl(0.22, 0.22, 0.04, '#fafafa', { seg: 24 }), 0, 0, 0)); clock.children[0].rotation.x = PI / 2;
@@ -102,6 +241,8 @@
     H.nightLight(g, [-0.4, 2.7, -2.6], '#ffe0a8', 1.4, 9);
     H.nightLight(g, [-4.2, 1.2, 1.0], '#7db6ff', 0.6, 4);
     decorAt(H, g, opts, 3.7, -2.5);
+    if (FURN && !own) furniture(H, g, FURN.split(','));
+    if (own) placeDecor(g, own);
     return {
       group: g,
       npcSpots: [{ pos: [-1.5, 0, 1.1], rotY: 0.6 }, { pos: [1.5, 0, 1.0], rotY: -0.6 }, { pos: [-2.4, 0, -0.5], rotY: 0.9 }, { pos: [2.4, 0, -0.3], rotY: -0.9 }],
@@ -151,7 +292,8 @@
     H.nightLight(g, [-4.3, 1.4, 1.4], '#ffd58a', 1.3, 6);
     H.nightLight(g, [0, 2.8, -1.5], '#fff1d6', 0.8, 9);
     decorAt(H, g, opts, 2.8, -2.8);
-    return { group: g, anchors: { bed: { pos: [-2.9, 0.55, -3.55], rotY: 0 }, seat: { pos: [-3.7, 0, 1.0], rotY: -PI / 2 } } };
+    // bed.visitors: where people stand when someone lies in the bed (front side, toward the camera)
+    return { group: g, anchors: { bed: { pos: [-2.9, 0.55, -3.55], rotY: 0, visitors: [[-2.55, -2.05], [-1.55, -2.3], [-3.55, -2.1], [-1.15, -3.35], [-2.1, -1.2]] }, seat: { pos: [-3.7, 0, 1.0], rotY: -PI / 2 } } };
   });
 
   // 3. HOSPITAL -----------------------------------------------------------------
@@ -199,7 +341,7 @@
     H.nightLight(g, [-1.7, 2.6, -3.2], '#e8f4ff', 1.3, 8);
     decorAt(H, g, opts, 3.2, -3.2);
     return {
-      group: g, anchors: { bed: { pos: [-1.6, 0.68, -3.5], rotY: 0 } },
+      group: g, anchors: { bed: { pos: [-1.6, 0.68, -3.5], rotY: 0, visitors: [[-1.95, -2.3], [-0.95, -2.15], [-3.1, -2.05], [-2.55, -1.5], [-1.4, -1.35]] } },
       npcSpots: [{ pos: [-0.3, 0, -2.45], rotY: -0.9 }, { pos: [-2.6, 0, -2.3], rotY: 0.7 }, { pos: [0.9, 0, -1.7], rotY: -0.8 }, { pos: [-1.5, 0, -1.5], rotY: 0.2 }],
     };
   });
@@ -335,7 +477,7 @@
     bag.add(H.at(H.cyl(0.22, 0.22, 1.0, '#b71c1c', { seg: 16 }), 0, -1.4, 0));
     g.add(bag); g.add(H.at(H.box(1.4, 0.06, 0.12, '#555'), -4.3, 2.98, 2.2));
     H.onUpdate((dt, t) => { bag.rotation.z = Math.sin(t * 1.6) * 0.06; bag.rotation.x = Math.sin(t * 1.1) * 0.04; });
-    ['#7e57c2', '#26a69a', '#ef5350'].forEach((c, i) => g.add(H.at(H.ground(0.65, 1.8, c), 1.6 + i * 0.8, 0.005, -1.4)));
+    ['#7e57c2', '#26a69a', '#ef5350'].forEach((c, i) => g.add(H.at(H.ground(0.65, 1.8, c), 1.6 + i * 0.8, 0.046, -1.4)));
     g.add(H.at(H.sphere(0.3, '#42a5f5', { seg: 16 }), 3.8, 0.3, -2.4));
     for (let i = 0; i < 3; i++) g.add(H.at(H.box(1.4, 0.04, 0.12, H.glow('#ffffff', { intensity: 1.4 })), -1.5 + i * 2.2, 3.05, -2));
     H.nightLight(g, [0, 2.8, -2], '#ffffff', 1.2, 10);

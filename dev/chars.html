@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>KN chars</title>
+<style>html,body{margin:0;height:100%;background:#cfd8e3}canvas{display:block}</style>
+</head><body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="../js/kn_boot.js"></script>
+<script src="../js/characters.js"></script>
+<script>
+// Dàn nhân vật để soi mặt/tóc/quần áo. ?close=1 → cận mặt, ?anim=wave, ?row=2 → dàn thứ hai
+const q = new URLSearchParams(location.search);
+const W = innerWidth, H = innerHeight;
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(W, H); r.setPixelRatio(devicePixelRatio);
+r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.shadowMap.enabled = true;
+document.body.appendChild(r.domElement);
+const sc = new THREE.Scene(); sc.background = new THREE.Color('#dfe7ef');
+const cam = new THREE.PerspectiveCamera(q.get('close') ? 18 : 30, W / H, 0.1, 100);
+sc.add(new THREE.HemisphereLight('#ffffff', '#b8a58a', 0.75));
+const sun = new THREE.DirectionalLight('#fff4e0', 1.25); sun.position.set(3, 6, 5); sun.castShadow = true; sc.add(sun);
+const rim = new THREE.DirectionalLight('#bcd4ff', 0.5); rim.position.set(-4, 3, -4); sc.add(rim);
+const fl = new THREE.Mesh(new THREE.CircleGeometry(12, 32), new THREE.MeshStandardMaterial({ color: '#c9d2dc' })); fl.rotation.x = -Math.PI / 2; fl.receiveShadow = true; sc.add(fl);
+const A = (o) => Object.assign({ skin: '#e6b48f', hair: '#1c1410', hairStyle: 'short', eyes: '#2a1b12', top: '#d9534f', topStyle: 'tshirt', bottom: '#2f3b52', shoes: '#2b2b2b', glasses: false, beard: false, hat: null, build: 0.5, height: 0.5 }, o);
+const ROWS = {
+  1: [
+    { age: 1, gender: 'f', a: A({ hairStyle: 'short', top: '#f2c14e' }) },
+    { age: 7, gender: 'f', a: A({ hairStyle: 'ponytail', topStyle: 'school', skin: '#f0c8a8', hair: '#3a2618' }) },
+    { age: 16, gender: 'm', a: A({ hairStyle: 'spiky', topStyle: 'hoodie', top: '#2d6cdf' }) },
+    { age: 24, gender: 'f', a: A({ hairStyle: 'long', topStyle: 'dress', top: '#e46aa0', skin: '#efc6a6', hair: '#24170f' }) },
+    { age: 28, gender: 'm', a: A({ hairStyle: 'short', topStyle: 'suit', top: '#3a3f4b', bottom: '#22252b' }) },
+    { age: 45, gender: 'f', a: A({ hairStyle: 'bun', topStyle: 'aodai', top: '#c62828', bottom: '#fafafa', skin: '#eac0a0' }) },
+    { age: 80, gender: 'm', a: A({ hairStyle: 'short', topStyle: 'polo', top: '#7a8f6a', glasses: true, beard: true }) },
+  ],
+  2: [
+    { age: 20, gender: 'm', a: A({ hairStyle: 'sidepart', topStyle: 'jersey', top: '#d94f4f', bottom: '#f2f2f0' }) },
+    { age: 22, gender: 'f', a: A({ hairStyle: 'twintail', topStyle: 'jacket', top: '#5b5fc7', hair: '#7d2b2b' }) },
+    { age: 26, gender: 'f', a: A({ hairStyle: 'wavy', topStyle: 'sweater', top: '#f5f1e8', skin: '#d9a27c' }) },
+    { age: 30, gender: 'm', a: A({ hairStyle: 'undercut', topStyle: 'tank', top: '#39a96b', skin: '#a8704d', hat: 'headphones' }) },
+    { age: 35, gender: 'f', a: A({ hairStyle: 'pixie', topStyle: 'shirt', top: '#2f9e9e', hat: 'bucket' }) },
+    { age: 12, gender: 'm', a: A({ hairStyle: 'curly', topStyle: 'jersey', top: '#2d6cdf', hat: 'cap' }) },
+  ],
+};
+const row = ROWS[q.get('row') || 1] || ROWS[1];
+const chars = row.map((o, i) => {
+  const c = KN.Characters.create({ kind: 'human', age: o.age, gender: o.gender, appearance: o.a });
+  c.root.position.x = (i - (row.length - 1) / 2) * 0.85; c.root.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+  const anims = (q.get('anim') || 'idle').split(',');
+  sc.add(c.root); c.play(anims[i % anims.length]); if (q.get('expr')) c.setExpression(q.get('expr'));
+  return c;
+});
+const focus = +(q.get('focus') ?? -1);
+if (q.get('close')) { const x = focus >= 0 ? chars[focus].root.position.x : 0; cam.position.set(x, 1.55, 2.4); cam.lookAt(x, 1.45, 0); }
+else { cam.position.set(0, 1.4, 8.5); cam.lookAt(0, 0.85, 0); }
+let last = performance.now();
+(function loop(now) { const dt = (now - last) / 1000; last = now; chars.forEach((c) => c.update(dt, now / 1000)); r.render(sc, cam); requestAnimationFrame(loop); })(last);
+</script>
+</body></html>

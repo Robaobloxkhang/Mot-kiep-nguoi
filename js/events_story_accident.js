@@ -529,7 +529,7 @@
     // ======================= ARC 6: LÀM VIỆC QUÁ SỨC =======================
     {
       id: 's_accident_thuc_trang', title: 'Đêm trắng thứ ba', icon: '☕', age: [28, 58], weight: 1.0,
-      req: { job: true, notFlag: 's_accident_qua_suc' },
+      req: { job: 'any', notFlag: 's_accident_qua_suc' },
       text: 'Ba đêm liền bạn ngủ chưa tới ba tiếng để kịp dự án. Ly cà phê thứ năm trong ngày đã nguội ngắt, ngực thỉnh thoảng nhói lên, mí mắt giật liên hồi. {boss.K} nhắn: “Sáng mai 8 giờ phải có bản cuối nhé.”',
       scene: { loc: 'office', time: 'night', weather: 'clear', anim: 'type', expr: 'sleepy',
         npcs: [{ role: 'coworker', anim: 'sit', expr: 'sleepy' }], fx: 'zzz', shot: 'close' },
@@ -582,7 +582,7 @@
     },
     {
       id: 's_accident_dot_quy', title: 'Ba giờ sáng', icon: '🚨', age: [30, 70], chainOnly: true,
-      req: { flag: 's_accident_lo_canh_bao', job: true },
+      req: { flag: 's_accident_lo_canh_bao', job: 'any' },
       text: 'Hai năm sau lần choáng ấy, bạn vẫn ôm việc tới khuya. Ba giờ sáng, cánh tay phải bỗng nặng trĩu, miệng méo xệch, chữ trên màn hình nhảy múa. Một giọng nói trong đầu bảo: “Cố nốt chút nữa thôi...”',
       scene: { loc: 'office', time: 'night', weather: 'clear', anim: 'sick', expr: 'scared', fx: 'flash', shot: 'dramatic' },
       choices: [

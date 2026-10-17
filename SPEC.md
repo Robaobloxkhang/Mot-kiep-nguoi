@@ -497,3 +497,10 @@ settings (sound, music, graphics quality, delete save with in‑page confirm). F
 Keyboard: Space = +1 tuổi, 1–4 = choices, Enter = continue. Respect `prefers-reduced-motion`.
 Hot reload: `window.claude?.hot?.snapshot?.(() => ({ save: KN.store.get('kn_save_v1') }))`;
 boot via `window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {})`.
+
+### 5.2 Bệnh tật, nghề nghiệp, tài sản (v1.4)
+- **Bệnh bỏ mặc**: mỗi bệnh có `care` (năm điều trị gần nhất). `neglect = năm hiện tại − care`. `ILLNESSES[].esc = [{ to, after, p }]`: bỏ mặc ≥ `after` năm thì mỗi năm có xác suất p (tăng 50%/năm) biến chứng thành `to` (`c_*` = ung thư). `incurable: true` = không thể chữa khỏi, chỉ điều trị duy trì (giảm hao sức).
+- **Ung thư**: `CANCERS` + `CANCER_STAGE` (giai đoạn 1–4, giai đoạn 4 không chữa được). Ung thư thường `hidden` (âm thầm) → chỉ lộ khi khám tổng quát (`checkup`) hoặc khi lên giai đoạn 3. Không điều trị thì tiến triển mỗi năm.
+- Tình huống nội bộ `ms_symptom` / `ms_sym_incurable` (token `{ill}` `{ill.sym}` `{ill.years}` `{ill.next}` `{ill.cost}`) nhắc bệnh bỏ mặc, tối đa 2 năm/lần mỗi bệnh. Hiệu ứng `illness: 'Ung thư'` sinh một loại ung thư cụ thể; `cure: true` không chữa được ung thư và bệnh mạn.
+- **Nghề**: `CAREERS[].retireAt` (tuổi giải nghệ → `ms_athlete_retire` / `ms_model_retire`), `sport`, `injury` (xác suất chấn thương mỗi năm), `fee` (phí đào tạo trừ khi trúng tuyển), `req.flag`. `CAREER_INFO` = mô tả + danh sách biến cố hiển thị cho người chơi; mỗi biến cố có tình huống thật trong `events_career_*.js` (id `s_job_<nghề>_…`). Cờ động cơ: `talent_<nghề>` (năng khiếu, +35% trúng tuyển, được ký khi còn đi học), `ex_athlete` (mở nghề `hlv`).
+- **Tài sản**: `SHOP[].joy/prestige/looksY/smartsY/fam/rent/unlock`. Mỗi năm: hạnh phúc nền + `joy` (món tốt nhất mỗi loại tính đủ, còn lại 30%), gắn kết gia đình, cho thuê (`rentAsset`, thu `value × rent`/năm, thuế 10%; nhà cho thuê không còn được tính là chỗ ở). `prestige` → đẳng cấp (`PRESTIGE_RANKS`), cộng tỉ lệ hẹn hò và xin việc ngành giải trí. Hoạt động `needAsset` chỉ mở khi có tài sản tương ứng.

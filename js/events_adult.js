@@ -1507,7 +1507,7 @@
     },
     {
       id: 'a_gui_tien_ve_que', title: 'Mái nhà dột', icon: '🏡', age: [22, 50], once: false, cooldown: 4,
-      req: { has: ['mother'], job: true },
+      req: { has: ['mother'], job: 'any' },
       text: 'Lương vừa về. {mother.K} {mother} ở quê gọi điện, chẳng xin gì, chỉ kể mái nhà dột mấy chỗ và cái ti vi lại hỏng.',
       scene: { loc: 'home', time: 'day', weather: 'rain', anim: 'phone', expr: 'sad', say: 'Dạ, mẹ cứ để con lo...', fx: 'question', shot: 'close' },
       choices: [
@@ -1772,7 +1772,7 @@
     // ======================= BẢN THÂN =======================
     {
       id: 'a_burnout', title: 'Kiệt sức', icon: '🫠', age: [24, 50],
-      req: { job: true },
+      req: { job: 'any' },
       text: 'Sáng thứ Hai, bạn ngồi trên giường nhìn chằm chằm vào tường 40 phút. Không ốm, không đau, chỉ là không thể nhấc mình đi làm. Email chưa đọc: 127.',
       scene: { loc: 'bedroom', time: 'dawn', weather: 'cloudy', anim: 'sit', expr: 'sad', fx: 'question', shot: 'close' },
       choices: [

@@ -15,11 +15,11 @@
 
   let renderer, scene, camera, container, ro;
   let ready = false, paused = false, quality = 'high', reduced = false;
-  let env = null, envId = null, envDecor = null;
+  let env = null, envId = null, envDecor = null, envTier = null;
   let player = null; // { ch, data, key }
   const npcs = new Map(); // id -> { ch, data, key, slot, anim }
-  let fxSys = null, sun, hemi, amb, bgTex, bgCanvas, rain, snow, starPts, cloudGroup;
-  let timeOfDay = 'day', weather = 'clear', lightningT = 3, flashK = 0;
+  let fxSys = null, sun, hemi, amb, bgTex, bgCanvas, rain, snow, starPts, cloudGroup, rim = null, envOn = false;
+  let timeOfDay = 'day', weather = 'clear', lightningT = 3, flashK = 0, shakeK = 0;
   const frameCbs = [];
   const tweens = [];
   let seq = 0, clockT = 0, lastNow = 0, fps = 60;
@@ -59,7 +59,8 @@
   }
   function applyAmbience() {
     sun.color.copy(cur.sun); sun.intensity = cur.sunI + flashK * 3; sun.position.copy(cur.sunPos);
-    hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGround); hemi.intensity = cur.hemiI + flashK * 1.5;
+    hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGround); hemi.intensity = cur.hemiI * (envOn ? 0.62 : 1) + flashK * 1.5;
+    if (rim) rim.intensity = (timeOfDay === 'night' ? 0.25 : 0.45) * (1 - cur.grey * 0.5);
     renderer.toneMappingExposure = cur.exp;
     drawSky();
     const night = timeOfDay === 'night' ? 1 : timeOfDay === 'dusk' ? 0.35 : 0;
@@ -96,7 +97,7 @@
     renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.5));
+    renderer.setPixelRatio(dprFor());
     const cv = renderer.domElement;
     cv.style.cssText = 'display:block;width:100%;height:100%;touch-action:pan-y;outline:none';
     el.appendChild(cv);
@@ -116,6 +117,10 @@
     const sc = sun.shadow.camera; sc.left = -8; sc.right = 8; sc.top = 8; sc.bottom = -8; sc.near = 0.5; sc.far = 40;
     sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
     scene.add(sun); scene.add(sun.target);
+    // ánh sáng viền từ phía sau: tách nhân vật khỏi nền cho nổi khối
+    rim = new THREE.DirectionalLight('#cfe3ff', 0.45); rim.position.set(-6, 5, -8); scene.add(rim);
+    buildEnvLight();
+    try { post = buildPost(); } catch (e) { console.warn('[KN.World] post init failed', e); post = null; }
 
     buildSkyDecor();
     buildWeather();
@@ -139,6 +144,22 @@
     return true;
   }
 
+  // bản đồ môi trường dựng từ một “phòng chụp” nhỏ: trời xanh, đất ấm, hai softbox — cho ánh sáng dịu và phản chiếu nhẹ
+  function buildEnvLight() {
+    try {
+      const pm = new THREE.PMREMGenerator(renderer), s = new THREE.Scene();
+      const sky = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false,
+        uniforms: { top: { value: new THREE.Color('#9fc4ec') }, mid: { value: new THREE.Color('#e9e4da') }, bot: { value: new THREE.Color('#8a7660') } },
+        vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP; void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.7, h)) : mix(mid, bot, smoothstep(0.0, 0.4, -h)); gl_FragColor = vec4(c * 0.55, 1.0); }' });
+      s.add(new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), sky));
+      [[6, 7, 5, 3.2, '#fff6e6'], [-7, 4, 3, 2.4, '#e6f0ff']].forEach(([x, y, z, k, c]) => {
+        const m = new THREE.MeshBasicMaterial({ color: c }); m.color.multiplyScalar(k);
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), m); p.position.set(x, y, z); p.lookAt(0, 0, 0); s.add(p);
+      });
+      const rt = pm.fromScene(s, 0.04); scene.environment = rt.texture; pm.dispose(); envOn = true;
+    } catch (e) { console.warn('[KN.World] env light failed', e); }
+  }
   function buildSkyDecor() {
     // stars
     const n = 260, pos = new Float32Array(n * 3);
@@ -199,6 +220,113 @@
     renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.updateProjectionMatrix();
     computeShot(cam.shot, true);
+    if (post) sizePost();
+  }
+
+  // ---------- hậu kỳ điện ảnh: HDR → bloom (vầng sáng) → chỉnh màu, tương phản, vignette, hạt phim ----------
+  // Dựng tay (không cần thư viện ngoài): cảnh vẽ vào một render target HDR có khử răng cưa MSAA,
+  // vùng sáng được tách, làm mờ ở độ phân giải thấp rồi cộng lại; tone mapping ACES thực hiện ở pass cuối.
+  let post = null, postOn = true;
+  // máy yếu đã từng bị tự hạ cấp thì nhớ lại cho lần sau (0 = đủ, 1 = tắt hậu kỳ, 2 = tắt hậu kỳ + giảm độ phân giải)
+  let perfTier = 0;
+  try { perfTier = +localStorage.getItem('kn_perf_tier') || 0; } catch (e) { /* */ }
+  if (perfTier >= 1) postOn = false;
+  // độ phân giải: hậu kỳ (HDR + MSAA) rất tốn trên màn hình nét cao → giới hạn 1.25x; máy yếu về 1x
+  function dprFor() {
+    const dpr = window.devicePixelRatio || 1;
+    if (perfTier >= 2 || quality !== 'high') return Math.min(dpr, perfTier >= 2 ? 1 : 1.25);
+    return Math.min(dpr, postOn ? 1.25 : 1.75);
+  }
+  // tự hạ chất lượng khi khung hình tụt kéo dài (bỏ qua lúc tab ẩn / vừa chuyển cảnh nặng)
+  const perf = { slow: 0, t: 0 };
+  function perfWatch(dt) {
+    if (document.hidden || dt <= 0 || dt >= 0.05) return; // dt bị chặn ở 0.05 → khung giật đơn lẻ (dựng cảnh) không tính
+    perf.t += dt;
+    if (dt > 1 / 38) perf.slow += dt; else perf.slow = Math.max(0, perf.slow - dt * 0.5);
+    if (perf.slow > 2.5 && perfTier < 2) {
+      perfTier++; perf.slow = 0;
+      if (perfTier >= 1) postOn = false;
+      try { localStorage.setItem('kn_perf_tier', String(perfTier)); } catch (e) { /* */ }
+      renderer.setPixelRatio(dprFor()); resize();
+      if (perfTier >= 2) { sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+      console.info('[KN.World] máy hơi yếu → tự giảm đồ hoạ, mức', perfTier);
+    }
+  }
+  const FS_VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+  function buildPost() {
+    if (!renderer.capabilities.isWebGL2) return null;
+    const opt = { type: THREE.HalfFloatType, depthBuffer: false };
+    const p = {
+      scene: new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }),
+      a: new THREE.WebGLRenderTarget(4, 4, opt), b: new THREE.WebGLRenderTarget(4, 4, opt),
+      c: new THREE.WebGLRenderTarget(4, 4, opt), d: new THREE.WebGLRenderTarget(4, 4, opt),
+      cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), sc: new THREE.Scene(),
+      bloom: 0.16, punch: 0, letter: 0, letterTo: 0, shake: 0,
+    };
+    const tri = new THREE.BufferGeometry();
+    tri.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
+    tri.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 2, 0, 0, 2], 2));
+    p.quad = new THREE.Mesh(tri); p.quad.frustumCulled = false; p.sc.add(p.quad);
+    p.bright = new THREE.ShaderMaterial({ uniforms: { tex: { value: null }, thr: { value: 1.25 }, knee: { value: 0.5 } }, vertexShader: FS_VERT, depthTest: false, depthWrite: false,
+      fragmentShader: 'uniform sampler2D tex; uniform float thr; uniform float knee; varying vec2 vUv; void main(){ vec3 c = texture2D(tex, vUv).rgb; float l = max(c.r, max(c.g, c.b)); float s = clamp(l - thr + knee, 0.0, 2.0 * knee); s = s * s / (4.0 * knee + 1e-4); float w = max(s, l - thr) / max(l, 1e-4); gl_FragColor = vec4(c * w, 1.0); }' });
+    p.blur = new THREE.ShaderMaterial({ uniforms: { tex: { value: null }, dir: { value: new THREE.Vector2() } }, vertexShader: FS_VERT, depthTest: false, depthWrite: false,
+      fragmentShader: 'uniform sampler2D tex; uniform vec2 dir; varying vec2 vUv; void main(){ vec3 c = texture2D(tex, vUv).rgb * 0.227; c += texture2D(tex, vUv + dir * 1.385).rgb * 0.316; c += texture2D(tex, vUv - dir * 1.385).rgb * 0.316; c += texture2D(tex, vUv + dir * 3.231).rgb * 0.07; c += texture2D(tex, vUv - dir * 3.231).rgb * 0.07; gl_FragColor = vec4(c, 1.0); }' });
+    p.final = new THREE.ShaderMaterial({
+      uniforms: { tex: { value: null }, bl1: { value: null }, bl2: { value: null }, bloom: { value: 0.4 }, exposure: { value: 1 }, sat: { value: 1.12 }, vig: { value: 0.32 }, time: { value: 0 }, letter: { value: 0 }, punch: { value: 0 }, night: { value: 0 }, aspect: { value: 1.6 } },
+      vertexShader: FS_VERT, depthTest: false, depthWrite: false,
+      fragmentShader: [
+        'uniform sampler2D tex; uniform sampler2D bl1; uniform sampler2D bl2; uniform float bloom; uniform float exposure; uniform float sat; uniform float vig; uniform float time; uniform float letter; uniform float punch; uniform float night; uniform float aspect; varying vec2 vUv;',
+        // ACES giống hệt bản của three.js để giữ tông màu cũ
+        'vec3 knFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }',
+        'vec3 knAces(vec3 color){ const mat3 ACESInputMat = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777)); const mat3 ACESOutputMat = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602)); color *= exposure / 0.6; color = ACESInputMat * color; color = knFit(color); color = ACESOutputMat * color; return clamp(color, 0.0, 1.0); }',
+        'float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time) * 43758.5453); }',
+        'void main(){',
+        '  vec2 uv = vUv;',
+        '  vec3 c = texture2D(tex, uv).rgb;',
+        '  vec3 b = texture2D(bl1, uv).rgb * 0.6 + texture2D(bl2, uv).rgb * 0.9;',
+        '  c += b * (bloom + punch * 0.5);',
+        '  c = knAces(c);',
+        '  c = pow(c, vec3(1.0 / 2.2));', // sRGB (xấp xỉ)
+        '  float l = dot(c, vec3(0.299, 0.587, 0.114));',
+        '  c = mix(vec3(l), c, sat + punch * 0.15);', // độ bão hoà
+        '  c = mix(c, c * c * (3.0 - 2.0 * c), 0.22);', // đường cong tương phản nhẹ
+        '  c += mix(vec3(-0.012, 0.0, 0.025), vec3(0.03, 0.012, -0.02), smoothstep(0.15, 0.85, l)) * (1.0 - night * 0.5);', // tách tông: bóng xanh mát, sáng ấm
+        '  vec2 q = (uv - 0.5) * vec2(aspect, 1.0) / max(aspect, 1.0);',
+        '  c *= 1.0 - vig * smoothstep(0.38, 0.95, length(q) * 1.25) - punch * 0.12 * smoothstep(0.2, 0.8, length(q));',
+        '  c += (hash(uv * 913.0) - 0.5) * 0.018;', // hạt phim rất nhẹ, chống loang dải màu
+        '  float bar = letter * 0.115;', // dải đen điện ảnh cho cảnh kịch tính
+        '  if (uv.y < bar || uv.y > 1.0 - bar) c = vec3(0.0);',
+        '  gl_FragColor = vec4(c, 1.0);',
+        '}'].join('\n'),
+    });
+    return p;
+  }
+  function sizePost() {
+    const w = renderer.domElement.width, h = renderer.domElement.height;
+    post.scene.setSize(w, h);
+    const w2 = Math.max(2, w >> 2), h2 = Math.max(2, h >> 2), w3 = Math.max(2, w >> 3), h3 = Math.max(2, h >> 3);
+    post.a.setSize(w2, h2); post.b.setSize(w2, h2); post.c.setSize(w3, h3); post.d.setSize(w3, h3);
+    post.final.uniforms.aspect.value = w / h;
+  }
+  function pass(m, target) { post.quad.material = m; renderer.setRenderTarget(target); renderer.render(post.sc, post.cam); }
+  function renderFrame(dt) {
+    if (!post || !postOn || quality !== 'high') { renderer.render(scene, camera); return; }
+    try {
+      const p = post, U2 = p.final.uniforms;
+      p.letter += (p.letterTo - p.letter) * Math.min(1, (dt || 0.016) * 3);
+      p.punch = Math.max(0, p.punch - (dt || 0.016) * 1.6);
+      renderer.setRenderTarget(p.scene); renderer.render(scene, camera);
+      p.bright.uniforms.tex.value = p.scene.texture; pass(p.bright, p.a);
+      p.blur.uniforms.tex.value = p.a.texture; p.blur.uniforms.dir.value.set(1 / p.a.width, 0); pass(p.blur, p.b);
+      p.blur.uniforms.tex.value = p.b.texture; p.blur.uniforms.dir.value.set(0, 1 / p.a.height); pass(p.blur, p.a);
+      p.blur.uniforms.tex.value = p.a.texture; p.blur.uniforms.dir.value.set(1 / p.c.width, 0); pass(p.blur, p.c);
+      p.blur.uniforms.tex.value = p.c.texture; p.blur.uniforms.dir.value.set(0, 1 / p.c.height); pass(p.blur, p.d);
+      U2.tex.value = p.scene.texture; U2.bl1.value = p.a.texture; U2.bl2.value = p.d.texture;
+      const night = timeOfDay === 'night' ? 1 : timeOfDay === 'dusk' ? 0.5 : 0;
+      U2.bloom.value = p.bloom * (1 + night * 2.2); U2.exposure.value = cur.exp; U2.time.value = clockT % 100;
+      U2.letter.value = reduced ? 0 : p.letter; U2.punch.value = reduced ? 0 : p.punch; U2.night.value = night;
+      pass(p.final, null);
+    } catch (e) { console.warn('[KN.World] post disabled', e); postOn = false; renderer.setRenderTarget(null); renderer.render(scene, camera); }
   }
 
   // ---------- tweens ----------
@@ -218,6 +346,7 @@
   const appKey = (d) => JSON.stringify(d.appearance || null) + '|' + (d.kind || 'human') + '|' + (d.petColor || '') + '|' + (d.gender || '');
   function makeChar(d) {
     if (!KN.Characters) return null;
+    if (d.kind && !['human', 'dog', 'cat'].includes(d.kind)) return null; // vẹt, thỏ, cá… chưa có mô hình 3D: không vẽ trong cảnh
     try {
       const ch = KN.Characters.create({ kind: d.kind || 'human', appearance: d.appearance, age: d.age ?? 25, gender: d.gender, petColor: d.petColor, name: d.name });
       return ch;
@@ -262,7 +391,7 @@
       const add = (b) => {
         const sx = b.max.x - b.min.x, sz = b.max.z - b.min.z, sy = b.max.y - b.min.y;
         if ((b.max.y < 0.15 && sy < 0.12) || b.min.y > 1.85 || b.max.y < 0.08 || sx * sz > 30) return;
-        list.push({ x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z });
+        list.push({ x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z, y1: b.max.y });
       };
       if (o.isInstancedMesh) { for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m4); m4.premultiply(o.matrixWorld); add(bb.copy(g.boundingBox).applyMatrix4(m4)); } }
       else add(bb.copy(g.boundingBox).applyMatrix4(o.matrixWorld));
@@ -285,6 +414,30 @@
     return false;
   }
   const ringPoint = (c, ang, r) => [c[0] + Math.sin(ang) * r, c[2] + Math.cos(ang) * r];
+  // would a head at (x,z) be hidden from the wide camera by a prop or by someone standing closer?
+  function hiddenFromCam(x, z, others) {
+    // judged from a conservative camera: the wide shot's direction, but close-shot distance & height
+    const w = (env.camera && env.camera.wide && env.camera.wide.pos) || [7, 5.9, 10.3];
+    const dx = w[0] - x, dz = w[2] - z, d = Math.min(Math.hypot(dx, dz), 6.5), n = Math.hypot(dx, dz) || 1, y0 = 1.25, cy = Math.min(w[1], 2.7);
+    for (let t = 0.45; t < d; t += 0.25) {
+      const px = x + dx / n * t, pz = z + dz / n * t, ly = y0 + (cy - y0) * (t / d);
+      const obs = env.obs || [];
+      for (let i = 0; i < obs.length; i++) { const o = obs[i]; if (px > o.x0 && px < o.x1 && pz > o.z0 && pz < o.z1 && o.y1 > ly) return true; }
+      for (let i = 0; i < others.length; i++) { const o = others[i]; if (Math.hypot(px - o[0], pz - o[1]) < 0.28 && o[2] > ly) return true; }
+    }
+    return false;
+  }
+  // is there a prop (curtain, shelf, wall…) between a standing spot and the focus? The furniture the
+  // focus itself sits/lies on (bed, sofa) does not count: march out of it first.
+  function sightBlocked(x, z, fc) {
+    const dx = fc[0] - x, dz = fc[2] - z, d = Math.hypot(dx, dz);
+    if (d < 0.8) return false;
+    let inner = 0.3;
+    while (inner < d - 0.3 && blocked(fc[0] - dx / d * inner, fc[2] - dz / d * inner, 0.04)) inner += 0.1;
+    const end = d - Math.max(0.45, inner + 0.1);
+    for (let t = 0.35; t < end; t += 0.22) if (blocked(x + dx / d * t, z + dz / d * t, 0.06)) return true;
+    return false;
+  }
   function camAz(c) { const w = (env && env.camera && env.camera.wide && env.camera.wide.pos) || [7, 5.9, 10.3]; return Math.atan2(w[0] - c[0], w[2] - c[2]); }
   // the first human NPC that lies down takes the bed (newborn, sick relative…) unless the player uses it
   function updateStage(list) {
@@ -299,9 +452,11 @@
   }
   function besideBed() {
     const b = env.anchors.bed, c = b.pos, az = camAz(c);
-    for (const r of [1.3, 1.6, 1.95]) for (const a of [0.8, -0.8, 1.15, -1.15, 0.5, -0.5]) {
+    const v = (b.visitors || []).find(([x, z]) => !blocked(x, z, 0.2));
+    if (v) return { pos: [v[0], 0, v[1]], rotY: cheatOut(v[0], v[1], c) };
+    for (const r of [1.3, 1.6, 1.95]) for (const a of [0.8, -0.8, 1.15, -1.15, 0.6, -0.6]) {
       const [x, z] = ringPoint(c, az + a, r);
-      if (!blocked(x, z, BODY_R)) return { pos: [x, 0, z], rotY: cheatOut(x, z, c) };
+      if (!blocked(x, z, BODY_R) && !sightBlocked(x, z, c)) return { pos: [x, 0, z], rotY: cheatOut(x, z, c) };
     }
     return env.playerSpot;
   }
@@ -334,17 +489,29 @@
     const az = camAz(fc), gen = [];
     // never stand in the camera's line of sight to the focus (within ±30° on the camera side)
     const inSight = (x, z) => Math.abs(angDiff(Math.atan2(x - fc[0], z - fc[2]), az)) < 0.52;
-    const ok = (x, z, r) => !blocked(x, z, r) && !inSight(x, z) && avoid.every(([ax, az2]) => Math.hypot(x - ax, z - az2) >= 0.7) && taken().every((s) => Math.hypot(x - s.pos[0], z - s.pos[2]) >= 0.78);
-    const authored = env.npcSpots.filter((s) => Math.hypot(s.pos[0] - fc[0], s.pos[2] - fc[2]) <= 2.7);
+    const ok = (x, z, r, hand) => !blocked(x, z, r) && (hand || !inSight(x, z)) && avoid.every(([ax, az2]) => Math.hypot(x - ax, z - az2) >= 0.7) && taken().every((s) => Math.hypot(x - s.pos[0], z - s.pos[2]) >= 0.78) && !sightBlocked(x, z, fc);
+    // around a bed, use the diorama's hand-placed visitor spots; otherwise authored spots near the focus
+    const authored = focus === A.bed && A.bed.visitors ? A.bed.visitors.map(([x, z]) => ({ pos: [x, 0, z], rotY: cheatOut(x, z, fc) }))
+      : env.npcSpots.filter((s) => Math.hypot(s.pos[0] - fc[0], s.pos[2] - fc[2]) <= 2.7);
     const useAuthoredRot = focus === env.playerSpot;
-    for (const r of [1.2, 1.5, 1.85, 2.25, 2.7]) for (const a of [60, -60, 95, -95, 35, -35, 125, -125, 155, -155]) gen.push([r, a * Math.PI / 180]);
+    for (const r of [1.2, 1.5, 1.85, 2.25, 2.7]) for (const a of [55, -55, 80, -80, 105, -105, 38, -38, 130, -130, 155, -155]) gen.push([r, a * Math.PI / 180]);
     list.forEach((d, i) => {
       if (bedFocus && stage.bedNpc === d.id) { out[i] = { pos: A.bed.pos.slice(), rotY: A.bed.rotY || 0, bed: true }; return; }
       const seated = isSeated(d.anim), r0 = d.kind && d.kind !== 'human' ? 0.2 : BODY_R;
-      const fits = (x, z, ry) => ok(x, z, r0) && (!seated || !blocked(x + Math.sin(ry) * 0.45, z + Math.cos(ry) * 0.45, 0.15));
-      const s = authored.find((sp) => !taken().some((o) => o.src === sp) && fits(sp.pos[0], sp.pos[2], useAuthoredRot ? sp.rotY || 0 : face(sp.pos[0], sp.pos[2])));
-      if (s) { out[i] = { pos: [s.pos[0], s.pos[1] || 0, s.pos[2]], rotY: useAuthoredRot ? s.rotY || 0 : face(s.pos[0], s.pos[2]), src: s }; return; }
-      for (const [r, a] of gen) { const [x, z] = ringPoint(fc, az + a, r), ry = face(x, z); if (fits(x, z, ry)) { out[i] = { pos: [x, 0, z], rotY: ry }; return; } }
+      const fits = (x, z, ry, hand) => ok(x, z, r0, hand) && (!seated || !blocked(x + Math.sin(ry) * 0.45, z + Math.cos(ry) * 0.45, 0.15));
+      // nobody may hide the player (or anyone placed earlier) from the camera, nor be hidden themselves
+      const others = [[pSpot.pos[0], pSpot.pos[2], isLying(stage.pAnim) ? 0.9 : 1.6]].concat(taken().map((o) => [o.pos[0], o.pos[2], o.bed ? 0.9 : 1.5]));
+      const tall = d.kind && d.kind !== 'human' ? 0.6 : 1.6;
+      const covers = (x, z) => others.some(([ox, oz, oh]) => oh > 1 && hiddenFromCam(ox, oz, [[x, z, tall]]));
+      for (const needVis of [true, false]) {
+        const vis = (x, z) => !needVis || (!hiddenFromCam(x, z, others) && !covers(x, z));
+        const s = authored.find((sp) => !taken().some((o) => o.src === sp) && fits(sp.pos[0], sp.pos[2], useAuthoredRot ? sp.rotY || 0 : face(sp.pos[0], sp.pos[2]), true) && vis(sp.pos[0], sp.pos[2]));
+        if (s) { out[i] = { pos: [s.pos[0], s.pos[1] || 0, s.pos[2]], rotY: useAuthoredRot ? s.rotY || 0 : face(s.pos[0], s.pos[2]), src: s }; return; }
+        for (const [r, a] of gen) {
+          const [x, z] = ringPoint(fc, az + a, r), ry = face(x, z);
+          if (fits(x, z, ry) && vis(x, z)) { out[i] = { pos: [x, 0, z], rotY: ry }; return; }
+        }
+      }
       for (let k = 0; k < 80; k++) { const x = U.rand(-3.9, 3.9), z = U.rand(-3.6, 3.9), ry = face(x, z); if (fits(x, z, ry)) { out[i] = { pos: [x, 0, z], rotY: ry }; return; } }
       out[i] = env.npcSpots[i % env.npcSpots.length];
     });
@@ -488,6 +655,10 @@
     else ch.getHeadWorldPosition(p);
     if (name === 'confetti' || name === 'fireworks' || name === 'petals') { p.y = Math.max(p.y, 1.6); }
     fxSys.spawn(name, p);
+    // khoảnh khắc mạnh: loé sáng + rung máy (vui: bừng màu; sốc: rung)
+    const PUNCH = { confetti: 0.8, fireworks: 1, stars: 0.5, flash: 1, exclaim: 0.4, hearts: 0.4 }, SHAKE = { flash: 0.9, exclaim: 0.35, anger: 0.4 };
+    if (post && PUNCH[name]) post.punch = Math.max(post.punch, PUNCH[name]);
+    if (SHAKE[name]) shakeK = Math.max(shakeK, SHAKE[name]);
   }
 
   // ---------- locations ----------
@@ -495,13 +666,14 @@
     if (!ready || !KN.Env) return;
     opts = opts || {};
     const decor = opts.decor || null;
-    if (env && id === envId && decor === envDecor) return;
+    const tier = id === 'home' ? (opts.tier || null) : null; // mức nhà theo tài sản (chỉ cảnh “Nhà”)
+    if (env && id === envId && decor === envDecor && tier === envTier) return;
     let next;
-    try { next = KN.Env.build(id, { decor }); } catch (e) { console.warn('[KN.World] env build failed', e); }
+    try { next = KN.Env.build(id, { decor, tier }); } catch (e) { console.warn('[KN.World] env build failed', e); }
     if (!next) return;
     const old = env;
     try { next.obs = buildObstacles(next.group); } catch (e) { next.obs = []; }
-    env = next; envId = next.id; envDecor = decor;
+    env = next; envId = next.id; envDecor = decor; envTier = tier;
     env.setTime(timeOfDay);
     scene.add(env.group);
     // move characters into the new diorama — straight to where this scene needs them (no sliding while it rises)
@@ -562,6 +734,7 @@
     if (!ready) return;
     if (!['wide', 'close', 'low', 'top', 'dramatic', 'orbit'].includes(name)) name = 'wide';
     cam.shot = name;
+    if (post) post.letterTo = name === 'dramatic' ? 1 : 0;
     cam.fromP.copy(cam.pos); cam.fromT.copy(cam.target);
     computeShot(name);
     cam.k = 0;
@@ -582,6 +755,8 @@
     if (yaw) off.applyAxisAngle(new V3(0, 1, 0), yaw);
     camera.position.copy(cam.target).add(off);
     if (!reduced) { camera.position.x += Math.sin(clockT * 0.31) * 0.12; camera.position.y += Math.sin(clockT * 0.23) * 0.07; }
+    // rung máy quay khi có khoảnh khắc mạnh (chớp, pháo hoa, ngã...)
+    if (shakeK > 0.001 && !reduced) { camera.position.x += (Math.random() - 0.5) * shakeK * 0.16; camera.position.y += (Math.random() - 0.5) * shakeK * 0.12; shakeK *= Math.max(0, 1 - dt * 4); } else shakeK = 0;
     camera.lookAt(cam.target);
   }
 
@@ -592,6 +767,7 @@
     const dt = Math.min(0.05, Math.max(0, (now - lastNow) / 1000)); lastNow = now;
     if (paused || document.hidden) return;
     step(dt);
+    perfWatch(dt); // chỉ đo vòng lặp thật (advance() dùng cho test không tính)
   }
   function step(dt) {
     clockT += dt;
@@ -608,7 +784,7 @@
     if (cloudGroup) cloudGroup.children.forEach((c) => { c.userData.a = c.userData.a0 + Math.sin(clockT * c.userData.sp) * 0.12; c.position.x = Math.cos(c.userData.a) * c.userData.r; c.position.z = Math.sin(c.userData.a) * c.userData.r - 4; });
     updateCamera(dt);
     for (let i = 0; i < frameCbs.length; i++) { try { frameCbs[i](dt); } catch (e) { /* */ } }
-    renderer.render(scene, camera);
+    renderFrame(dt);
   }
 
   // ---------- public scene API ----------
@@ -619,10 +795,11 @@
     if (sc.player) { setPlayer(sc.player); stage.pAnim = sc.player.anim || 'idle'; }
     const loc = sc.loc && KN.Env && KN.Env.has(sc.loc) ? sc.loc : (sc.loc ? 'home' : envId);
     const decor = sc.decor === undefined ? envDecor : (sc.decor || null);
-    const changed = !env || loc !== envId || decor !== envDecor;
+    const tier = loc === 'home' ? (sc.tier === undefined ? envTier : (sc.tier || null)) : null;
+    const changed = !env || loc !== envId || decor !== envDecor || tier !== envTier;
     let moves = [];
     if (changed && loc) {
-      await setLocation(loc, { decor }, sc.npcs || []);
+      await setLocation(loc, { decor, tier }, sc.npcs || []);
       if (my !== seq) return;
     } else if (sc.npcs) moves = syncNPCs(sc.npcs, 'walk') || [];
     if (sc.player) {
@@ -663,7 +840,7 @@
     setQuality(q) {
       quality = q === 'low' ? 'low' : 'high';
       if (!renderer) return;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.25));
+      renderer.setPixelRatio(dprFor());
       sun.castShadow = true;
       const s = quality === 'high' ? 2048 : 1024;
       if (sun.shadow.mapSize.x !== s) { sun.shadow.mapSize.set(s, s); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
@@ -671,6 +848,21 @@
       resize();
     },
     getQuality: () => quality,
+    setPost(b) { postOn = !!b; if (renderer) { renderer.setPixelRatio(dprFor()); resize(); } },
+    perfTier: () => perfTier,
+    resetPerf() { perfTier = 0; postOn = true; try { localStorage.removeItem('kn_perf_tier'); } catch (e) { /* */ } if (renderer) { renderer.setPixelRatio(dprFor()); resize(); } },
+    getPost: () => !!(post && postOn && quality === 'high'),
+    // chụp khung hình hiện tại (album ảnh cuộc đời): vẽ lại một lần rồi đọc ngay, thu nhỏ thành JPEG
+    snapshot(maxW) {
+      if (!ready || !renderer) return null;
+      try {
+        renderFrame(0);
+        const src = renderer.domElement, w = Math.min(maxW || 480, src.width), h = Math.round(src.height * w / src.width);
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(src, 0, 0, w, h);
+        return cv.toDataURL('image/jpeg', 0.72);
+      } catch (e) { return null; }
+    },
     setReducedMotion(b) { reduced = !!b; },
     setPaused(b) { paused = !!b; },
     onFrame(cb) { if (typeof cb === 'function') frameCbs.push(cb); return () => { const i = frameCbs.indexOf(cb); if (i >= 0) frameCbs.splice(i, 1); }; },
@@ -678,6 +870,8 @@
     lookFrom(pos, target) { cam.custom = [pos, target]; cam.shot = 'custom'; cam.fromP.copy(cam.pos); cam.fromT.copy(cam.target); computeShot('custom'); cam.k = 0; },
     advance(sec) { if (!ready) return; for (let i = 0; i < Math.round(sec * 30); i++) step(1 / 30); }, // testing aid (runs while the tab is hidden)
     current: () => ({ loc: envId, decor: envDecor, time: timeOfDay, weather }),
+    _stage: () => ({ pAnim: stage.pAnim, bedNpc: stage.bedNpc, pSpot: (playerSpotFor(stage.pAnim) || {}).spot, slots: slotsFor(Array.from(npcs.values()).map((n) => n.data), (playerSpotFor(stage.pAnim) || {}).spot || env.playerSpot) }),
+    probe: (x, z, r) => ({ blocked: blocked(x, z, r == null ? BODY_R : r), hits: ((env && env.obs) || []).filter((o) => x > o.x0 - (r == null ? BODY_R : r) && x < o.x1 + (r == null ? BODY_R : r) && z > o.z0 - (r == null ? BODY_R : r) && z < o.z1 + (r == null ? BODY_R : r)) }),
     // testing aid: where everyone stands and whether that point is inside a prop
     stageInfo() {
       const one = (ch) => { const p = ch.root.position; return { x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), rotY: +ch.root.rotation.y.toFixed(2), anim: ch.anim, inside: blocked(p.x, p.z, 0.12) && !(env.anchors && Object.values(env.anchors).some((a) => Math.hypot(a.pos[0] - p.x, a.pos[2] - p.z) < 0.05)) }; };
