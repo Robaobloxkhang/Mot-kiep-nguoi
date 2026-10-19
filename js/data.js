@@ -477,7 +477,7 @@
 
   const ROLE_LABELS = { mother: 'Mẹ', father: 'Bố', sibling: 'Anh chị em', grandparent: 'Ông bà', friend: 'Bạn bè', partner: 'Người yêu', spouse: 'Bạn đời', child: 'Con', grandchild: 'Cháu', pet: 'Thú cưng', ex: 'Người yêu cũ', lover: 'Người tình' };
   const INTERACTIONS = {
-    talk: { label: 'Trò chuyện', icon: '💬' }, hug: { label: 'Ôm', icon: '🤗' }, meal: { label: 'Ăn cơm cùng', icon: '🍚' }, gift: { label: 'Tặng quà', icon: '🎁' },
+    talk: { label: 'Trò chuyện', icon: '💬' }, flirt: { label: 'Tán tỉnh', icon: '😏' }, hug: { label: 'Ôm', icon: '🤗' }, meal: { label: 'Ăn cơm cùng', icon: '🍚' }, gift: { label: 'Tặng quà', icon: '🎁' },
     ask_money: { label: 'Xin tiền', icon: '🧧' }, argue: { label: 'Cãi nhau', icon: '💢' }, hangout: { label: 'Đi chơi', icon: '🎉' }, borrow: { label: 'Vay tiền', icon: '💸' },
     date: { label: 'Hẹn hò', icon: '🌹' }, love: { label: 'Âu yếm', icon: '💞' }, propose: { label: 'Cầu hôn', icon: '💍' }, breakup: { label: 'Chia tay', icon: '💔' },
     baby: { label: 'Sinh em bé', icon: '👶' }, divorce: { label: 'Ly hôn', icon: '📄' }, play: { label: 'Chơi cùng', icon: '🪁' }, teach: { label: 'Dạy học', icon: '✏️' },
@@ -487,9 +487,9 @@
   const ROLE_ACTIONS = {
     mother: ['talk', 'hug', 'meal', 'gift', 'ask_money', 'argue'], father: ['talk', 'hug', 'meal', 'gift', 'ask_money', 'argue'],
     grandparent: ['talk', 'hug', 'meal', 'gift', 'care'], sibling: ['talk', 'hangout', 'gift', 'argue', 'borrow'],
-    friend: ['talk', 'hangout', 'gift', 'argue', 'borrow'], partner: ['date', 'gift', 'love', 'propose', 'breakup'],
+    friend: ['talk', 'hangout', 'gift', 'argue', 'borrow', 'flirt'], partner: ['date', 'gift', 'love', 'propose', 'breakup'],
     spouse: ['date', 'gift', 'love', 'baby', 'argue', 'divorce'], child: ['play', 'teach', 'gift', 'hug', 'argue'],
-    grandchild: ['play', 'gift', 'hug', 'teach'], pet: ['play', 'walk', 'feed'], ex: ['talk'],
+    grandchild: ['play', 'gift', 'hug', 'teach'], pet: ['play', 'walk', 'feed'], ex: ['talk', 'flirt'],
     lover: ['date', 'gift', 'love', 'leave', 'breakup'],
   };
   ROLE_ACTIONS.pet = ['play', 'walk', 'feed', 'train'];
@@ -776,6 +776,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.61', date: '19/10/2026', items: [
+      '😏 Chủ động ngoại tình: nút "Tán tỉnh" với bạn bè và người yêu cũ (từ 18 tuổi). Đang có vợ/chồng/người yêu mà tán đổ thì họ thành người tình bí mật; còn độc thân thì thành người yêu.',
+      '💘 Đã có gia đình vẫn mở được app hẹn hò và hoạt động "Hẹn hò qua app" — hẹn thành công thì có người tình bí mật, nhưng mỗi lần lén hẹn đều có thể bị bắt quả tang.',
+      'Ngoại tình khi chỉ đang yêu (chưa cưới) cũng có hậu quả: người yêu phát hiện thì chia tay; người tình chỉ thành người yêu chính thức khi bạn thật sự độc thân.',
+    ] },
     { v: '1.60', date: '19/10/2026', items: [
       '⚽ Haxball đấu với máy giờ mặc định 3v3: bạn + 2 đồng đội máy đấu với 3 máy (vẫn chọn 1v1 được trong mục Số người).',
       '🔁 Máy đá kiểu TIKI-TAKA: chuyền ngắn khi bị áp sát, chỉ chuyền khi đường chuyền trống, chuyền vừa lực; đồng đội chạy chỗ tạo tam giác (một người dạt cánh phía trước, một người lùi làm điểm chuyền về).',

@@ -3313,7 +3313,13 @@
       if (x.role === 'friend' && x.relation < 10) { x.alive = false; x.gone = true; L('Bạn và ' + x.firstName + ' dần mất liên lạc.', 'neutral', '🍂'); }
       // người tình bí mật: tốn tiền, bào mòn hôn nhân, càng lâu càng dễ lộ
       if (x.role === 'lover') {
-        if (!has('spouse')) { x.role = 'partner'; L('Không còn phải lén lút nữa: ' + x.firstName + ' chính thức thành người yêu của bạn.', 'neutral', '💞'); }
+        if (!has('spouse') && !has('partner')) { x.role = 'partner'; L('Không còn phải lén lút nữa: ' + x.firstName + ' chính thức thành người yêu của bạn.', 'neutral', '💞'); }
+        else if (!has('spouse')) {
+          // đang yêu mà còn “bắt cá hai tay”
+          const pt = alive('partner')[0]; pt.relation = r100(pt.relation - U.rand(3, 8)); S.flags.loverHeat = (S.flags.loverHeat || 0) + 1;
+          if (Math.random() < 0.18 + S.flags.loverHeat * 0.08) { pt.role = 'ex'; x.role = 'partner'; S.flags.loverHeat = 0; addStat('happy', -8, deltas); addStat('karma', -4, deltas); L(pt.firstName + ' phát hiện bạn “bắt cá hai tay” với ' + x.firstName + ', chia tay trong nước mắt và kể cho cả nhóm bạn. Giờ ' + x.firstName + ' thành người yêu chính thức của bạn.', 'bad', '💔'); }
+          else L('Bạn vẫn lén lút qua lại với ' + x.firstName + ' sau lưng ' + pt.firstName + '.', 'neutral', '🤫');
+        }
         else if (x.relation < 25 && Math.random() < 0.4) { x.role = 'ex'; L(x.firstName + ' chán cảnh làm “người trong bóng tối”, lặng lẽ rời đi.', 'bad', '💔'); addStat('happy', -4, deltas); }
         else {
           const cost = Math.round(Math.max(12e6, Math.min(Math.max(0, S.money) * 0.04, 300e6)) / 1e6) * 1e6;
@@ -3536,7 +3542,7 @@
     if (pa < a.minAge) return 'Từ ' + a.minAge + ' tuổi';
     if (a.maxAge && pa > a.maxAge) return 'Không còn hợp tuổi';
     if ((S.yearActs[a.id] || 0) >= (a.limit || 3)) return 'Đã làm đủ trong năm nay';
-    if (a.id === 'dating' && (has('partner') || has('spouse'))) return 'Bạn đang có đôi';
+    if (a.id === 'dating' && (has('partner') || has('spouse')) && has('lover')) return 'Bạn đang có người tình rồi';
     if (a.id === 'adopt' && alive('pet').length >= 2) return 'Đủ thú cưng rồi';
     if (a.id === 'stocks' && S.money < 10e6) return 'Cần ít nhất 10 triệu';
     if (a.id === 'doctor' && pa < 18 && !has('mother') && !has('father') && S.money < a.cost) return 'Không đủ tiền';
@@ -3812,9 +3818,11 @@
         const base = { loc: 'cafe', time: 'dusk', anim: 'talk', npcs: [{ role: 'stranger', gender: loveGender(), age: U.clamp(P().age + U.randi(-4, 3), 18, 99), anim: 'talk' }] };
         const ctx = bind({ id: '_date', scene: base });
         if (Math.random() < p) {
-          const np = addPersonFrom({ role: 'partner', fromScene: 'stranger' }, ctx);
+          const main = alive('spouse')[0] || alive('partner')[0];
+          const np = addPersonFrom({ role: main ? 'lover' : 'partner', fromScene: 'stranger' }, ctx);
           rollEff({ happy: [6, 10] }, 1, deltas);
           text = 'Bạn gặp ' + np.firstName + ' qua ứng dụng hẹn hò. Buổi cà phê đầu tiên kéo dài đến tận khuya. Hai người quyết định tìm hiểu nhau!';
+          if (main) { addStat('karma', -6, deltas); S.flags.loverHeat = S.flags.loverHeat || 0; text = 'Bạn lén cài app hẹn hò, giấu kỹ trong thư mục ẩn. ' + np.firstName + ' nhắn tin rất hợp, buổi cà phê đầu tiên kéo dài đến nửa đêm. Từ nay, ' + np.firstName + ' là người tình bí mật của bạn — còn ' + main.firstName + ' vẫn chưa biết gì. 🤫'; if (Math.random() < 0.12) { addRel(main, -20, []); S.flags.loverHeat += 2; text += ' Nhưng điện thoại bạn rung lên lúc nửa đêm, và ' + main.firstName + ' đã kịp nhìn thấy tên người gửi…'; } }
           scene = resolveScene(Object.assign({}, base, { anim: 'love', fx: 'hearts' }), ctx); scene.npcs.forEach((n) => { n.id = np.id; n.anim = 'love'; n.say = 'Mình gặp lại nhé?'; });
         } else {
           rollEff({ happy: [-4, -1] }, 1, deltas);
@@ -3938,6 +3946,7 @@
       else if (id === 'train' && pa < 6) reason = 'Từ 6 tuổi';
       else if (id === 'baby') { const f = P().gender === 'f' ? P() : p; if (f.age > 46) reason = 'Đã qua tuổi sinh con'; else if (alive('child').filter((c) => c.age === 0).length) reason = 'Bé út còn quá nhỏ'; }
       else if ((id === 'date' || id === 'love') && pa < 14) reason = 'Còn quá nhỏ';
+      else if (id === 'flirt') { if (pa < 18) reason = 'Từ 18 tuổi'; else if (p.age < 18) reason = 'Người này chưa đủ 18 tuổi'; else if (!loveGenders().includes(p.gender)) reason = 'Không hợp xu hướng tình cảm của bạn'; else if (has('lover')) reason = 'Bạn đang có một người tình rồi'; else if (S.jail) reason = 'Đang ở tù'; }
       return { id, label: meta2.label, icon: meta2.icon, disabled: !!reason, reason };
     });
   }
@@ -4090,6 +4099,30 @@
           text = name + ' ngập ngừng: "Mình… chưa sẵn sàng." Chiếc nhẫn nằm im trong hộp.';
           scene = S1('park', 'sad', 'shake', { fx: 'heartbreak', time: 'night' });
           if (Math.random() < 0.3) { p.role = 'ex'; text += ' Vài tuần sau, hai người chia tay.'; }
+        }
+        break;
+      }
+      case 'flirt': {
+        // tán tỉnh bạn bè / người yêu cũ: độc thân → người yêu; đang có đôi → người tình bí mật (ngoại tình)
+        const main = alive('spouse')[0] || alive('partner')[0], mk = main ? kin(main) + ' ' + main.firstName : '';
+        const pr = U.clamp(0.18 + (p.relation - 50) / 110 + (S.stats.looks - 50) / 160 + (p.role === 'ex' ? 0.1 : 0), 0.06, 0.75);
+        if (Math.random() < pr) {
+          addStat('happy', 6, deltas); addRel(p, 12, relDeltas);
+          if (main) {
+            p.role = 'lover'; p.loverSince = S.year; S.flags.loverHeat = S.flags.loverHeat || 0; addStat('karma', -6, deltas);
+            text = 'Những tin nhắn “chúc ngủ ngon” ngày một dài hơn. Rồi một tối, ' + name + ' không về nhà ngay sau buổi cà phê… Từ hôm đó, hai người thành một bí mật. Bạn vẫn về nhà ăn cơm với ' + mk + ' như chưa có gì xảy ra.';
+            scene = S1('cafe', 'love', 'love', { fx: 'hearts', time: 'night', say: 'Đừng để ai biết nhé…' }); tone = 'neutral';
+            if (Math.random() < 0.1) { addRel(main, -18, relDeltas); S.flags.loverHeat += 2; text += ' Nhưng tối đó ' + mk + ' thấy tin nhắn hiện trên màn hình khoá, hỏi “Ai đấy?”. Bạn chối là bạn cũ, nhưng ánh mắt ấy không còn tin bạn nữa.'; tone = 'bad'; }
+          } else {
+            p.role = 'partner';
+            text = 'Bạn rủ ' + name + ' đi ăn tối, ánh mắt nói nhiều hơn lời. Cuối buổi, ' + name + ' nắm tay bạn: “Mình thử yêu nhau nhé?” Từ bạn thành người yêu!';
+            scene = S1('cafe', 'love', 'love', { fx: 'hearts', time: 'dusk', say: 'Mình thử nhé?' }); tone = 'good';
+          }
+        } else {
+          addStat('happy', -4, deltas); addRel(p, -12, relDeltas);
+          text = name + ' bật cười ngượng: “Thôi, mình coi nhau là bạn thôi.” Không khí bỗng gượng gạo hẳn.';
+          scene = S1('cafe', 'facepalm', 'shake', { time: 'dusk' }); tone = 'bad';
+          if (main && Math.random() < 0.25) { addRel(main, -15, relDeltas); text += ' Tệ hơn, ' + name + ' kể chuyện này với người quen, và tin đồn đến tai ' + mk + '.'; }
         }
         break;
       }
@@ -5027,14 +5060,15 @@
   // ---- 11. App hẹn hò: quẹt trái / phải, mở lời, đi hẹn
   const DATE_BIOS = ['Thích đi phượt, ghét người trễ hẹn', 'Mê mèo, cà phê và nhạc Trịnh', 'Gymer, tìm người tập cùng', 'Đang tìm người nghiêm túc, không “thả thính”', 'Thích nấu ăn, chưa có ai ăn cùng', 'Dân IT, nói chuyện hơi khô', 'Hay cười, dễ thương, hơi nhây', 'Làm ngân hàng, cuối tuần mới rảnh', 'Thích du lịch một mình', 'Chỉ thích người cao trên 1m7 😌'];
   const DATE_JOBS = ['Nhân viên văn phòng', 'Giáo viên', 'Dân IT', 'Bác sĩ', 'Kinh doanh tự do', 'Sinh viên', 'Kế toán', 'Thiết kế', 'Tiếp viên hàng không', 'Kiến trúc sư', 'Đầu bếp'];
-  function datingOpen() { const pa = P().age; return socOpen() && pa >= 18 && pa <= 55 && !has('spouse') && !has('partner') && !S.jail; }
+  function datingOpen() { const pa = P().age; return socOpen() && pa >= 18 && pa <= 55 && !S.jail && !((has('spouse') || has('partner')) && has('lover')); }
+  const datingSneak = () => has('spouse') || has('partner'); // đã có đôi mà vẫn dùng app = lén lút
   function datingView() {
-    if (!datingOpen()) return { open: false, reason: has('spouse') ? 'Bạn đã có gia đình' : has('partner') ? 'Bạn đang có người yêu' : 'Từ 18 tuổi, cần smartphone' };
+    if (!datingOpen()) return { open: false, reason: has('lover') ? 'Bạn đang có người tình rồi' : 'Từ 18 tuổi, cần smartphone' };
     const d = S.dating && S.dating.year === S.year ? S.dating : (S.dating = { year: S.year, swipes: 0, deck: [], matches: [] });
     if (!d.deck.length && d.swipes < 12) {
       for (let i = 0; i < 6; i++) { const g = U.pick(loveGenders()), age = U.clamp(P().age + U.randi(-6, 6), 18, 60), nm = D.randomName(g); d.deck.push({ id: U.uid('dt'), g, age, name: nm.firstName, job: U.pick(DATE_JOBS), bio: U.pick(DATE_BIOS), looks: U.randi(30, 95), catfish: Math.random() < 0.15, scam: Math.random() < 0.08 }); }
     }
-    return { open: true, swipesLeft: Math.max(0, 12 - d.swipes), deck: d.deck.slice(0, 1).map((p) => ({ id: p.id, name: p.name, age: p.age, job: p.job, bio: p.bio, hot: p.looks >= 80, icon: p.g === 'f' ? '👩' : '👨' })), matches: d.matches.map((m) => ({ id: m.id, name: m.name, age: m.age, job: m.job, icon: m.g === 'f' ? '👩' : '👨', dated: !!m.dated })) };
+    return { open: true, sneak: datingSneak(), swipesLeft: Math.max(0, 12 - d.swipes), deck: d.deck.slice(0, 1).map((p) => ({ id: p.id, name: p.name, age: p.age, job: p.job, bio: p.bio, hot: p.looks >= 80, icon: p.g === 'f' ? '👩' : '👨' })), matches: d.matches.map((m) => ({ id: m.id, name: m.name, age: m.age, job: m.job, icon: m.g === 'f' ? '👩' : '👨', dated: !!m.dated })) };
   }
   function datingSwipe(id, like) {
     if (!datingOpen()) return fail('Không dùng được app hẹn hò lúc này.');
@@ -5056,8 +5090,16 @@
     if (m.scam) { const lost = pct(0.05, 2e6); addMoney(-lost, deltas); addStat('happy', -10, deltas); text = m.name + ' nói chuyện ngọt như mía lùi suốt hai tuần, rồi rủ bạn “đầu tư sàn vàng quốc tế cùng anh/em”. Bạn chuyển ' + fmtMoney(lost) + '… và tài khoản ấy biến mất. Lừa đảo tình cảm.'; tone = 'bad'; scene = sceneFor('bedroom', { anim: 'cry', fx: 'tears' }); }
     else if (m.catfish) { addStat('happy', -5, deltas); text = 'Người đến buổi hẹn trông khác hẳn ảnh — hình như lớn hơn 15 tuổi và ảnh toàn dùng app làm đẹp. Bạn uống vội ly nước rồi xin về.'; scene = sceneFor('cafe', { anim: 'facepalm' }); }
     else if (Math.random() < U.clamp(0.25 + (fit - 50) / 120, 0.1, 0.75)) {
-      const p = newPerson('partner', m.g, m.age, { relation: U.randi(58, 72) }); p.firstName = m.name; p.metApp = S.year; S.people.push(p);
+      const sneak = datingSneak(), main = alive('spouse')[0] || alive('partner')[0];
+      const p = newPerson(sneak ? 'lover' : 'partner', m.g, m.age, { relation: U.randi(58, 72) }); p.firstName = m.name; p.metApp = S.year; if (sneak) p.age = m.age; S.people.push(p);
       addStat('happy', 10, deltas); unlockSafe('dating_app');
+      if (sneak) {
+        addStat('karma', -6, deltas); S.flags.loverHeat = S.flags.loverHeat || 0;
+        text = 'Bạn nói dối ' + kin(main) + ' ' + main.firstName + ' là đi tiếp khách, rồi lén gặp ' + m.name + '. Buổi hẹn kéo dài đến nửa đêm. Từ hôm nay, ' + m.name + ' là người tình bí mật của bạn. 🤫';
+        if (Math.random() < 0.12) { main.relation = r100(main.relation - 20); S.flags.loverHeat += 2; text += ' Về nhà, ' + main.firstName + ' ngửi thấy mùi nước hoa lạ trên áo bạn, im lặng nhìn rất lâu…'; }
+        addLog('💘 ' + text, 'neutral', '🤫'); checkProgress(); changed();
+        return result({ title: '🤫 Hẹn hò lén với ' + m.name, icon: '🤫', text, tone: 'neutral', deltas, scene: sceneFor('cafe', { anim: 'love', fx: 'hearts', time: 'night' }) });
+      }
       text = { hai: 'Câu mở lời hài hước làm ' + m.name + ' cười cả buổi.', chan: 'Bạn mở lời chân thành, hai người nói chuyện đến khuya.', thinh: 'Câu thả thính “ngọt lịm” của bạn trúng ngay tim đen.' }[op] + ' Buổi hẹn đầu tiên kéo dài sang tận buổi tối. ' + m.name + ' chính thức thành người yêu của bạn!'; tone = 'good'; scene = sceneFor('cafe', { anim: 'love', fx: 'hearts' });
     } else { addStat('happy', -3, deltas); text = U.pick([m.name + ' “seen” tin nhắn của bạn… rồi không bao giờ trả lời nữa.', 'Buổi hẹn khá ngượng ngùng. Về nhà, bạn nhận được tin: “Mình nghĩ tụi mình hợp làm bạn hơn.”', m.name + ' đến muộn 40 phút, cắm mặt vào điện thoại cả buổi. Thôi bỏ đi.']); scene = sceneFor('cafe', { anim: 'sad' }); }
     addLog('💘 ' + text, tone, '💘'); checkProgress(); changed();
