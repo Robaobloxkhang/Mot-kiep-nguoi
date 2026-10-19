@@ -66,14 +66,14 @@
   }
   function step(m, inputs) {
     m.phaseT++;
-    if (m.phase === 'goal') { if (!m.client && m.phaseT > 120) resetPositions(m); else { moveBall(m); return; } }
+    if (m.phase === 'goal') { if (!m.client && m.phaseT > 150) { m.cele = null; resetPositions(m); } else { celebrate(m); moveBall(m); return; } }
     if (m.phase === 'end') return;
     if (m.phase === 'play' && !m.client) { m.time += 1 / 60; if (m.time >= m.dur && !m.golden) { if (m.score[0] === m.score[1]) { m.golden = true; m.events.push({ t: 'golden' }); } else { m.phase = 'end'; m.events.push({ t: 'end' }); return; } } if (m.golden && m.time >= m.dur + 90) { m.phase = 'end'; m.events.push({ t: 'end' }); return; } }
     m.players.forEach((p, i) => {
       const v = vecOf(inputs[i]);
       // bấm sút sớm một chút (trước khi chạm bóng) vẫn ăn: nhớ lệnh sút thêm 8 khung hình (~0,13 giây)
       if (v.k && !p.kicking) p.kbuf = 8; else if (p.kbuf > 0) p.kbuf--;
-      p.kicking = v.k; const acc = p.kicking ? MP.acc * 0.62 : MP.acc;
+      p.kicking = v.k; const acc = (p.kicking ? MP.acc * 0.62 : MP.acc) * (p.assist ? 1.08 : 1);
       p.vx = (p.vx + v.jx * acc) * MP.pd; p.vy = (p.vy + v.jy * acc) * MP.pd;
       p.x += p.vx; p.y += p.vy;
       // giao bóng: chưa được vượt sang nửa sân đối phương / vào vòng tròn giữa sân
@@ -85,11 +85,11 @@
       if (!p.kicking) p.charge = 0;
       if ((p.kicking || p.kbuf > 0) && p.cool <= 0) {
         const dx = m.ball.x - p.x, dy = m.ball.y - p.y, d = Math.hypot(dx, dy);
-        if (d < KICK_RANGE && (m.phase !== 'kickoff' || p.team === m.kickoff)) {
-          const pow = MP.kick * (p.sk.charge ? 1 + Math.min(p.charge, 45) / 45 * 0.75 : 1) * v.pw;
+        if (d < KICK_RANGE + (p.assist ? 4 : 0) && (m.phase !== 'kickoff' || p.team === m.kickoff)) {
+          const pow = MP.kick * (p.sk.charge ? 1 + Math.min(p.charge, 45) / 45 * 0.75 : 1) * v.pw * (p.assist ? 1.12 : 1);
           let ux = dx / d, uy = dy / d;
           // hỗ trợ ngắm: sút gần đúng hướng khung thành đối phương (lệch < ~35°, trong 480px) thì bóng bẻ nhẹ vào khung
-          if (!MP.basket) { const gx = (p.team === 0 ? R : L) - m.ball.x, gy = Math.max(CY - GH * 0.6, Math.min(CY + GH * 0.6, m.ball.y)) - m.ball.y, gl = Math.hypot(gx, gy) || 1; if (gl < 480 && (ux * gx + uy * gy) / gl > 0.82) { ux = ux * 0.65 + gx / gl * 0.35; uy = uy * 0.65 + gy / gl * 0.35; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul; } }
+          if (!MP.basket) { const gx = (p.team === 0 ? R : L) - m.ball.x, gy = Math.max(CY - GH * 0.6, Math.min(CY + GH * 0.6, m.ball.y)) - m.ball.y, gl = Math.hypot(gx, gy) || 1; const wide = p.assist ? 0.6 : 0.82, pull = p.assist ? 0.55 : 0.35; if (gl < (p.assist ? 560 : 480) && (ux * gx + uy * gy) / gl > wide) { ux = ux * (1 - pull) + gx / gl * pull; uy = uy * (1 - pull) + gy / gl * pull; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul; } }
           m.ball.vx += ux * pow; m.ball.vy += uy * pow;
           if (p.sk.curve) { const side = ux * p.vy - uy * p.vx; m.ball.spin = Math.max(-0.035, Math.min(0.035, side * 0.014)); }
           if (p.charge > 25) m.events.push({ t: 'power' });
@@ -102,6 +102,29 @@
     ps.forEach((p, i) => { const hit = collideCircles(p, m.ball, PR, BR, 0.5, 1, 0.5); if (hit) { if (!(m.lastTouch === i && m.phaseT - (m.shotT || 0) < 15)) m.shot = null; m.lastTouch = i; } if (hit && m.phase === 'kickoff' && p.team === m.kickoff && !m.client) m.phase = 'play'; POSTS.forEach((po) => staticPost(p, PR, po, 0.4)); });
     if (m.phase === 'kickoff' && m.phaseT > 300 && !m.client) m.phase = 'play'; // 5 giây không ai giao thì tự chạy
     moveBall(m);
+  }
+  // ĂN MỪNG BÀN THẮNG: người ghi bàn chạy ra góc sân / khán đài theo kiểu ăn mừng, đồng đội chạy tới ôm, đội thua lững thững về sân nhà
+  const CELE = [
+    { id: 'siu', text: 'SIUUU! 🐐' }, { id: 'knee', text: 'Trượt gối ăn mừng! 🧎' }, { id: 'plane', text: 'Dang tay máy bay! ✈️' },
+    { id: 'dance', text: 'Nhảy ăn mừng! 💃' }, { id: 'hush', text: 'Suỵt… im lặng nào! 🤫' }, { id: 'heart', text: 'Bắn tim cho khán giả! 🫶' },
+  ];
+  function celebrate(m) {
+    const c = m.cele; if (!c) return;
+    const sc = m.players[c.who]; if (!sc) return;
+    const t = m.phaseT, dir = sc.team === 0 ? 1 : -1;
+    const cx = c.cx != null ? c.cx : (c.cx = sc.team === 0 ? R - 40 : L + 40), cy = c.cy != null ? c.cy : (c.cy = sc.y < CY ? T + 30 : B - 30);
+    let tx = cx, ty = cy, sp = 0.32;
+    if (c.style === 'plane') { const a = t * 0.07; tx = W / 2 + dir * 160 + Math.cos(a) * 110; ty = CY + Math.sin(a) * 90; sp = 0.4; }
+    else if (c.style === 'dance') { tx = sc.x + Math.sin(t * 0.3) * 30; ty = sc.y + Math.cos(t * 0.21) * 20; sp = 0.5; }
+    else if (c.style === 'hush') { tx = sc.x + dir * 30; ty = sc.y < CY ? T + 18 : B - 18; }
+    else if (c.style === 'knee') sp = t < 60 ? 0.55 : 0.05;
+    const mv = (p, x, y, k) => { p.vx = (p.vx + (x - p.x) * 0.012 * k) * 0.88; p.vy = (p.vy + (y - p.y) * 0.012 * k) * 0.88; p.x = Math.max(PR, Math.min(W - PR, p.x + p.vx)); p.y = Math.max(PR, Math.min(H - PR, p.y + p.vy)); };
+    mv(sc, tx, ty, sp * 3);
+    m.players.forEach((p, i) => {
+      if (i === c.who) return;
+      if (p.team === sc.team) { if (t > 25) mv(p, sc.x - dir * (16 + (i % 3) * 10), sc.y + ((i % 2) ? 18 : -18), 0.9); } // chạy tới ôm người ghi bàn
+      else mv(p, p.hx, p.hy, 0.25); // đội thua cúi đầu về chỗ
+    });
   }
   function moveBall(m) {
     const b = m.ball;
@@ -130,6 +153,8 @@
   }
   function goal(m, team, pts) {
     m.score[team] += pts || 1; m.lastPts = pts || 1; m.phase = 'goal'; m.phaseT = 0; m.kickoff = 1 - team;
+    const who = m.players[m.lastTouch] && m.players[m.lastTouch].team === team ? m.lastTouch : m.players.findIndex((q) => q.team === team);
+    if (who >= 0) m.cele = { who, style: CELE[(m.score[0] + m.score[1] + who) % CELE.length].id }; // cùng công thức trên máy người vào phòng online
     const sc = m.players[m.lastTouch]; if (sc && sc.team === team) m.goalsBy[m.lastTouch] = (m.goalsBy[m.lastTouch] || 0) + 1;
     m.scorerName = sc ? (sc.team === team ? sc.name || '' : 'phản lưới nhà!') : '';
     m.events.push({ t: 'goal', team, scorer: m.lastTouch });
@@ -154,7 +179,7 @@
   }
   function aiInput(m, i, lvl) {
     const p = m.players[i], b = m.ball, dir = p.team === 0 ? 1 : -1, own = MP.basket ? HOOPS[p.team][0] : p.team === 0 ? L : R, opp = MP.basket ? HOOPS[1 - p.team][0] : p.team === 0 ? R + 10 : L - 10;
-    const speed = [0.58, 0.8, 0.95][lvl] ?? 0.8; // máy chạy chậm hơn người một chút
+    const speed = ([0.58, 0.8, 0.95][lvl] ?? 0.8) * (p.slowK || 1); // máy chạy chậm hơn người một chút (trận trong cuộc đời còn chậm hơn nữa)
     const go = (tx, ty, s) => { const dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy) || 1, sp = (s || speed) * Math.min(1, dl / 14 + 0.2); return { jx: dx / dl * sp, jy: dy / dl * sp }; };
     if (m.phase === 'kickoff' && p.team !== m.kickoff) return go(p.hx, p.hy, 0.5);
     // vừa chuyền xong (thấy chân loé sáng) thì nhả bóng, chạy chỗ chứ không đuổi theo bóng mình vừa chuyền
@@ -245,9 +270,14 @@
     const net = MP.dark ? 'rgba(30,40,60,.85)' : 'rgba(255,255,255,.9)';
     if (!MP.basket) [[L - GD, 0], [R, 1]].forEach(([gx]) => { c.fillStyle = MP.dark ? 'rgba(30,40,60,.12)' : 'rgba(255,255,255,.12)'; c.fillRect(gx, CY - GH, GD, GH * 2); c.strokeStyle = net; c.lineWidth = 3; c.strokeRect(gx, CY - GH, GD, GH * 2); c.strokeStyle = MP.dark ? 'rgba(30,40,60,.3)' : 'rgba(255,255,255,.25)'; c.lineWidth = 1; for (let k = 6; k < GD; k += 7) { c.beginPath(); c.moveTo(gx + k, CY - GH); c.lineTo(gx + k, CY + GH); c.stroke(); } });
     POSTS.forEach(([x, y]) => { c.fillStyle = MP.dark ? '#26324a' : '#fff'; c.beginPath(); c.arc(x, y, POST_R, 0, Math.PI * 2); c.fill(); });
+    if (m.phase !== 'goal') m.cele = null;
+    else if (!m.cele && m.lastTouch >= 0 && m.players[m.lastTouch]) m.cele = { who: m.lastTouch, style: CELE[(m.score[0] + m.score[1] + m.lastTouch) % CELE.length].id };
+    const cele = m.phase === 'goal' && m.cele ? m.cele : null;
     m.players.forEach((p, i) => {
-      c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.arc(p.x + 2, p.y + 3, PR, 0, Math.PI * 2); c.fill();
-      c.fillStyle = COLORS[p.team]; c.beginPath(); c.arc(p.x, p.y, PR, 0, Math.PI * 2); c.fill();
+      const star = cele && cele.who === i, PRd = star ? PR * (1 + 0.2 * Math.abs(Math.sin(m.phaseT * (cele.style === 'siu' && m.phaseT > 60 ? 0.35 : 0.18)))) : PR;
+      if (star) { c.fillStyle = 'rgba(255,210,63,' + (0.25 + 0.2 * Math.sin(m.phaseT * 0.3)) + ')'; c.beginPath(); c.arc(p.x, p.y, PRd + 12, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.arc(p.x + 2, p.y + 3, PRd, 0, Math.PI * 2); c.fill();
+      c.fillStyle = COLORS[p.team]; c.beginPath(); c.arc(p.x, p.y, PRd, 0, Math.PI * 2); c.fill();
       c.lineWidth = p.kicking ? 4 : 2.5; c.strokeStyle = p.flash ? '#ffd23f' : p.kicking ? '#fff' : 'rgba(0,0,0,.6)'; c.stroke();
       if (p.charge > 4) { c.lineWidth = 4; c.strokeStyle = p.charge >= 45 ? '#ff5c2b' : '#ffd23f'; c.beginPath(); c.arc(p.x, p.y, PR + 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, p.charge / 45)); c.stroke(); }
       if (i === me) { c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(p.x, p.y, PR + 5, 0, Math.PI * 2); c.stroke(); }
@@ -258,6 +288,13 @@
     if (Math.abs(b.spin) > 0.004) { c.strokeStyle = 'rgba(255,210,63,.55)'; c.lineWidth = 3; c.beginPath(); c.arc(b.x, b.y, BR + 5, 0, Math.PI * 1.2 * Math.sign(b.spin), b.spin < 0); c.stroke(); }
     c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.arc(b.x + 2, b.y + 3, BR, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#fff'; c.beginPath(); c.arc(b.x, b.y, BR, 0, Math.PI * 2); c.fill(); c.lineWidth = 2; c.strokeStyle = '#111'; c.stroke();
+    if (cele && m.players[cele.who]) {
+      // pháo giấy bung ra từ người ghi bàn
+      const sp = m.players[cele.who], t = m.phaseT, cols = ['#ffd23f', '#ff5c8a', '#4fd1ff', '#7dff7a', '#ffffff', COLORS[sp.team]];
+      for (let k = 0; k < 46; k++) { const a = k * 2.399, v = 1.2 + (k % 7) * 0.45, tt = Math.min(t, 90), x = sp.x + Math.cos(a) * v * tt, y = sp.y + Math.sin(a) * v * tt + 0.012 * tt * tt; if (t > 110 && k % 3 === 0) continue; c.save(); c.translate(x, y); c.rotate(t * 0.1 + k); c.fillStyle = cols[k % cols.length]; c.globalAlpha = Math.max(0, 1 - t / 150); c.fillRect(-3, -1.5, 6, 3); c.restore(); }
+      const st = CELE.find((x) => x.id === cele.style);
+      if (st && t > 20) { c.font = '800 22px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; const tx = Math.max(130, Math.min(W - 130, sp.x)), ty = Math.max(24, sp.y - PR - 30); c.fillStyle = 'rgba(0,0,0,.45)'; c.fillText(st.text, tx + 1, ty + 1); c.fillStyle = '#ffd23f'; c.fillText(st.text, tx, ty); }
+    }
     if (m.phase === 'goal') { c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0, CY - 50, W, 100); c.fillStyle = '#ffd23f'; c.font = '800 54px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(MP.basket ? 'VÀO RỔ! 🏀 +' + (m.lastPts || 2) : 'VÀOOO! ⚽', W / 2, CY - (m.scorerName ? 12 : 0)); if (m.scorerName) { c.font = '700 20px sans-serif'; c.fillStyle = '#fff'; c.fillText(m.scorerName, W / 2, CY + 30); } }
     if (m.phase === 'kickoff' && m.phaseT < 90) { c.fillStyle = MP.dark ? 'rgba(20,30,50,.9)' : 'rgba(255,255,255,.9)'; c.font = '700 18px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Đội ' + NAMES[m.kickoff] + ' giao bóng', W / 2, T / 2); }
   }
@@ -403,13 +440,15 @@
     opts = opts || {};
     return new Promise((res) => {
       onEnd = res;
-      const lvl = opts.need > 0.6 ? 2 : opts.need > 0.35 ? 1 : 0;
+      // trận trong cuộc đời dễ hơn Haxball thường: đối thủ tối đa mức Thường và chạy chậm hơn, bạn được hỗ trợ sút
+      const lvl = opts.need > 0.6 ? 1 : 0;
       // trận lớn có đồng đội máy đá cùng; đối thủ đông bằng
       const sk = opts.skills || { charge: true, curve: true };
       const n = Math.max(1, Math.min(4, opts.size || 1)), roster = [{ team: 0, name: myName(), sk }], owners = ['me'];
       for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội' }); owners.push(1); }
       for (let i = 0; i < n; i++) { roster.push({ team: 1, name: opts.foe || 'Đối thủ' }); owners.push(lvl); }
-      const m = newMatch({ dur: opts.dur || 60, map: opts.map || 'classic', roster }); m.players[0].human = true;
+      const m = newMatch({ dur: opts.dur || 60, map: opts.map || 'classic', roster }); m.players[0].human = true; m.players[0].assist = true;
+      m.players.forEach((q) => { if (q.team === 1) q.slowK = opts.need > 0.6 ? 0.85 : 0.75; });
       open(pitchHtml((opts.title || 'Trận đấu') + ' · ' + n + 'v' + n + ' · ' + MP.icon + ' ' + MP.name));
       document.getElementById('hxHint').textContent = KEYS_HINT(sk) + ' · Trận đấu ' + (opts.dur || 60) + ' giây · bạn là ★';
       runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { career: true, onQuit: () => { const f = onEnd; onEnd = null; close(true); f && f({ score: 0, text: 'Bạn bỏ dở trận đấu.' }); } });
@@ -675,5 +714,5 @@
     document.getElementById('hxCode').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('hxJoin').click(); };
     document.getElementById('hxClose').onclick = () => close();
   }
-  KN.Hax = { open: menu, close, playCareer, MAPS, _sim: { newMatch, step, aiInput, applyMap } };
+  KN.Hax = { open: menu, close, playCareer, MAPS, _sim: { newMatch, step, aiInput, applyMap, draw } };
 })();

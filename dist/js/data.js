@@ -776,6 +776,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.62', date: '19/10/2026', items: [
+      '⚽ Trận bóng trong cuộc đời (cầu thủ, đá phủi, giải đấu…) dễ hơn hẳn: đối thủ tối đa mức Thường và chạy chậm hơn; bạn chạy nhanh hơn chút, sút mạnh hơn, tầm chạm bóng rộng hơn và bóng tự bẻ vào khung khi sút gần đúng hướng.',
+      '🎉 Ăn mừng bàn thắng: người ghi bàn chạy ra góc sân ăn mừng (SIUUU, trượt gối, dang tay máy bay, nhảy, suỵt, bắn tim), đồng đội chạy tới ôm, đội thua lững thững về chỗ, pháo giấy bung khắp sân.',
+    ] },
     { v: '1.61', date: '19/10/2026', items: [
       '😏 Chủ động ngoại tình: nút "Tán tỉnh" với bạn bè và người yêu cũ (từ 18 tuổi). Đang có vợ/chồng/người yêu mà tán đổ thì họ thành người tình bí mật; còn độc thân thì thành người yêu.',
       '💘 Đã có gia đình vẫn mở được app hẹn hò và hoạt động "Hẹn hò qua app" — hẹn thành công thì có người tình bí mật, nhưng mỗi lần lén hẹn đều có thể bị bắt quả tang.',
