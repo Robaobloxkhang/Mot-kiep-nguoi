@@ -194,17 +194,40 @@
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
-  // màn giới thiệu: chơi hay để số phận quyết định
-  function intro(p) {
+  // màn giới thiệu: giải thích rõ cách chơi (mục tiêu · từng bước · phím) rồi mới cho chơi; có nút chơi thử không tính điểm
+  const SEEN = 'kn_mini_seen';
+  const seenMap = () => { try { return KN.store.get(SEEN, {}) || {}; } catch (e) { return {}; } };
+  function markSeen(type) { try { const m = seenMap(); m[type] = (m[type] || 0) + 1; KN.store.set(SEEN, m); } catch (e) { /* */ } }
+  // phím trong câu hướng dẫn → hiện thành nút bàn phím cho dễ nhìn
+  function keyify(html) {
+    return html
+      .replace(/(Space|Enter|Esc|Shift|WASD|[←→↑↓](?:\s?[←→↑↓])*)/g, '<kbd>$1</kbd>')
+      .replace(/(^|[\s(\/·,])([A-Z])(?=[\s)\/·,.]|$)/g, '$1<kbd>$2</kbd>')
+      .replace(/(phím\s)(\d[–-]\d)/g, '$1<kbd>$2</kbd>');
+  }
+  function howSteps(how) {
+    const parts = String(how || '').split(/(?<=[.!?])\s+(?=[A-ZÀ-Ỹ0-9“"(])/).map((x) => x.trim()).filter(Boolean);
+    return parts.length > 1 ? '<ol class="mg-steps">' + parts.map((x) => '<li>' + keyify(x) + '</li>').join('') + '</ol>' : '<p>' + keyify(parts[0] || '') + '</p>';
+  }
+  function intro(p, practice) {
     return new Promise((res) => {
-      const goal = p.mode === 'duel' ? 'Ai được điểm cao hơn sẽ thắng.' : p.mode === 'buy' ? 'Mặc cả càng khéo càng được giảm nhiều (tối đa <b>15%</b>).' : 'Cần đạt <b>' + Math.round(p.need * 100) + '%</b> để thành công.';
+      const goal = p.mode === 'duel' ? 'Ai được điểm cao hơn sẽ thắng.' : p.mode === 'buy' ? 'Mặc cả càng khéo càng được giảm nhiều (tối đa <b>15%</b>).' : 'Đạt từ <b>' + Math.round(p.need * 100) + '%</b> trở lên là thành công. Thua thì cuộc đời rẽ sang hướng xấu hơn một chút.';
       const skip = p.mode === 'duel' ? '🏳️ Bỏ cuộc' : p.mode === 'buy' ? '💸 Mua luôn giá gốc' : '🎲 Để số phận quyết định';
+      const first = !seenMap()[p.type], canTry = p.mode !== 'duel', hint = hintOf(p);
       const box = open('<div class="mini-head"><b>' + NAME[p.type] + '</b><small>' + esc(p.title) + ' · ' + esc(p.label) + '</small></div>' +
-        '<p class="mini-goal">' + goal + '</p><p class="mini-tip">' + esc(hintOf(p)) + '</p><p class="mini-how">' + HOWTO[p.type] + '</p>' +
-        '<div class="mini-btns"><button type="button" class="btn btn-ghost" data-skip>' + skip + '</button><button type="button" class="btn btn-primary" data-play>▶ Chơi!</button></div>');
-      box.querySelector('[data-play]').onclick = () => { sfx('click'); res(true); };
-      box.querySelector('[data-skip]').onclick = () => { sfx('click'); res(false); };
-      onKeys((e) => { if (e.type !== 'keydown') return false; if (e.key === 'Enter' || e.key === ' ') { res(true); return true; } if (e.key === 'Escape') { res(false); return true; } return false; });
+        (practice && practice.stopped ? '<div class="mini-new">🧪 Bạn đã dừng lượt chơi thử. Thử lại bao nhiêu lần cũng được, không tính điểm.</div>' : practice ? '<div class="mini-new">🧪 Lượt chơi thử vừa rồi: <b>' + practice.pct + '%</b>' + (p.mode === 'duel' || p.mode === 'buy' ? '' : practice.pct >= Math.round(p.need * 100) ? ' — đủ để thành công rồi! ✅' : ' — chưa đủ ' + Math.round(p.need * 100) + '%, thử thêm hoặc chơi thật nhé.') + '</div>'
+          : first ? '<div class="mini-new">🆕 <b>Lần đầu chơi trò này?</b> Đọc 30 giây cách chơi bên dưới' + (canTry ? ', hoặc bấm <b>🧪 Chơi thử</b> để làm quen — lượt thử không tính điểm.' : '.') + '</div>' : '') +
+        '<div class="mini-guide">' +
+        '<div class="mg-row"><span class="mg-ic">🎯</span><div><b>Mục tiêu</b><p>' + goal + '</p></div></div>' +
+        '<div class="mg-row"><span class="mg-ic">🕹️</span><div><b>Cách chơi</b>' + howSteps(HOWTO[p.type]) + '</div></div>' +
+        (hint ? '<div class="mg-row"><span class="mg-ic">💪</span><div><b>Chỉ số của bạn ảnh hưởng thế nào</b><p>' + esc(hint) + '</p></div></div>' : '') +
+        '</div>' +
+        '<div class="mini-btns"><button type="button" class="btn btn-ghost" data-skip>' + skip + '</button>' + (canTry ? '<button type="button" class="btn btn-soft" data-try>🧪 Chơi thử</button>' : '') + '<button type="button" class="btn btn-primary" data-play>▶ Chơi thật!</button></div>' +
+        '<p class="mini-keys">⌨️ <kbd>Enter</kbd> chơi thật' + (canTry ? ' · <kbd>T</kbd> chơi thử' : '') + ' · <kbd>Esc</kbd> ' + skip.replace(/^\S+\s/, '').toLowerCase() + '</p>');
+      box.querySelector('[data-play]').onclick = () => { sfx('click'); res('play'); };
+      box.querySelector('[data-skip]').onclick = () => { sfx('click'); res('skip'); };
+      if (canTry) box.querySelector('[data-try]').onclick = () => { sfx('click'); res('try'); };
+      onKeys((e) => { if (e.type !== 'keydown') return false; if (e.key === 'Enter') { res('play'); return true; } if (canTry && (e.key === 't' || e.key === 'T')) { res('try'); return true; } if (e.key === 'Escape') { res('skip'); return true; } return false; });
     });
   }
   function finish(score, text, p) {
@@ -224,8 +247,20 @@
     if (root) close();
     RNG = p.seed ? seeded(p.seed) : Math.random;
     try {
-      const go = await intro(p);
-      if (!go) { close(); return p.mode === 'duel' ? 0 : null; }
+      let go = await intro(p), practice = null;
+      // chơi thử: chạy minigame thật nhưng không tính điểm, xong quay lại màn hướng dẫn
+      while (go === 'try') {
+        let tr = null;
+        const abortT = new Promise((res) => (abortFn = () => res({ aborted: true })));
+        if (root) addQuit(root);
+        try { tr = await Promise.race([GAMES[p.type](p), abortT]); } catch (e) { tr = null; }
+        abortFn = null; close();
+        practice = { pct: tr && !tr.aborted ? Math.round(clamp(tr.score, 0, 1) * 100) : 0, stopped: !tr || !!tr.aborted };
+        RNG = p.seed ? seeded(p.seed) : Math.random;
+        go = await intro(p, practice);
+      }
+      if (go !== 'play') { close(); return p.mode === 'duel' ? 0 : null; }
+      markSeen(p.type);
       let r;
       const abortP = new Promise((res) => (abortFn = () => res({ aborted: true })));
       if (root) addQuit(root);

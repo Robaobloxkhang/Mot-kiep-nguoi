@@ -1208,3 +1208,13 @@ details.more.risk p { margin: 0 0 8px; }
 @keyframes bootSway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
 @keyframes bootShine { to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .boot-logo, .boot-bar i::after { animation: none; } }
+
+/* màn hướng dẫn minigame */
+.mini-new { margin: 8px 0; padding: 9px 12px; border-radius: 12px; background: rgba(255, 196, 80, .14); border: 1px solid rgba(255, 196, 80, .4); font-size: 13.5px; line-height: 1.5; }
+.mini-guide { display: grid; gap: 8px; margin: 8px 0 4px; }
+.mg-row { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.mg-row b { font-size: 13px; letter-spacing: .2px; }
+.mg-row p { margin: 3px 0 0; font-size: 14px; line-height: 1.5; color: var(--fg-dim); } .mg-row p b { color: var(--lantern); }
+.mg-ic { font-size: 20px; line-height: 1.2; flex: none; }
+.mg-steps { margin: 4px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.55; color: var(--fg-dim); } .mg-steps li { margin: 2px 0; }
+.mini-guide kbd, .mini-keys kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border-radius: 6px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); border-bottom-width: 2px; font: 600 12px/1.6 system-ui, sans-serif; text-align: center; color: var(--fg); }

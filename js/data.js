@@ -776,6 +776,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.63', date: '19/10/2026', items: [
+      '📖 Màn hướng dẫn trước mỗi minigame làm lại cho dễ hiểu: chia rõ 🎯 Mục tiêu · 🕹️ Cách chơi (từng bước, phím bấm hiện thành nút) · 💪 Chỉ số của bạn ảnh hưởng thế nào.',
+      '🧪 Nút "Chơi thử" (phím T): chơi một lượt làm quen không tính điểm, xong quay lại màn hướng dẫn và cho biết lượt thử được bao nhiêu %. Chơi thử bao nhiêu lần cũng được.',
+      '🆕 Lần đầu gặp một minigame sẽ có nhắc riêng để người mới không bị bỡ ngỡ.',
+    ] },
     { v: '1.62', date: '19/10/2026', items: [
       '⚽ Trận bóng trong cuộc đời (cầu thủ, đá phủi, giải đấu…) dễ hơn hẳn: đối thủ tối đa mức Thường và chạy chậm hơn; bạn chạy nhanh hơn chút, sút mạnh hơn, tầm chạm bóng rộng hơn và bóng tự bẻ vào khung khi sút gần đúng hướng.',
       '🎉 Ăn mừng bàn thắng: người ghi bàn chạy ra góc sân ăn mừng (SIUUU, trượt gối, dang tay máy bay, nhảy, suỵt, bắn tim), đồng đội chạy tới ôm, đội thua lững thững về chỗ, pháo giấy bung khắp sân.',
