@@ -776,6 +776,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.59', date: '19/10/2026', items: [
+      '⏳ Thêm màn hình loading khi mở game: thanh phần trăm, mẹo chơi, báo khi mạng chậm — không còn cảnh màn hình đứng im tưởng đơ máy.',
+      '🎬 Trong lúc loading, game dựng sẵn các cảnh hay gặp (nhà, phòng ngủ, trường, phố, văn phòng, bệnh viện, quán cà phê, công viên) nên lúc chơi chuyển cảnh lần đầu đỡ khựng hẳn.',
+    ] },
     { v: '1.58', date: '19/10/2026', items: [
       '⚡ Đỡ lag: khi mở minigame, Haxball, livestream, chụp ảnh… cảnh 3D phía sau tạm dừng vẽ (trước đây vẫn chạy ngầm, livestream còn vẽ thêm 1–2 cảnh 3D cùng lúc).',
       'Màn hình 120–144 Hz chỉ vẽ tối đa 60 khung/giây, đỡ một nửa tải card đồ hoạ. Livestream và trang trí nhà dùng độ phân giải vừa phải hơn.',

@@ -1201,9 +1201,18 @@
     G().load();
     showTitle();
     watchUpdates();
+    // màn hình chờ: dựng sẵn cảnh 3D rồi mới tắt
+    const LD = window.KN_LOADER;
+    if (LD) {
+      LD.set(82, 'Đang dựng thế giới 3D…');
+      if (S.worldOk && KN.World.prewarm) KN.World.prewarm((k) => LD.set(82 + k * 17)).catch(() => {}).then(() => LD.done());
+      else LD.done();
+    }
     // vào game lần đầu sau khi cập nhật: báo ngắn gọn phiên bản mới
     const latest = (D.CHANGELOG || [])[0];
-    if (latest && prefs.seenVer !== latest.v) setTimeout(() => {
+    // chờ màn hình loading tắt rồi mới báo bản mới
+    if (latest && prefs.seenVer !== latest.v) setTimeout(function news() {
+      if (document.getElementById('boot')) { setTimeout(news, 500); return; }
       const el = document.createElement('div');
       el.className = 'update-banner'; el.setAttribute('role', 'status');
       el.innerHTML = '<span class="ub-ic">✨</span><span class="ub-tx"><b>Game vừa cập nhật lên v' + esc(latest.v) + '!</b><br><small>' + esc(latest.items[0]) + (latest.items.length > 1 ? ' và ' + (latest.items.length - 1) + ' thay đổi khác.' : '') + '</small></span>' +

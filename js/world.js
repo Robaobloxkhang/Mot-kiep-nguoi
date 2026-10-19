@@ -837,8 +837,28 @@
     await U.sleep(changed ? 200 : 450);
   }
 
+  // làm nóng: dựng thử các cảnh hay gặp rồi biên dịch shader ngay trong màn hình chờ,
+  // để lúc chơi chuyển cảnh không bị khựng vài giây (lần đầu gặp mỗi loại vật liệu trình duyệt phải biên dịch shader)
+  async function prewarm(onProgress) {
+    if (!ready || !KN.Env) return;
+    const ids = ['home', 'bedroom', 'school', 'street', 'office', 'hospital', 'cafe', 'park'].filter((id) => KN.Env.has(id) && id !== envId);
+    const tick = () => new Promise((r) => { let ok = false; const go = () => { if (!ok) { ok = true; r(); } }; requestAnimationFrame(go); setTimeout(go, 60); });
+    try { renderer.compile(scene, camera); } catch (e) { /* */ }
+    for (let i = 0; i < ids.length; i++) {
+      await tick();
+      let e = null;
+      try { e = KN.Env.build(ids[i], {}); } catch (x) { e = null; }
+      if (e) {
+        try { e.setTime && e.setTime(timeOfDay); scene.add(e.group); renderer.compile(scene, camera); } catch (x) { /* */ }
+        scene.remove(e.group); try { e.dispose(); } catch (x) { /* */ }
+      }
+      if (onProgress) try { onProgress((i + 1) / ids.length); } catch (x) { /* */ }
+    }
+  }
+
   KN.World = {
     init,
+    prewarm,
     playScene,
     setLocation: (id, o) => setLocation(id, o),
     setAmbience,
