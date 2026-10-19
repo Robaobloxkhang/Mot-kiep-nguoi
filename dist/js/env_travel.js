@@ -33,7 +33,7 @@
     g.add(H.instanced(new THREE.BoxGeometry(1, 0.012, 1), '#b8ad99', stones, { cast: false }));
     // núi Phú Sĩ phía xa
     const fuji = H.group(H.at(H.cone(3.2, 3.0, '#6f86a8', { seg: 24 }), 0, 1.5, 0), H.at(H.cone(1.15, 1.08, '#f5f8ff', { seg: 24 }), 0, 2.47, 0));
-    fuji.position.set(-1.0, -0.2, -6.8); g.add(fuji);
+    fuji.position.set(-1.0, -0.2, -4.3); fuji.scale.setScalar(0.55); g.add(fuji);
     // cổng torii đỏ
     const red = '#d4381f', tor = H.group();
     [-1.2, 1.2].forEach((x) => tor.add(H.at(H.cyl(0.12, 0.14, 2.9, red, { seg: 12 }), x, 1.45, 0)));
@@ -77,9 +77,9 @@
     gate.add(H.at(H.sign('광화문', 1.1, 0.34, { bg: '#1b2a4a', fg: '#ffd54f', font: '800 70px sans-serif' }), 0, 2.15, 0.52));
     gate.position.set(-0.6, 0, -3.6); g.add(gate);
     // tháp Namsan trên đồi
-    const hill = H.sphere(2.4, '#4f8a4a', { seg: 16, squash: [1.3, 0.6, 1] }); hill.position.set(3.4, -0.5, -5.2); g.add(hill);
+    const hill = H.sphere(1.5, '#4f8a4a', { seg: 16, squash: [1.3, 0.6, 1] }); hill.position.set(3.4, -0.3, -4.6); g.add(hill);
     const tw = H.group(H.at(H.cyl(0.08, 0.14, 2.6, '#e8e8e8', { seg: 10 }), 0, 1.3, 0), H.at(H.cyl(0.38, 0.3, 0.4, '#f0f0f0', { seg: 14 }), 0, 2.3, 0), H.at(H.cyl(0.02, 0.04, 0.9, '#d33', { seg: 6 }), 0, 3.0, 0));
-    tw.position.set(3.4, 0.6, -5.2); g.add(tw);
+    tw.position.set(3.4, 0.5, -4.6); g.add(tw);
     // dãy biển hiệu neon
     const signs = [['치킨 CHICKEN', '#ff3d7f'], ['노래방', '#4fc3f7'], ['K-POP', '#b388ff'], ['카페', '#69f0ae']];
     signs.forEach(([t, c], i) => g.add(H.at(H.sign(t, 1.2, 0.36, { bg: '#141421', fg: c, font: '800 64px sans-serif', glow: true }), -4.4, 2.4 - i * 0.48, -0.8 + i * 0.05, PI / 2)));
@@ -111,8 +111,8 @@
     ef.add(H.at(H.box(0.6, 0.1, 0.6, '#5e4e3c'), 0, 4.3, 0));
     const p3 = H.cyl(0.03, 0.24, 1.9, iron, { seg: 4 }); p3.rotation.y = PI / 4; ef.add(H.at(p3, 0, 5.25, 0));
     ef.add(H.at(H.sphere(0.07, H.glow('#ffe08a', { intensity: 2.0 }), { seg: 8 }), 0, 6.25, 0));
-    ef.scale.setScalar(1.15);
-    ef.position.set(2.6, 0, -4.4); g.add(ef);
+    ef.scale.setScalar(1.05);
+    ef.position.set(2.8, 0, -3.9); g.add(ef);
     // dãy nhà kiểu Haussmann bên trái
     for (let i = 0; i < 3; i++) {
       const b = H.group(H.at(H.box(1.6, 3.0, 1.4, '#efe1c6'), 0, 1.5, 0), H.at(H.box(1.7, 0.5, 1.5, '#5b6b7a'), 0, 3.25, 0));
