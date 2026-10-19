@@ -25,7 +25,7 @@
     const THREE = window.THREE; if (!THREE || !KN.Characters || !player) return null;
     let renderer;
     try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' }); } catch (e) { return null; }
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setPixelRatio(Math.min((function () { let t = 0; try { t = +localStorage.getItem('kn_perf_tier') || 0; } catch (e) { /* */ } return t; })() >= 2 ? 1 : 1.25, window.devicePixelRatio || 1)); // máy yếu: độ phân giải thấp hơn cho đỡ lag
     renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = night ? 0.95 : 1.1;
     const scene = new THREE.Scene(); scene.background = new THREE.Color(night ? 0x1b1530 : 0xe9d6c8);
     const cam = new THREE.PerspectiveCamera(34, 9 / 16, 0.05, 30);

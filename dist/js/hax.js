@@ -21,7 +21,7 @@
   let MP, W, H, L, R, T, B, CY, GH, GD, POSTS, HOOPS = null;
   function applyMap(id) { MP = MAPS[id] || MAPS.classic; ({ W, H, L, R, T, B, GH, GD } = MP); CY = (T + B) / 2; POSTS = MP.basket ? [] : [[L, CY - GH], [L, CY + GH], [R, CY - GH], [R, CY + GH]]; HOOPS = MP.basket ? [[L + MP.hoopOff, CY], [R - MP.hoopOff, CY]] : null; }
   applyMap('classic');
-  const PR = 15, BR = 10, POST_R = 7, KICK_RANGE = PR + BR + 5;
+  const PR = 15, BR = 10, POST_R = 7, KICK_RANGE = PR + BR + 9; // nới tầm chạm bóng cho dễ sút
   const COLORS = ['#e8423f', '#3d7bf2'], NAMES = ['Đỏ', 'Xanh'];
   const clamp1 = (v) => Math.max(-1, Math.min(1, v));
   // ---------------------------------------------------------------- trạng thái trận
@@ -71,6 +71,8 @@
     if (m.phase === 'play' && !m.client) { m.time += 1 / 60; if (m.time >= m.dur && !m.golden) { if (m.score[0] === m.score[1]) { m.golden = true; m.events.push({ t: 'golden' }); } else { m.phase = 'end'; m.events.push({ t: 'end' }); return; } } if (m.golden && m.time >= m.dur + 90) { m.phase = 'end'; m.events.push({ t: 'end' }); return; } }
     m.players.forEach((p, i) => {
       const v = vecOf(inputs[i]);
+      // bấm sút sớm một chút (trước khi chạm bóng) vẫn ăn: nhớ lệnh sút thêm 8 khung hình (~0,13 giây)
+      if (v.k && !p.kicking) p.kbuf = 8; else if (p.kbuf > 0) p.kbuf--;
       p.kicking = v.k; const acc = p.kicking ? MP.acc * 0.62 : MP.acc;
       p.vx = (p.vx + v.jx * acc) * MP.pd; p.vy = (p.vy + v.jy * acc) * MP.pd;
       p.x += p.vx; p.y += p.vy;
@@ -81,14 +83,17 @@
       // SÚT TÍCH LỰC: giữ nút sút khi chưa chạm bóng để tích lực (vòng vàng), lao vào bóng là sút mạnh hơn tới 75%
       // SÚT XOÁY: vừa chạy ngang vừa sút thì bóng cong theo hướng chạy
       if (!p.kicking) p.charge = 0;
-      if (p.kicking && p.cool <= 0) {
+      if ((p.kicking || p.kbuf > 0) && p.cool <= 0) {
         const dx = m.ball.x - p.x, dy = m.ball.y - p.y, d = Math.hypot(dx, dy);
         if (d < KICK_RANGE && (m.phase !== 'kickoff' || p.team === m.kickoff)) {
-          const pow = MP.kick * (p.sk.charge ? 1 + Math.min(p.charge, 45) / 45 * 0.75 : 1), ux = dx / d, uy = dy / d;
+          const pow = MP.kick * (p.sk.charge ? 1 + Math.min(p.charge, 45) / 45 * 0.75 : 1);
+          let ux = dx / d, uy = dy / d;
+          // hỗ trợ ngắm: sút gần đúng hướng khung thành đối phương (lệch < ~35°, trong 480px) thì bóng bẻ nhẹ vào khung
+          if (!MP.basket) { const gx = (p.team === 0 ? R : L) - m.ball.x, gy = Math.max(CY - GH * 0.6, Math.min(CY + GH * 0.6, m.ball.y)) - m.ball.y, gl = Math.hypot(gx, gy) || 1; if (gl < 480 && (ux * gx + uy * gy) / gl > 0.82) { ux = ux * 0.65 + gx / gl * 0.35; uy = uy * 0.65 + gy / gl * 0.35; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul; } }
           m.ball.vx += ux * pow; m.ball.vy += uy * pow;
           if (p.sk.curve) { const side = ux * p.vy - uy * p.vx; m.ball.spin = Math.max(-0.035, Math.min(0.035, side * 0.014)); }
           if (p.charge > 25) m.events.push({ t: 'power' });
-          p.cool = 12; p.flash = 8; p.charge = 0; m.lastTouch = i; m.shot = [p.x, p.y]; m.shotT = m.phaseT; m.events.push({ t: 'kick' }); if (m.phase === 'kickoff' && !m.client) m.phase = 'play';
+          p.cool = 12; p.flash = 8; p.charge = 0; p.kbuf = 0; m.lastTouch = i; m.shot = [p.x, p.y]; m.shotT = m.phaseT; m.events.push({ t: 'kick' }); if (m.phase === 'kickoff' && !m.client) m.phase = 'play';
         } else if (p.sk.charge && d >= KICK_RANGE) p.charge = Math.min(45, p.charge + 1);
       }
     });
@@ -133,7 +138,7 @@
   // ---------------------------------------------------------------- máy (AI) — biết phối hợp: người gần bóng nhất lên bóng, người khác lùi giữ/chờ bật tường
   function aiInput(m, i, lvl) {
     const p = m.players[i], b = m.ball, dir = p.team === 0 ? 1 : -1, own = MP.basket ? HOOPS[p.team][0] : p.team === 0 ? L : R, opp = MP.basket ? HOOPS[1 - p.team][0] : p.team === 0 ? R + 10 : L - 10;
-    const speed = [0.62, 0.86, 1][lvl] ?? 0.86;
+    const speed = [0.58, 0.8, 0.95][lvl] ?? 0.8; // máy chạy chậm hơn người một chút
     const go = (tx, ty, s) => { const dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy) || 1, sp = (s || speed) * Math.min(1, dl / 14 + 0.2); return { jx: dx / dl * sp, jy: dy / dl * sp }; };
     if (m.phase === 'kickoff' && p.team !== m.kickoff) return go(p.hx, p.hy, 0.5);
     const dist = (q) => Math.hypot(q.x - b.x, q.y - b.y), myD = dist(p);
@@ -361,12 +366,22 @@
   }
   // ---------------------------------------------------------------- ONLINE (WebRTC, nhiều người)
   const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }] };
+  // máy chủ chuyển tiếp TURN (qua cổng 443) cho mạng trường / công ty chặn kết nối trực tiếp — lấy từ /api/turn, nhớ 30 phút
+  let iceCache = null;
+  function getIce() {
+    if (iceCache && Date.now() - iceCache.at < 1800e3) return iceCache.p;
+    const p = Promise.race([fetch('/api/turn', { cache: 'no-store' }).then((r) => r.json()), wait(3500).then(() => ({}))])
+      .then((j) => { const extra = Array.isArray(j && j.iceServers) ? j.iceServers : []; if (!extra.length) iceCache = null; return { iceServers: ICE.iceServers.concat(extra) }; })
+      .catch(() => { iceCache = null; return ICE; });
+    iceCache = { at: Date.now(), p };
+    return p;
+  }
   const MAX_PLAYERS = 8;
   let onlineActive = false;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  function iceDone(pc) { return new Promise((res) => { if (pc.iceGatheringState === 'complete') return res(); const t = setTimeout(res, 3500); pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } }); }); }
+  function iceDone(pc) { return new Promise((res) => { if (pc.iceGatheringState === 'complete') return res(); const t = setTimeout(res, 5000); pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } }); }); }
   async function api(url, body) { const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error({ notfound: 'Không tìm thấy phòng (mã sai hoặc đã hết hạn)', full: 'Phòng đang đông người chờ vào, thử lại sau', 'slow-down': 'Thao tác nhanh quá, thử lại sau', 'not-configured': 'Máy chủ chưa sẵn sàng' }[j.error] || 'Lỗi mạng'); return j; }
-  const NET_ERR = 'Không kết nối được. Mạng của một trong hai người có thể đang chặn kết nối ngang hàng — thử đổi sang 4G hoặc Wi-Fi khác.';
+  const NET_ERR = 'Không kết nối được. Mạng của một trong hai người đang chặn kết nối trực tiếp (hay gặp ở mạng trường, công ty) — thử lại sau ít phút, hoặc đổi sang 4G / Wi-Fi khác.';
   function openChannel(dc, ms) { return new Promise((res, rej) => { if (dc.readyState === 'open') return res(); const t = setTimeout(() => rej(new Error(NET_ERR)), ms); dc.addEventListener('open', () => { clearTimeout(t); res(); }); }); }
   const sendTo = (dc, o) => { try { if (dc && dc.readyState === 'open') dc.send(typeof o === 'string' ? o : JSON.stringify(o)); } catch (e) { /* */ } };
   // khung phòng chờ: thay nội dung mà không đóng khung (đóng khung sẽ huỷ các kết nối)
@@ -426,7 +441,7 @@
     };
     async function accept(req) {
       if (H0.peers.length + H0.pending.size >= MAX_PLAYERS - 1) return;
-      const pc = new RTCPeerConnection(ICE); H0.pending.add(pc);
+      const pc = new RTCPeerConnection(await getIce()); H0.pending.add(pc);
       const peer = { id: req.id, pc, dc: null, name: '…', team: fewer(), input: {}, open: false, seen: performance.now() };
       pc.ondatachannel = (ev) => {
         peer.dc = ev.channel;
@@ -487,7 +502,7 @@
     lobbyScreen('<h3>🌐 Vào phòng ' + esc(code) + '</h3><p class="sub">⏳ Đang kết nối…</p><p class="p-sub" id="hxMsg"></p><div class="btnrow"><button type="button" class="btn btn-ghost" id="hxBack">← Menu</button></div>');
     document.getElementById('hxBack').onclick = () => menu();
     try {
-      pc = new RTCPeerConnection(ICE);
+      pc = new RTCPeerConnection(await getIce());
       const dc = pc.createDataChannel('hax');
       await pc.setLocalDescription(await pc.createOffer()); await iceDone(pc);
       const { id } = await api('/api/hax', { op: 'join', code, offer: pc.localDescription });

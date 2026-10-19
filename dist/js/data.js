@@ -776,6 +776,13 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.58', date: '19/10/2026', items: [
+      '⚡ Đỡ lag: khi mở minigame, Haxball, livestream, chụp ảnh… cảnh 3D phía sau tạm dừng vẽ (trước đây vẫn chạy ngầm, livestream còn vẽ thêm 1–2 cảnh 3D cùng lúc).',
+      'Màn hình 120–144 Hz chỉ vẽ tối đa 60 khung/giây, đỡ một nửa tải card đồ hoạ. Livestream và trang trí nhà dùng độ phân giải vừa phải hơn.',
+      'Sửa lỗi máy rất yếu (dưới 20 FPS) không tự giảm đồ hoạ. Thêm mức thấp nhất: bóng đổ đơn giản, độ phân giải thấp, khoảng 30 khung/giây cho mượt đều.',
+      '🌐 Haxball / bóng rổ online: hỗ trợ máy chủ chuyển tiếp qua cổng 443, chơi được ở mạng trường / công ty chặn kết nối trực tiếp mà không cần VPN.',
+      '⚽ Haxball dễ đá hơn: tầm chạm bóng rộng hơn, bấm sút sớm một chút vẫn ăn, sút gần đúng hướng thì bóng bẻ nhẹ vào khung thành; máy chạy chậm hơn một chút.',
+    ] },
     { v: '1.57', date: '19/10/2026', items: [
       '🎓 Bán khoá học online bị giảm mạnh: ít fan mua thật hơn, trừ 40% phí nền tảng và thuế, mất tiền quay dựng và chạy quảng cáo, có thể lỗ.',
       'Mỗi khoá ra sau bán được khoảng một nửa khoá trước, và càng ra nhiều khoá càng dễ bị chê "lùa gà" (hoàn tiền, mất 20% người theo dõi).',

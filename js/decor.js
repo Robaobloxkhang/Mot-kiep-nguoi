@@ -50,7 +50,7 @@
   function makeScene(canvas, SX, SZ) {
     const T = window.THREE; if (!T) return null;
     let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true }); } catch (e) { return null; }
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min((function () { let t = 0; try { t = +localStorage.getItem('kn_perf_tier') || 0; } catch (e) { /* */ } return t; })() >= 2 ? 1 : 1.5, window.devicePixelRatio || 1)); // máy yếu: độ phân giải thấp hơn cho đỡ lag renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
     const scene = new T.Scene(); scene.background = new T.Color(0xd9e6ee);
     const cam = new T.PerspectiveCamera(42, 1, 0.1, 100);
     const ft = floorTexture(T); ft.repeat.set(SX / 2, SZ / 2);

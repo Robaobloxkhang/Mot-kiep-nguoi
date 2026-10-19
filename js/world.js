@@ -137,6 +137,7 @@
       cam.yawOff = U.clamp(cam.yawOff - dx * 0.006, -1.1, 1.1); cam.lastDrag = clockT;
     });
     ro = new ResizeObserver(resize); ro.observe(el); resize();
+    applyTierShadows(); watchCovers();
     document.addEventListener('visibilitychange', () => { lastNow = performance.now(); });
     ready = true;
     lastNow = performance.now();
@@ -234,23 +235,40 @@
   // độ phân giải: hậu kỳ (HDR + MSAA) rất tốn trên màn hình nét cao → giới hạn 1.25x; máy yếu về 1x
   function dprFor() {
     const dpr = window.devicePixelRatio || 1;
+    if (perfTier >= 3) return Math.min(dpr, 0.75);
     if (perfTier >= 2 || quality !== 'high') return Math.min(dpr, perfTier >= 2 ? 1 : 1.25);
     return Math.min(dpr, postOn ? 1.25 : 1.75);
   }
   // tự hạ chất lượng khi khung hình tụt kéo dài (bỏ qua lúc tab ẩn / vừa chuyển cảnh nặng)
   const perf = { slow: 0, t: 0 };
   function perfWatch(dt) {
-    if (document.hidden || dt <= 0 || dt >= 0.05) return; // dt bị chặn ở 0.05 → khung giật đơn lẻ (dựng cảnh) không tính
+    if (document.hidden || dt <= 0 || dt >= 0.25) return; // khung giật đơn lẻ (dựng cảnh, đổi tab) không tính; máy dưới 20 FPS vẫn được tính
     perf.t += dt;
     if (dt > 1 / 38) perf.slow += dt; else perf.slow = Math.max(0, perf.slow - dt * 0.5);
-    if (perf.slow > 2.5 && perfTier < 2) {
+    if (perf.slow > 2.5 && perfTier < 3) {
       perfTier++; perf.slow = 0;
       if (perfTier >= 1) postOn = false;
       try { localStorage.setItem('kn_perf_tier', String(perfTier)); } catch (e) { /* */ }
       renderer.setPixelRatio(dprFor()); resize();
-      if (perfTier >= 2) { sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+      applyTierShadows();
       console.info('[KN.World] máy hơi yếu → tự giảm đồ hoạ, mức', perfTier);
     }
+  }
+  // mức 2: bóng đổ thường (không làm mềm), mức 3: bóng nhỏ hơn nữa + tắt mây trôi
+  function applyTierShadows() {
+    if (!renderer || perfTier < 2) return;
+    const s = perfTier >= 3 ? 512 : 1024;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    if (sun.shadow.mapSize.x !== s) { sun.shadow.mapSize.set(s, s); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+    if (perfTier >= 3 && cloudGroup) cloudGroup.visible = false;
+  }
+  // màn phủ toàn màn hình (minigame, Haxball, livestream, chụp ảnh…) che hết cảnh 3D → tạm dừng vẽ cho đỡ nặng
+  let covered = false;
+  const COVER_SEL = ':scope > .mini, :scope > .hax, :scope > .lr';
+  function watchCovers() {
+    const check = () => { covered = !!document.body.querySelector(COVER_SEL); };
+    try { new MutationObserver(check).observe(document.body, { childList: true }); } catch (e) { /* */ }
+    check();
   }
   const FS_VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
   function buildPost() {
@@ -764,10 +782,13 @@
   function loop(now) {
     requestAnimationFrame(loop);
     if (!ready) return;
-    const dt = Math.min(0.05, Math.max(0, (now - lastNow) / 1000)); lastNow = now;
-    if (paused || document.hidden) return;
+    if (paused || covered || document.hidden) { lastNow = now; return; }
+    // màn hình 120–144 Hz: vẽ tối đa ~60 khung/giây (máy yếu ~30) là đủ mượt, đỡ một nửa tải card đồ hoạ
+    const minGap = perfTier >= 3 ? 1000 / 31 : 1000 / 62;
+    if (now - lastNow < minGap - 1) return;
+    const raw = Math.max(0, (now - lastNow) / 1000), dt = Math.min(0.05, raw); lastNow = now;
     step(dt);
-    perfWatch(dt); // chỉ đo vòng lặp thật (advance() dùng cho test không tính)
+    perfWatch(perfTier >= 3 ? 0 : raw); // chỉ đo vòng lặp thật (advance() dùng cho test không tính)
   }
   function step(dt) {
     clockT += dt;
@@ -845,12 +866,13 @@
       const s = quality === 'high' ? 2048 : 1024;
       if (sun.shadow.mapSize.x !== s) { sun.shadow.mapSize.set(s, s); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
       if (cloudGroup) cloudGroup.visible = quality === 'high';
+      applyTierShadows();
       resize();
     },
     getQuality: () => quality,
     setPost(b) { postOn = !!b; if (renderer) { renderer.setPixelRatio(dprFor()); resize(); } },
     perfTier: () => perfTier,
-    resetPerf() { perfTier = 0; postOn = true; try { localStorage.removeItem('kn_perf_tier'); } catch (e) { /* */ } if (renderer) { renderer.setPixelRatio(dprFor()); resize(); } },
+    resetPerf() { perfTier = 0; postOn = true; if (renderer) renderer.shadowMap.type = THREE.PCFSoftShadowMap; if (cloudGroup) cloudGroup.visible = quality === 'high'; try { localStorage.removeItem('kn_perf_tier'); } catch (e) { /* */ } if (renderer) { renderer.setPixelRatio(dprFor()); resize(); } },
     getPost: () => !!(post && postOn && quality === 'high'),
     // chụp khung hình hiện tại (album ảnh cuộc đời): vẽ lại một lần rồi đọc ngay, thu nhỏ thành JPEG
     snapshot(maxW) {
