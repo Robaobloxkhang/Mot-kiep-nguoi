@@ -776,6 +776,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.60', date: '19/10/2026', items: [
+      '⚽ Haxball đấu với máy giờ mặc định 3v3: bạn + 2 đồng đội máy đấu với 3 máy (vẫn chọn 1v1 được trong mục Số người).',
+      '🔁 Máy đá kiểu TIKI-TAKA: chuyền ngắn khi bị áp sát, chỉ chuyền khi đường chuyền trống, chuyền vừa lực; đồng đội chạy chỗ tạo tam giác (một người dạt cánh phía trước, một người lùi làm điểm chuyền về).',
+      'Đồng đội máy ưu tiên chuyền cho bạn, và tự chạy ra đón khi bạn chuyền cho họ. Bóng rổ cũng chuyền qua lại như vậy.',
+    ] },
     { v: '1.59', date: '19/10/2026', items: [
       '⏳ Thêm màn hình loading khi mở game: thanh phần trăm, mẹo chơi, báo khi mạng chậm — không còn cảnh màn hình đứng im tưởng đơ máy.',
       '🎬 Trong lúc loading, game dựng sẵn các cảnh hay gặp (nhà, phòng ngủ, trường, phố, văn phòng, bệnh viện, quán cà phê, công viên) nên lúc chơi chuyển cảnh lần đầu đỡ khựng hẳn.',

@@ -62,7 +62,7 @@
     inp = inp || {};
     let ax = inp.jx != null ? inp.jx : (inp.r ? 1 : 0) - (inp.l ? 1 : 0), ay = inp.jy != null ? inp.jy : (inp.d ? 1 : 0) - (inp.u ? 1 : 0);
     const len = Math.hypot(ax, ay); if (len > 1) { ax /= len; ay /= len; }
-    return { jx: ax, jy: ay, k: !!inp.k };
+    return { jx: ax, jy: ay, k: !!inp.k, pw: inp.pw > 0 && inp.pw < 1 ? inp.pw : 1 };
   }
   function step(m, inputs) {
     m.phaseT++;
@@ -86,7 +86,7 @@
       if ((p.kicking || p.kbuf > 0) && p.cool <= 0) {
         const dx = m.ball.x - p.x, dy = m.ball.y - p.y, d = Math.hypot(dx, dy);
         if (d < KICK_RANGE && (m.phase !== 'kickoff' || p.team === m.kickoff)) {
-          const pow = MP.kick * (p.sk.charge ? 1 + Math.min(p.charge, 45) / 45 * 0.75 : 1);
+          const pow = MP.kick * (p.sk.charge ? 1 + Math.min(p.charge, 45) / 45 * 0.75 : 1) * v.pw;
           let ux = dx / d, uy = dy / d;
           // hỗ trợ ngắm: sút gần đúng hướng khung thành đối phương (lệch < ~35°, trong 480px) thì bóng bẻ nhẹ vào khung
           if (!MP.basket) { const gx = (p.team === 0 ? R : L) - m.ball.x, gy = Math.max(CY - GH * 0.6, Math.min(CY + GH * 0.6, m.ball.y)) - m.ball.y, gl = Math.hypot(gx, gy) || 1; if (gl < 480 && (ux * gx + uy * gy) / gl > 0.82) { ux = ux * 0.65 + gx / gl * 0.35; uy = uy * 0.65 + gy / gl * 0.35; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul; } }
@@ -136,37 +136,87 @@
     if (m.golden) { m.phase = 'end'; m.events.push({ t: 'end' }); }
   }
   // ---------------------------------------------------------------- máy (AI) — biết phối hợp: người gần bóng nhất lên bóng, người khác lùi giữ/chờ bật tường
+  // TIKI-TAKA: tìm đồng đội để chuyền — đường chuyền không bị chặn, người nhận càng trống càng tốt, ưu tiên chuyền lên và chuyền cho người thật
+  function pickPass(m, i, dir) {
+    const p = m.players[i], b = m.ball, foes = m.players.filter((q) => q.team !== p.team);
+    let best = null, bs = -1e9;
+    m.players.forEach((q, j) => {
+      if (j === i || q.team !== p.team) return;
+      const qx = q.x + q.vx * 6, qy = q.y + q.vy * 6, dx = qx - b.x, dy = qy - b.y, d = Math.hypot(dx, dy);
+      if (d < 55 || d > 380) return;
+      let lane = 1e9, open = 220;
+      foes.forEach((f) => { const t = Math.max(0, Math.min(1, ((f.x - b.x) * dx + (f.y - b.y) * dy) / (d * d))); lane = Math.min(lane, Math.hypot(b.x + dx * t - f.x, b.y + dy * t - f.y)); open = Math.min(open, Math.hypot(f.x - qx, f.y - qy)); });
+      if (lane < PR + BR + 4) return;
+      const sc = open * 0.8 + dir * dx * 0.45 - Math.abs(d - 170) * 0.2 + (q.human ? 35 : 0) + Math.min(lane, 60) * 0.3;
+      if (sc > bs) { bs = sc; best = { j, sc, x: qx, y: qy, d }; }
+    });
+    return best;
+  }
   function aiInput(m, i, lvl) {
     const p = m.players[i], b = m.ball, dir = p.team === 0 ? 1 : -1, own = MP.basket ? HOOPS[p.team][0] : p.team === 0 ? L : R, opp = MP.basket ? HOOPS[1 - p.team][0] : p.team === 0 ? R + 10 : L - 10;
     const speed = [0.58, 0.8, 0.95][lvl] ?? 0.8; // máy chạy chậm hơn người một chút
     const go = (tx, ty, s) => { const dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy) || 1, sp = (s || speed) * Math.min(1, dl / 14 + 0.2); return { jx: dx / dl * sp, jy: dy / dl * sp }; };
     if (m.phase === 'kickoff' && p.team !== m.kickoff) return go(p.hx, p.hy, 0.5);
+    // vừa chuyền xong (thấy chân loé sáng) thì nhả bóng, chạy chỗ chứ không đuổi theo bóng mình vừa chuyền
+    if (p.plan && p.plan.j != null && p.flash > 0) { p.passedT = m.phaseT; p.plan = null; }
+    const justPassed = p.passedT != null && m.phaseT - p.passedT >= 0 && m.phaseT - p.passedT < 40;
     const dist = (q) => Math.hypot(q.x - b.x, q.y - b.y), myD = dist(p);
     const mates = m.players.filter((q) => q.team === p.team && q !== p);
-    const rank = mates.filter((q) => dist(q) < myD).length;
+    let rank = mates.filter((q) => dist(q) < myD).length;
+    if (justPassed && mates.length) rank = Math.max(rank, 1);
     const foes = m.players.filter((q) => q.team !== p.team), foeD = foes.length ? Math.min(...foes.map(dist)) : 999;
     const ownHalf = dir * (b.x - W / 2) < 0;
+    const near = m.players.reduce((a, q) => (dist(q) < dist(a) ? q : a), p), poss = near.team === p.team && dist(near) < PR + BR + 28; // đội mình đang giữ bóng
+    // đón đường chuyền của đồng đội: chạy tới điểm bóng sẽ lăn qua gần mình nhất
+    const sp = Math.hypot(b.vx, b.vy), lt = m.players[m.lastTouch];
+    if (rank > 0 && !justPassed && sp > 1.5 && lt && lt !== p && lt.team === p.team) {
+      const t = Math.max(0, Math.min(70, ((p.x - b.x) * b.vx + (p.y - b.y) * b.vy) / (sp * sp))), cx = b.x + b.vx * t, cy = b.y + b.vy * t;
+      if (t > 0 && Math.hypot(cx - p.x, cy - p.y) < 110) { const v = go(cx, cy, speed); v.k = false; return v; }
+    }
     if (rank > 0) {
-      // không phải người gần bóng nhất: hậu vệ thì chắn giữa bóng và khung thành, tiền vệ thì chờ ở chỗ trống
       let tx, ty;
-      if (rank === 1 || ownHalf) { tx = own + (b.x - own) * 0.32 + dir * 25; ty = CY + (b.y - CY) * 0.5 + (p.hy - CY) * 0.35; }
+      const side = b.y < CY ? 1 : -1;
+      if (poss && !(ownHalf && rank > 1 && mates.length > 2)) {
+        // chạy chỗ tạo tam giác chuyền: người thứ nhất dạt cánh bên kia phía trước, người thứ hai lùi chéo làm điểm chuyền về
+        if (rank === 1) { tx = b.x + dir * (MP.basket ? 120 : 105); ty = CY + side * (B - T) * 0.3; }
+        else { tx = b.x - dir * 85; ty = b.y + side * 95; }
+      } else if (rank === 1 || ownHalf) { tx = own + (b.x - own) * 0.32 + dir * 25; ty = CY + (b.y - CY) * 0.5 + (p.hy - CY) * 0.35; }
       else { tx = b.x - dir * 110; ty = CY + (p.hy - CY) * 0.9; }
       tx = Math.max(L + PR, Math.min(R - PR, tx)); ty = Math.max(T + PR, Math.min(B - PR, ty));
-      const v = go(tx, ty, speed * 0.9);
-      v.k = myD < KICK_RANGE && dir * (b.x - p.x) > 0;
+      const v = go(tx, ty, speed * (poss ? 0.95 : 0.9));
+      v.k = !justPassed && myD < KICK_RANGE && dir * (b.x - p.x) > 0;
       return v;
     }
     const look = [3, 7, 11][lvl] ?? 7, bx = b.x + b.vx * look, by = b.y + b.vy * look;
-    const aimY = MP.basket ? CY : Math.max(CY - GH + 16, Math.min(CY + GH - 16, by));
-    const gx = opp - bx, gy = aimY - by, gl = Math.hypot(gx, gy) || 1, ux = gx / gl, uy = gy / gl;
+    let aimX = opp, aimY = MP.basket ? CY : Math.max(CY - GH + 16, Math.min(CY + GH - 16, by)), pw = 1;
+    // quyết định: sút / chuyền / dẫn bóng — giữ quyết định khoảng nửa giây cho khỏi giật cục
+    if (mates.length && m.phase === 'play' && myD < 70) {
+      if (!p.plan || p.plan.until < m.phaseT) {
+        const goalD = Math.hypot(opp - b.x, CY - b.y), pass = pickPass(m, i, dir);
+        const shootR = MP.basket ? MP.arc + 20 : [200, 240, 280][lvl] ?? 240;
+        const rate = [0.25, 0.45, 0.6][lvl] ?? 0.45;
+        let plan = { until: m.phaseT + 30 };
+        if (goalD < shootR && !(pass && pass.sc > 140 && Math.random() < 0.3)) plan.shoot = true;
+        else if (pass && (foeD < 70 || (pass.sc > 60 && Math.random() < rate))) { plan.j = pass.j; plan.until = m.phaseT + 45; }
+        p.plan = plan;
+      }
+      if (p.plan.j != null) {
+        const q = m.players[p.plan.j], qx = q.x + q.vx * 6, qy = q.y + q.vy * 6, d = Math.hypot(qx - b.x, qy - b.y);
+        aimX = qx; aimY = qy;
+        pw = Math.max(2.4, Math.min(MP.kick, d * (1 - MP.bd) * 1.6 + 1.6)) / MP.kick; // chuyền vừa lực, không phá bóng
+      }
+    } else if (myD >= 70) p.plan = null;
+    const gx = aimX - bx, gy = aimY - by, gl = Math.hypot(gx, gy) || 1, ux = gx / gl, uy = gy / gl;
     let tx = bx - ux * (PR + BR - 2), ty = by - uy * (PR + BR - 2);
     const rel = (p.x - bx) * ux + (p.y - by) * uy;
-    if (rel > -6) { const side = (p.x - bx) * -uy + (p.y - by) * ux >= 0 ? 1 : -1; tx = bx - ux * (PR + BR + 14) - uy * side * (PR + BR + 12); ty = by - uy * (PR + BR + 14) + ux * side * (PR + BR + 12); }
+    if (rel > -6) { const sd = (p.x - bx) * -uy + (p.y - by) * ux >= 0 ? 1 : -1; tx = bx - ux * (PR + BR + 14) - uy * sd * (PR + BR + 12); ty = by - uy * (PR + BR + 14) + ux * sd * (PR + BR + 12); }
     if (foeD + 25 < myD && ownHalf && !mates.length) { const t = lvl === 2 ? 0.42 : 0.55; tx = b.x + (own - b.x) * t; ty = b.y + (CY - b.y) * t; }
     const v = go(tx, ty);
     const fx = b.x - p.x, fy = b.y - p.y, fl = Math.hypot(fx, fy) || 1, align = (fx * ux + fy * uy) / fl;
-    v.k = myD < KICK_RANGE && (align > [0.35, 0.55, 0.72][lvl] || (ownHalf && dir * fx > 0)) && Math.random() < [0.3, 0.65, 1][lvl];
-    if (MP.basket && v.k && !ownHalf && Math.hypot(b.x - opp, b.y - CY) > 300) v.k = false; // bóng rổ: xa rổ thì dẫn bóng, lại gần mới ném
+    const passing = p.plan && p.plan.j != null;
+    if (passing) { v.k = myD < KICK_RANGE && align > 0.82; v.pw = pw; }
+    else v.k = myD < KICK_RANGE && (align > [0.35, 0.55, 0.72][lvl] || (ownHalf && dir * fx > 0)) && Math.random() < [0.3, 0.65, 1][lvl];
+    if (MP.basket && v.k && !passing && !ownHalf && Math.hypot(b.x - opp, b.y - CY) > 300) v.k = false; // bóng rổ: xa rổ thì dẫn bóng, lại gần mới ném
     return v;
   }
   // ---------------------------------------------------------------- vẽ
@@ -220,7 +270,8 @@
   // cài đặt nhớ giữa các lần chơi
   const CFG_KEY = 'kn_hax_cfg';
   const mapOf = () => (cfg.sport === 'basket' ? 'court' : cfg.map === 'court' ? 'classic' : cfg.map);
-  const cfg = Object.assign({ map: 'classic', sport: 'foot', dur: 180, size: 1, lvl: 1, bots: true }, (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) { return {}; } })());
+  const cfg = Object.assign({ map: 'classic', sport: 'foot', dur: 180, size: 3, lvl: 1, bots: true }, (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) { return {}; } })());
+  if (!cfg.v3) { cfg.v3 = 1; if (cfg.size === 1) cfg.size = 3; } // từ bản 1.60: mặc định đá 3v3 tiki-taka
   const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) { /* */ } };
   function open(html) {
     close(true);
@@ -334,7 +385,7 @@
     const n = cfg.size, lvl = cfg.lvl, roster = [{ team: 0, name: myName() }], owners = ['me'];
     for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội' }); owners.push(1); }
     for (let i = 0; i < n; i++) { roster.push({ team: 1, name: n > 1 ? 'Máy ' + (i + 1) : 'Máy' }); owners.push(lvl); }
-    const m = newMatch({ dur: cfg.dur, map: mapOf(), roster });
+    const m = newMatch({ dur: cfg.dur, map: mapOf(), roster }); m.players[0].human = true;
     open(pitchHtml('Đấu với máy · ' + n + 'v' + n + ' · ' + ['Dễ', 'Thường', 'Khó'][lvl] + ' · ' + MP.icon + ' ' + MP.name));
     document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Esc: menu';
     runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { again: playAI });
@@ -358,7 +409,7 @@
       const n = Math.max(1, Math.min(4, opts.size || 1)), roster = [{ team: 0, name: myName(), sk }], owners = ['me'];
       for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội' }); owners.push(1); }
       for (let i = 0; i < n; i++) { roster.push({ team: 1, name: opts.foe || 'Đối thủ' }); owners.push(lvl); }
-      const m = newMatch({ dur: opts.dur || 60, map: opts.map || 'classic', roster });
+      const m = newMatch({ dur: opts.dur || 60, map: opts.map || 'classic', roster }); m.players[0].human = true;
       open(pitchHtml((opts.title || 'Trận đấu') + ' · ' + n + 'v' + n + ' · ' + MP.icon + ' ' + MP.name));
       document.getElementById('hxHint').textContent = KEYS_HINT(sk) + ' · Trận đấu ' + (opts.dur || 60) + ' giây · bạn là ★';
       runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { career: true, onQuit: () => { const f = onEnd; onEnd = null; close(true); f && f({ score: 0, text: 'Bạn bỏ dở trận đấu.' }); } });
@@ -478,7 +529,7 @@
       const order = roster.map((r, i) => i).sort((a, b) => roster[a].team - roster[b].team || a - b);
       const ros = order.map((i) => roster[i]), own = order.map((i) => owners[i]);
       const m = newMatch({ dur: cfg.dur, map: mapOf(), roster: ros });
-      H0.m = m; H0.owners = own; H0.playing = true;
+      H0.m = m; H0.owners = own; H0.playing = true; own.forEach((o, i) => { if (o === 'host' || (o && typeof o === 'object')) m.players[i].human = true; });
       own.forEach((o, i) => { if (o && o.dc) sendTo(o.dc, { t: 'start', map: m.map, dur: m.dur, roster: ros, me: i }); });
       const meIdx = own.indexOf('host'), myTeam = ros[meIdx].team;
       const keep = stopFn; stopFn = null; open(pitchHtml('Online · ' + ros.length + ' cầu thủ · bạn ở đội ' + NAMES[myTeam] + ' · ' + MP.icon + ' ' + MP.name)); stopFn = keep;
