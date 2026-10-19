@@ -428,10 +428,10 @@
     { name: 'Sa Pa', cost: 7 * TR, loc: 'countryside', weather: 'fog', fx: 'sparkle', abroad: false },
     { name: 'Hội An', cost: 6 * TR, loc: 'street', time: 'night', decor: 'midautumn', fx: 'sparkle', abroad: false },
     { name: 'Hạ Long', cost: 6 * TR, loc: 'beach', fx: 'sparkle', abroad: false },
-    { name: 'Thái Lan', cost: 15 * TR, loc: 'temple', fx: 'sparkle', abroad: true },
-    { name: 'Hàn Quốc', cost: 30 * TR, loc: 'street', time: 'night', weather: 'snow', fx: 'sparkle', abroad: true },
-    { name: 'Nhật Bản', cost: 38 * TR, loc: 'temple', fx: 'petals', abroad: true },
-    { name: 'Pháp', cost: 80 * TR, loc: 'park', time: 'dusk', fx: 'sparkle', abroad: true },
+    { id: 'bangkok', name: 'Thái Lan', cost: 15 * TR, loc: 'bangkok', fx: 'sparkle', abroad: true },
+    { id: 'seoul', name: 'Hàn Quốc', cost: 30 * TR, loc: 'seoul', time: 'dusk', fx: 'sparkle', abroad: true },
+    { id: 'tokyo', name: 'Nhật Bản', cost: 38 * TR, loc: 'tokyo', fx: 'petals', abroad: true },
+    { id: 'paris', name: 'Pháp', cost: 80 * TR, loc: 'paris', time: 'dusk', fx: 'sparkle', abroad: true },
     { name: 'Mỹ', cost: 120 * TR, loc: 'street', time: 'night', fx: 'sparkle', abroad: true },
     { name: 'Châu Âu 10 nước', cost: 160 * TR, loc: 'park', time: 'day', fx: 'petals', abroad: true },
     { name: 'Maldives', cost: 220 * TR, loc: 'beach', time: 'dusk', fx: 'sparkle', abroad: true },
@@ -776,6 +776,12 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.65', date: '19/10/2026', items: [
+      '✈️ Đi du lịch giờ được TỰ CHỌN điểm đến (trong nước / nước ngoài, giá tiền hiện rõ). 4 cảnh 3D mới: Tokyo (cổng torii, hoa anh đào, núi Phú Sĩ), Seoul (cổng cung điện, tháp Namsan, biển neon), Paris (tháp Eiffel, cà phê vỉa hè), Bangkok (chùa vàng, tuk-tuk, chợ nổi).',
+      'Mỗi nước có chuyện riêng: lạc ga Shinjuku, gặp idol K-pop, bị móc túi ở Paris, bị tuk-tuk chặt chém… Đi cùng người yêu thì thân hơn; đi một mình có khi gặp được nửa kia.',
+      '📜 Thừa kế: khi bố mẹ đều mất, cả nhà mở di chúc — chia đều theo luật, nhường hết cho anh chị em, đòi phần hơn (dễ thành kiện tụng ra toà) hoặc giữ nhà làm nơi thờ cúng.',
+      '🌀 Thiên tai theo vùng: miền Trung bão lũ, miền Tây hạn mặn, Sài Gòn triều cường, miền Bắc rét đậm / nắng nóng, Đà Lạt sạt lở, và dịch bệnh. Chuẩn bị kỹ thì thiệt hại ít; chèo thuyền cứu người vùng lũ có thể thành người hùng.',
+    ] },
     { v: '1.64', date: '19/10/2026', items: [
       '🏃 Haxball: giữ Shift để chạy nước rút (thanh thể lực vàng dưới chân, hết thì phải nghỉ cho hồi). Hai người một máy: Q / dấu chấm.',
       '🦵 Xoạc bóng bằng phím E (C): chạm bóng trước là xoạc sạch, xoạc thẳng vào người là phạm lỗi — người bị xoạc choáng 💫. 2 lỗi thẻ vàng, 4 lỗi thẻ đỏ rời sân. Hai người một máy: E / dấu phẩy.',

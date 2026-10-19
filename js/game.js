@@ -216,6 +216,7 @@
         case 'fullname': return fullName(P());
         case 'age': return String(P().age);
         case 'city': return D.cityName(S.city);
+        case 'estate': return fmtMoney(S.flags.estate || 0);
         case 'job': return S.job ? D.CAREERS[S.job.id].levels[S.job.level].title.toLowerCase() : 'công việc';
         case 'school': return (EDU_NAMES[S.edu.level] || 'trường').toLowerCase();
         case 'weddingnote': { const pt = alive('partner')[0]; return pt && pt.gender === P().gender ? ' Pháp luật Việt Nam chưa công nhận hôn nhân cùng giới, nhưng hai bạn vẫn làm lễ trước sự chứng kiến của những người thương mình.' : ''; }
@@ -1443,6 +1444,98 @@
         : { text: 'Toà tuyên chia lại di sản. Bạn mất gần nửa gia tài cộng tiền luật sư, và anh chị em vẫn không nhìn mặt bạn.', effects: { money: -Math.round(m * 0.42 + fee), happy: -12, rel: { sibling: -40 } }, scene: { loc: 'office', anim: 'facepalm', npcs: [{ role: 'sibling', anim: 'point' }] }, tone: 'bad' } }; }
     return { key: 'lo', label: '🙈 Lờ đi, “của bố mẹ cho tôi”', fn: () => { const lose = Math.round(m * 0.18 / 1e6) * 1e6; return { text: 'Anh chị em đưa chuyện lên báo, cả họ chia phe. Để dập tin đồn và giữ uy tín, bạn vẫn phải chi ' + fmtMoney(lose) + '.', effects: { money: -lose, karma: -4, happy: -6, rel: { sibling: -30 } }, scene: { loc: 'home', anim: 'angry', npcs: [{ role: 'sibling', anim: 'angry', say: 'Bố mẹ đâu chỉ có mình mày!' }] }, tone: 'bad' }; } };
   }
+  // ⚖️ THỪA KẾ của bố mẹ (đời thường): căn nhà + sổ tiết kiệm; có anh chị em thì phải chia
+  function parentEstate() {
+    const big = ['hanoi', 'hcm', 'danang', 'haiphong'].includes(S.city) ? 1.6 : 1, r = Math.random();
+    const v = r < 0.7 ? U.rand(1.5e8, 9e8) : r < 0.95 ? U.rand(1e9, 4e9) : U.rand(5e9, 12e9);
+    return Math.round(v * big / 1e7) * 1e7;
+  }
+  function dichucChoice(k) {
+    const est = S.flags.estate || 3e8, sibs = alive('sibling'), n = sibs.length + 1, share = Math.round(est / n / 1e6) * 1e6;
+    if (k === 'deu') return { key: k, label: '⚖️ Chia đều theo luật (mỗi người ' + fmtMoney(share) + ')', fn: () => { const sour = Math.random() < 0.25; return { text: 'Cả nhà thống nhất chia đều theo luật. Bạn nhận ' + fmtMoney(share) + '.' + (sour ? ' Dù vậy, một người anh chị em vẫn lẩm bẩm rằng mình chăm bố mẹ nhiều hơn, bữa giỗ năm ấy hơi gượng.' : ' Bữa cơm sau đó ấm cúng, ai cũng thấy nhẹ lòng.'), effects: { money: share, happy: 2, rel: { sibling: sour ? -8 : 4 } }, scene: { loc: 'home', anim: 'nod', npcs: [{ role: 'sibling', anim: sour ? 'shrug' : 'nod' }] }, tone: 'neutral' }; } };
+    if (k === 'nhuong') return { key: k, label: '🤝 Nhường hết phần mình cho anh chị em', fn: () => ({ text: 'Bạn ký giấy nhường toàn bộ phần thừa kế: “Em/anh chị còn khó khăn hơn mình.” Cả nhà rưng rưng. Bố mẹ trên trời chắc cũng mỉm cười.', effects: { karma: 10, happy: 4, rel: { sibling: 22 } }, scene: { loc: 'home', anim: 'hug', npcs: [{ role: 'sibling', anim: 'cry' }], fx: 'hearts' }, tone: 'good' }) };
+    if (k === 'doi') { const p = U.clamp(0.38 + (S.stats.smarts - 50) / 200 + karmaLuck(), 0.15, 0.7), fee = Math.round(Math.max(3e7, est * 0.08) / 1e6) * 1e6;
+      return { key: k, label: '😤 Đòi phần hơn: “Mình chăm bố mẹ nhiều nhất”', mini: 'interview', odds: () => p, fn: () => miniWin(p)
+        ? { text: 'Bạn đưa ra hoá đơn viện phí, giấy tờ chăm sóc mấy năm trời. Anh chị em đành đồng ý chia cho bạn phần lớn hơn: ' + fmtMoney(Math.round(share * 1.6)) + '. Nhưng từ đó mỗi người một nơi.', effects: { money: Math.round(share * 1.6), karma: -4, rel: { sibling: -25 } }, scene: { loc: 'home', anim: 'point', npcs: [{ role: 'sibling', anim: 'angry' }], fx: 'anger' }, tone: 'neutral' }
+        : { text: 'Anh chị em không chịu, đưa nhau ra toà. Hai năm kiện tụng, toà vẫn chia đều; trừ tiền luật sư ' + fmtMoney(fee) + ' bạn chỉ còn ' + fmtMoney(Math.max(0, share - fee)) + ', và anh chị em không còn nhìn mặt nhau.', effects: { money: Math.max(0, share - fee), happy: -10, karma: -6, rel: { sibling: -40 } }, scene: { loc: 'office', anim: 'facepalm', npcs: [{ role: 'sibling', anim: 'angry', say: 'Gặp nhau ở toà!' }] }, tone: 'bad' } }; }
+    if (k === 'giu') return { key: k, label: '🏡 Giữ lại căn nhà làm nhà thờ tổ, chỉ nhận tiền tiết kiệm', fn: () => ({ text: 'Bạn quyết không bán căn nhà của bố mẹ, giữ làm nơi thờ cúng, Tết về sum họp. Nhận phần tiền tiết kiệm ' + fmtMoney(Math.round(est * 0.3 / 1e6) * 1e6) + '.', effects: { money: Math.round(est * 0.3 / 1e6) * 1e6, karma: 5, happy: 4, rel: { sibling: 6 } }, scene: { loc: 'countryside', anim: 'pray', fx: 'sparkle' }, tone: 'good' }) };
+    return { key: 'all', label: '📜 Nhận toàn bộ thừa kế (' + fmtMoney(est) + ')', fn: () => ({ text: 'Là con một, bạn nhận toàn bộ căn nhà và sổ tiết kiệm bố mẹ để lại, tổng cộng ' + fmtMoney(est) + '. Cầm tờ sổ đỏ, bạn thấy nặng trĩu: đó là cả đời dành dụm của bố mẹ.', effects: { money: est, happy: -2 }, scene: { loc: 'home', anim: 'sad', fx: 'sparkle' }, tone: 'neutral' }) };
+  }
+  ms({ id: 'ms_dichuc', title: 'Đọc di chúc', icon: '📜', age: [18, 99],
+    text: 'Sau lễ 49 ngày, cả nhà ngồi quanh bàn thờ mở tờ di chúc. Bố mẹ để lại căn nhà và cuốn sổ tiết kiệm, ước tính khoảng {estate}. Ai cũng im lặng nhìn nhau…',
+    scene: { loc: 'home', anim: 'think', npcs: [{ role: 'sibling', anim: 'think' }, { role: 'spouse', anim: 'sad' }], shot: 'dramatic' },
+    choicesFn: () => (alive('sibling').length ? ['deu', 'nhuong', 'doi', 'giu'] : ['all', 'giu']).map(dichucChoice), choiceByKey: dichucChoice });
+  // 🌀 THIÊN TAI & THỜI TIẾT theo vùng: miền Trung bão lũ, miền Tây hạn mặn, miền Bắc rét đậm / nắng nóng, Đà Lạt sạt lở…
+  const REGION_DIS = { hanoi: ['ret', 'nong', 'bao', 'dich'], haiphong: ['bao', 'ret', 'dich'], danang: ['bao', 'lu', 'lu', 'dich'], hue: ['lu', 'lu', 'bao', 'dich'], nhatrang: ['bao', 'lu', 'dich'], dalat: ['salo', 'ret', 'dich'], hcm: ['ngap', 'nong', 'dich'], cantho: ['han', 'ngap', 'dich'] };
+  function disasterYear() {
+    const pa = P().age; if (pa < 6 || S.jail || S.abroad || S.pending.length > 2) return;
+    if (S.flags.disYear && S.year - S.flags.disYear < 3) return; // không dồn dập
+    if (Math.random() > 0.07) return;
+    const k = U.pick(REGION_DIS[S.city] || ['bao', 'lu', 'dich']);
+    if (k === 'dich' && Math.random() < 0.6) return; // dịch hiếm hơn
+    S.flags.disYear = S.year; queueMilestone('ms_dis_' + k);
+  }
+  const homeLoss = (base) => Math.round(Math.max(base, (S.money > 0 ? S.money : 0) * 0.02) * (S.assets && S.assets.some((a) => a.type === 'house') ? 1.6 : 1) / 1e6) * 1e6;
+  ms({ id: 'ms_dis_bao', title: 'Bão lớn đổ bộ', icon: '🌀', age: [6, 120],
+    text: 'Đài báo siêu bão cấp 13 sẽ đổ bộ vào {city} đêm nay. Gió bắt đầu rít qua khe cửa, siêu thị cháy hàng mì gói và nến.',
+    scene: { loc: 'street', time: 'dusk', weather: 'storm', anim: 'scared', expr: 'scared', npcs: [{ role: 'neighbor', anim: 'run' }], shot: 'dramatic' },
+    choices: [
+      { label: '🔨 Chằng chống nhà cửa, tích trữ đồ ăn (5 triệu)', fn: () => { const l = Math.round(homeLoss(1e7) * 0.25 / 1e6) * 1e6; return { text: 'Bạn bao cát lên mái tôn, dán băng dính kính cửa, mua đủ nước và đèn pin. Bão qua, nhà chỉ tốc vài tấm ngói, sửa hết ' + fmtMoney(l) + '. Hàng xóm sang mượn đèn, cảm ơn rối rít.', effects: { money: -5e6 - l, happy: -2, karma: 2 }, scene: { loc: 'home', weather: 'rain', anim: 'nod' }, tone: 'neutral' }; } },
+      { label: '🏫 Sơ tán theo chính quyền', fn: () => { const l = Math.round(homeLoss(2e7) * 0.6 / 1e6) * 1e6; return { text: 'Cả nhà ôm đồ lên trường học kiên cố trú bão, ngủ chen chúc trên bàn học. Sáng ra về nhà: mái tôn bay mất, đồ đạc ướt hết, thiệt hại ' + fmtMoney(l) + '. Nhưng ai cũng an toàn.', effects: { money: -l, happy: -5, health: -1 }, scene: { loc: 'school', anim: 'sit', weather: 'rain' }, tone: 'bad' }; } },
+      { label: '🏠 Ở lại giữ nhà, “bão năm nào chẳng có”', fn: () => { const l = homeLoss(3e7); if (Math.random() < 0.35) return { text: 'Nửa đêm một cành cây lớn đổ sập mái, bạn bị thương ở đầu phải đi cấp cứu. Thiệt hại ' + fmtMoney(l) + ' và một bài học nhớ đời.', effects: { money: -l, health: -15, happy: -10 }, scene: { loc: 'hospital', anim: 'sick', fx: 'tears' }, tone: 'bad' }; return { text: 'Bạn thức trắng giữ cửa. May mà bão suy yếu khi vào bờ, nhà chỉ tốc mái nhẹ, thiệt hại ' + fmtMoney(Math.round(l / 2 / 1e6) * 1e6) + '.', effects: { money: -Math.round(l / 2 / 1e6) * 1e6, happy: -3 }, scene: { loc: 'home', weather: 'storm', anim: 'scared' }, tone: 'neutral' }; } },
+    ] });
+  ms({ id: 'ms_dis_lu', title: 'Nước lũ dâng cao', icon: '🌊', age: [6, 120],
+    text: 'Mưa ba ngày không dứt, nước sông tràn bờ. Nước ngập tới đầu gối rồi lên tới bậc thang. Loa phường gọi người dân lên chỗ cao.',
+    scene: { loc: 'countryside', weather: 'rain', time: 'dusk', anim: 'scared', npcs: [{ role: 'neighbor', anim: 'wave', say: 'Lên gác đi!' }], shot: 'dramatic' },
+    choices: [
+      { label: '📦 Kê đồ đạc lên cao, sơ tán người già trẻ nhỏ', fn: () => { const l = Math.round(homeLoss(1.2e7) * 0.5 / 1e6) * 1e6; return { text: 'Bạn kê tủ lạnh, ti vi lên gác, đưa ông bà lên nhà văn hoá. Lũ rút, bùn ngập nửa nhà, thiệt hại ' + fmtMoney(l) + '. Cả xóm xắn tay dọn bùn cùng nhau.', effects: { money: -l, happy: -4, karma: 2 }, scene: { loc: 'home', anim: 'lift' }, tone: 'neutral' }; } },
+      { label: '🛶 Chèo thuyền đi cứu người mắc kẹt', mini: 'swim', odds: () => U.clamp(0.4 + (S.stats.health - 50) / 120, 0.2, 0.8), fn: () => { const p = U.clamp(0.4 + (S.stats.health - 50) / 120, 0.2, 0.8); if (miniWin(p)) { unlockSafe('hero'); if (S.social && S.social.followers != null) S.social.followers += 5000; return { text: 'Bạn mượn chiếc thuyền nhôm, chèo trong đêm đưa được 7 người già và trẻ em lên chỗ cao. Báo chí đăng ảnh bạn ướt sũng ôm một em bé. Cả nước gọi bạn là người hùng vùng lũ!', effects: { karma: 15, happy: 8, health: -4 }, scene: { loc: 'countryside', weather: 'rain', anim: 'cheer', fx: 'sparkle' }, tone: 'good' }; } return { text: 'Thuyền lật giữa dòng nước xiết. Bạn bám được ngọn cây, đội cứu hộ kéo lên sau hai tiếng, người lạnh cóng và bị thương.', effects: { health: -18, happy: -6, karma: 6 }, scene: { loc: 'hospital', anim: 'sick' }, tone: 'bad' }; } },
+      { label: '💝 Quyên góp cho bà con vùng lũ (10 triệu)', fn: () => ({ text: 'Bạn chuyển khoản ủng hộ, kèm mấy thùng mì và áo phao gửi đoàn từ thiện. Nhà bạn ở chỗ cao nên không sao.', effects: { money: -1e7, karma: 8, happy: 3 }, scene: { loc: 'home', anim: 'phone', fx: 'hearts' }, tone: 'good' }) },
+    ] });
+  ms({ id: 'ms_dis_ngap', title: 'Triều cường ngập phố', icon: '🌧️', age: [6, 120],
+    text: 'Mưa lớn trùng đỉnh triều cường, cả con đường thành sông. Xe máy chết máy nằm la liệt, nước tràn vào nhà.',
+    scene: { loc: 'street', weather: 'rain', anim: 'facepalm', npcs: [{ role: 'neighbor', anim: 'walk' }] },
+    choices: [
+      { label: '🛵 Dắt xe lội nước về, sửa xe sau', fn: () => ({ text: 'Bạn lội nước ngang đùi dắt xe về. Xe vào nước phải thay nhớt, súc máy hết 1,5 triệu. Hôm sau còn bị cảm.', effects: { money: -1.5e6, health: -3, happy: -3 }, scene: { loc: 'street', weather: 'rain', anim: 'walk' }, tone: 'neutral' }) },
+      { label: '🧱 Xây bờ chắn, nâng nền nhà (40 triệu)', fn: () => ({ text: 'Bạn thuê thợ nâng nền, xây bậc chắn nước. Từ năm sau, cả xóm ngập còn nhà bạn khô ráo.', effects: { money: -4e7, happy: 3 }, scene: { loc: 'home', anim: 'nod' }, tone: 'good' }) },
+    ] });
+  ms({ id: 'ms_dis_han', title: 'Hạn mặn miền Tây', icon: '🏜️', age: [6, 120],
+    text: 'Nước mặn xâm nhập sâu chưa từng thấy. Ruộng lúa cháy vàng, vườn sầu riêng héo lá, nước máy có vị mặn chát.',
+    scene: { loc: 'countryside', time: 'day', anim: 'sad', fx: 'dust', npcs: [{ role: 'neighbor', anim: 'shake' }] },
+    choices: [
+      { label: '🛢️ Mua bồn trữ nước ngọt, máy lọc (8 triệu)', fn: () => ({ text: 'Bạn lắp bồn 2 khối và máy lọc RO, chia nước ngọt cho mấy nhà hàng xóm có người già.', effects: { money: -8e6, karma: 4, happy: 1 }, scene: { loc: 'home', anim: 'nod' }, tone: 'good' }) },
+      { label: '😮‍💨 Cầm cự qua mùa khô', fn: () => ({ text: 'Cả nhà dùng nước tiết kiệm từng gáo, mua nước bình để nấu ăn. Mùa khô năm ấy dài như cả năm.', effects: { money: -3e6, happy: -4, health: -2 }, scene: { loc: 'countryside', anim: 'sad' }, tone: 'bad' }) },
+    ] });
+  ms({ id: 'ms_dis_ret', title: 'Rét đậm rét hại', icon: '🥶', age: [6, 120],
+    text: 'Đợt rét đậm kéo dài hai tuần, nhiệt độ xuống 6 độ. Trường cho học sinh nghỉ, bệnh viện kín người già viêm phổi.',
+    scene: { loc: 'street', time: 'dawn', weather: 'fog', anim: 'sad', npcs: [{ role: 'neighbor', anim: 'walk' }] },
+    choices: [
+      { label: '🧥 Mua máy sưởi, áo ấm cho cả nhà (4 triệu)', fn: () => ({ text: 'Cả nhà quây quần bên máy sưởi, uống trà gừng. Không ai ốm.', effects: { money: -4e6, happy: 2 }, scene: { loc: 'home', anim: 'sit', time: 'night' }, tone: 'good' }) },
+      { label: '🥶 Cố chịu, mặc thêm áo', fn: () => ({ text: 'Bạn mặc ba lớp áo vẫn run cầm cập. Cuối đợt rét bạn bị viêm họng nặng.', effects: { health: P().age >= 60 ? -10 : -4, happy: -3 }, scene: { loc: 'bedroom', anim: 'sick' }, tone: 'bad' }) },
+      { label: '🍲 Nấu cháo phát cho người vô gia cư', fn: () => ({ text: 'Tối nào bạn cũng nấu một nồi cháo lớn mang ra gầm cầu. Nhiều người nắm tay bạn cảm ơn không nói nên lời.', effects: { money: -2e6, karma: 8, happy: 4 }, scene: { loc: 'street', time: 'night', anim: 'hug', fx: 'hearts' }, tone: 'good' }) },
+    ] });
+  ms({ id: 'ms_dis_nong', title: 'Nắng nóng kỷ lục', icon: '🔥', age: [6, 120],
+    text: 'Nhiệt độ ngoài trời 41 độ. Điện cắt luân phiên, đêm nào cũng nóng như lò bát quái.',
+    scene: { loc: 'street', time: 'day', anim: 'facepalm', fx: 'sparkle' },
+    choices: [
+      { label: '❄️ Lắp điều hoà (12 triệu)', fn: () => ({ text: 'Bạn lắp điều hoà inverter. Cả nhà ngủ ngon, chỉ có hoá đơn điện là “nóng”.', effects: { money: -1.2e7, happy: 4, health: 2 }, scene: { loc: 'bedroom', anim: 'sit' }, tone: 'good' }) },
+      { label: '🌳 Ra công viên hóng gió, uống nhiều nước', fn: () => ({ text: 'Tối nào cả xóm cũng ra công viên trải chiếu. Bạn quen thêm vài người hàng xóm mới.', effects: { happy: 1, health: -2 }, scene: { loc: 'park', time: 'night', anim: 'sit' }, tone: 'neutral' }) },
+    ] });
+  ms({ id: 'ms_dis_salo', title: 'Sạt lở đất', icon: '⛰️', age: [6, 120],
+    text: 'Mưa lớn nhiều ngày, sườn đồi sau nhà nứt một đường dài. Đêm qua có tiếng đất đá lăn rào rào.',
+    scene: { loc: 'countryside', weather: 'rain', time: 'dusk', anim: 'scared', expr: 'scared', shot: 'dramatic' },
+    choices: [
+      { label: '🚚 Dọn đi ngay trong đêm', fn: () => ({ text: 'Bạn thuê xe chở đồ đi trong đêm. Hai hôm sau, cả mảng đồi đổ sập lên căn nhà cũ. Mất nhà, nhưng còn người.', effects: { money: -homeLoss(3e7), happy: -8 }, scene: { loc: 'street', time: 'night', anim: 'walk', weather: 'rain' }, tone: 'bad' }) },
+      { label: '🏠 Chờ thêm xem sao', fn: () => Math.random() < 0.5 ? { text: 'Trời tạnh, vết nứt không rộng thêm. Bạn thở phào, gọi người đến kè lại sườn đồi.', effects: { money: -1.5e7, happy: -2 }, scene: { loc: 'home', anim: 'nod' }, tone: 'neutral' } : { text: 'Nửa đêm đất trượt, tường sau đổ sập. Bạn kịp chạy ra nhưng bị đá đè gãy chân, nhà hư hỏng nặng.', effects: { money: -homeLoss(5e7), health: -20, happy: -12 }, scene: { loc: 'hospital', anim: 'sick', fx: 'tears' }, tone: 'bad' } },
+    ] });
+  ms({ id: 'ms_dis_dich', title: 'Dịch bệnh bùng phát', icon: '🦠', age: [6, 120],
+    text: 'Một loại virus mới lây lan nhanh. Thành phố giãn cách, trường học đóng cửa, ai cũng đeo khẩu trang.',
+    scene: { loc: 'home', anim: 'phone', time: 'night' },
+    choices: [
+      { label: '💉 Tiêm vắc-xin sớm, ở nhà làm việc', fn: () => ({ text: 'Bạn tiêm đủ mũi, làm việc online. Chỉ hơi buồn chán vì không được gặp ai.', effects: { happy: -4, money: -1e6 }, scene: { loc: 'bedroom', anim: 'phone' }, tone: 'neutral' }) },
+      { label: '🙈 Kệ, vẫn đi chơi bình thường', fn: () => Math.random() < 0.55 ? { text: 'Bạn dính bệnh, sốt cao một tuần, ho kéo dài cả tháng. Cả nhà cũng bị lây.', effects: { health: P().age >= 60 ? -20 : -10, happy: -6, rel: { all: -3 } }, scene: { loc: 'hospital', anim: 'sick' }, tone: 'bad' } : { text: 'May mắn bạn không bị nhiễm. Nhưng cả xóm nhìn bạn bằng ánh mắt không mấy thiện cảm.', effects: { happy: 1, karma: -3 }, scene: { loc: 'street', anim: 'shrug' }, tone: 'neutral' } },
+      { label: '🧑‍⚕️ Đăng ký làm tình nguyện viên tuyến đầu', fn: () => ({ text: 'Bạn khoác bộ đồ bảo hộ trắng, đi phát thực phẩm và hỗ trợ xét nghiệm. Mệt nhoài nhưng thấy đời mình có ích.', effects: { karma: 12, happy: 4, health: -4 }, scene: { loc: 'hospital', anim: 'nod', fx: 'sparkle' }, tone: 'good' }) },
+    ] });
   ms({ id: 'ms_tranhchap', title: 'Anh em tranh chấp thừa kế', icon: '⚖️', age: [16, 99],
     text: 'Giỗ đầu bố mẹ chưa xong, anh chị em đã gửi đơn ra toà: di chúc không công bằng, đòi chia lại toàn bộ tài sản.',
     scene: { loc: 'home', anim: 'sad', npcs: [{ role: 'sibling', anim: 'angry', say: 'Phải chia lại cho công bằng!' }], fx: 'anger', shot: 'dramatic' },
@@ -1926,7 +2019,7 @@
     socialYear(L);
     eraYear(L);
     companyYear(L, deltas);
-    try { richYear(); nuisanceYear(); } catch (e) { U.warnOnce('richYear', 'richYear', e); }
+    try { richYear(); nuisanceYear(); disasterYear(); } catch (e) { U.warnOnce('richYear', 'richYear', e); }
     try { insYear(L, deltas); farmYear(L, deltas); decorYear(L, deltas); } catch (e) { U.warnOnce('batchE', 'ins/farm', e); }
     try { xkYear(L, deltas); if (S.abroad && S.abroad.settled && S.year - S.abroad.since === 5 && !S.flags.citizen) queueMilestone('ms_quoctich'); } catch (e) { U.warnOnce('xk', 'xk', e); }
     try { officeYear(L); if (S.company) chainYear(L, deltas); } catch (e) { U.warnOnce('batchB2', 'office/chain', e); }
@@ -2562,6 +2655,50 @@
       return { text: junk ? 'Cần câu oằn xuống, bạn hồi hộp kéo lên… một chiếc dép tổ ong! Cả hồ cười ồ.' : 'Bạn câu được ' + name + (tier >= 4 ? ' — con cá to nhất mà dân câu quanh đây từng thấy! Ai cũng xin chụp ảnh.' : '!') + (price ? ' Bán cho nhà hàng được ' + fmtMoney(price) + '.' : ''), effects: { money: price - cost, happy: 2 + tier }, scene: { loc: sea ? 'beach' : 'park', anim: tier >= 4 ? 'cheer' : junk ? 'facepalm' : 'laugh', fx: tier >= 4 ? 'confetti' : 'sparkle' }, tone: tier >= 4 ? 'milestone' : 'good' };
     } };
   }
+  // ✈️ DU LỊCH: chọn điểm đến; mỗi nước có chuyện riêng (Tokyo, Seoul, Paris, Bangkok có cảnh 3D riêng)
+  const TRIP_STORY = {
+    tokyo: [
+      { w: 3, text: 'Bạn ngắm hoa anh đào nở trắng bên cổng torii đỏ, ăn sushi băng chuyền và tắm suối nước nóng. Nhật Bản sạch đến mức bạn ngại vứt cả vỏ kẹo.', eff: { happy: 10 } },
+      { w: 2, text: 'Bạn lạc giữa ga Shinjuku hơn hai tiếng — 200 lối ra, không ai nói tiếng Anh. Cuối cùng một bà cụ dắt tay bạn đi tận nơi rồi cúi chào.', eff: { happy: 5, karma: 1 } },
+      { w: 1, text: 'Bạn “cháy túi” ở Akihabara: máy ảnh, mô hình, mỹ phẩm. Về nước mới thấy thẻ tín dụng kêu cứu.', eff: { happy: 8, money: -8e6 } },
+    ],
+    seoul: [
+      { w: 3, text: 'Bạn mặc hanbok dạo cung Gyeongbokgung, chiều lên tháp Namsan móc khoá tình yêu, tối ăn gà rán uống bia ở Hongdae.', eff: { happy: 10, looks: 1 } },
+      { w: 2, text: 'Đứng chờ trước công ty giải trí cả buổi, bạn được một nhóm nhạc K-pop vẫy tay chào! Clip bạn quay đạt mấy chục nghìn lượt xem.', eff: { happy: 12 }, fans: 3000 },
+      { w: 1, text: 'Bạn tranh thủ đi “thẩm mỹ du lịch” ở Gangnam. Mũi cao hơn hẳn, ví thì mỏng hẳn.', eff: { looks: 6, money: -25e6, health: -2 } },
+    ],
+    paris: [
+      { w: 3, text: 'Bạn ngồi cà phê vỉa hè ngắm tháp Eiffel lên đèn, dạo bảo tàng Louvre và bờ sông Seine. Paris lãng mạn đúng như phim.', eff: { happy: 11 } },
+      { w: 2, text: 'Ở ga tàu điện, một nhóm “xin chữ ký” vây quanh rồi lấy mất ví của bạn. Mất tiền, mất cả buổi ở đồn cảnh sát.', eff: { happy: -3, money: -10e6 } },
+      { w: 1, text: 'Bạn học nấu món Pháp ở một lớp nhỏ trong khu Montmartre. Về nhà làm bánh crepe cho cả nhà ăn thử.', eff: { happy: 8, smarts: 2 } },
+    ],
+    bangkok: [
+      { w: 3, text: 'Bạn đi chợ nổi, lên chùa vàng, ngồi tuk-tuk len lỏi khắp phố. Đồ ăn đường phố ngon rẻ, xoài nếp ăn mãi không chán.', eff: { happy: 10 } },
+      { w: 2, text: 'Tài xế tuk-tuk chở bạn vòng vèo “ghé tiệm đá quý của người quen” rồi chặt chém gấp năm lần giá. Bài học nhớ đời.', eff: { happy: -2, money: -3e6 } },
+      { w: 1, text: 'Ăn món cay cấp độ 5 ở chợ đêm, bạn đau bụng nằm khách sạn hai ngày.', eff: { happy: -2, health: -4 } },
+    ],
+  };
+  function tripChoice(k) {
+    const t = D.TRAVEL.find((x) => (x.id || x.name) === k) || D.TRAVEL[0];
+    const pp = alive('spouse')[0] || alive('partner')[0];
+    return { key: k, label: (t.abroad ? '✈️ ' : '🚌 ') + t.name + ' · ' + fmtMoney(t.cost) + (pp ? ' (đi cùng ' + pp.firstName + ')' : ''), fn: () => {
+      if (S.money < t.cost) return { text: 'Tới lúc thanh toán thì thẻ không đủ tiền. Chuyến đi đành hoãn.', effects: { happy: -2 }, tone: 'bad' };
+      if (t.abroad && (S.english || 0) < 30 && Math.random() < 0.3) { return { text: 'Tiếng Anh còn kém (dưới 30), bạn khai sai giấy tờ nhập cảnh và bị giữ lại hỏi chuyện cả tiếng. Chuyến đi vẫn vui, nhưng lần sau nên học thêm tiếng Anh.', effects: { money: -t.cost, happy: 4 }, scene: { loc: 'airport', anim: 'facepalm' }, tone: 'neutral' }; }
+      S.counters.travel = (S.counters.travel || 0) + 1; if (t.abroad) { S.counters.abroad = (S.counters.abroad || 0) + 1; unlock('abroad'); }
+      const list = TRIP_STORY[t.id], st = list ? U.weighted(list, (x) => x.w) : { text: U.pick(['Bạn xách ba lô lên đường đến ' + t.name + '. Những ngày tuyệt vời, ảnh chụp đầy điện thoại.', t.name + ' đẹp hơn cả trong ảnh. Bạn ước thời gian ngừng trôi.']), eff: { happy: 8 } };
+      const eff = Object.assign({}, st.eff, { money: -t.cost + (st.eff.money || 0) });
+      let text = st.text;
+      if (pp) { pp.relation = r100(pp.relation + U.randi(6, 12)); text += ' Chuyến đi khiến bạn và ' + pp.firstName + ' gần nhau hơn hẳn.'; }
+      else if (P().age >= 18 && P().age <= 50 && Math.random() < 0.12) { const g = U.pick(loveGenders()), np = newPerson('partner', g, U.clamp(P().age + U.randi(-4, 4), 18, 60), { relation: U.randi(55, 70) }); np.metTrip = t.name; S.people.push(np); text += ' Ở ' + t.name + ', bạn quen một người Việt cũng đi du lịch một mình: ' + np.firstName + '. Về nước hai người vẫn nhắn tin mỗi ngày… rồi thành người yêu!'; }
+      if (st.fans && S.social && S.social.followers != null) S.social.followers += st.fans;
+      if (Math.random() < 0.04) { eff.money -= 5e6; text += ' Trước hôm về, bạn đánh rơi hộ chiếu, phải lên đại sứ quán làm lại giấy tờ, tốn thêm 5 triệu.'; }
+      return { text, effects: eff, scene: { loc: t.loc, time: t.time || 'day', weather: t.weather, decor: t.decor, anim: (st.eff.happy || 0) > 0 ? 'cheer' : 'facepalm', fx: (st.eff.happy || 0) > 0 ? t.fx : null }, tone: (st.eff.happy || 0) > 0 ? 'good' : 'bad' };
+    } };
+  }
+  ms({ id: 'ms_travel', title: 'Đi du lịch', icon: '✈️', age: [16, 99], text: 'Bạn mở app đặt vé, lướt qua hàng chục điểm đến. Năm nay đi đâu đây?',
+    scene: { loc: 'airport', anim: 'phone', fx: 'sparkle' },
+    choicesFn: () => { const ok = D.TRAVEL.filter((t) => S.money >= t.cost); const intl = ok.filter((t) => t.abroad && t.id), dom = ok.filter((t) => !t.abroad); const pick = U.shuffle(intl).slice(0, 3).concat(U.shuffle(dom).slice(0, intl.length >= 3 ? 1 : 4 - Math.min(3, intl.length))); return (pick.length ? pick : D.TRAVEL.slice(0, 1)).map((t) => tripChoice(t.id || t.name)); },
+    choiceByKey: tripChoice });
   ms({ id: 'ms_cauca', title: 'Đi câu cá', icon: '🎣', age: [7, 99], text: 'Bạn chuẩn bị cần câu, hộp mồi giun và chiếc ghế xếp. Hôm nay đi câu ở đâu đây?',
     scene: { loc: 'park', anim: 'sit', fx: 'sparkle' }, choicesFn: () => ['ho', 'bien'].map(fishChoice), choiceByKey: fishChoice });
   function fishView() { const f = S && S.fishing; if (!f || !f.n) return null; return { n: f.n, best: f.bestName, kinds: Object.keys(f.coll).length, list: Object.keys(f.coll).map((k) => k + ' ×' + f.coll[k]) }; }
@@ -3306,6 +3443,8 @@
         L(cap(kin(x)) + ' ' + x.firstName + ' qua đời ở tuổi ' + x.age + '.', 'bad', '🕯️');
         addStat('happy', -(closeness[x.role] || 5) * (0.5 + x.relation / 200), deltas);
         if (!funeral && ['mother', 'father', 'grandparent', 'spouse', 'sibling', 'child'].includes(x.role)) { funeral = true; queueMilestone('ms_funeral', { deceased: x }); }
+        // bố mẹ đều đã mất → đọc di chúc, chia tài sản (có thể sinh tranh chấp)
+        if ((x.role === 'mother' || x.role === 'father') && !has('mother') && !has('father') && P().age >= 18 && !S.flags.dichuc && !S.flags.richkid) { S.flags.dichuc = S.year; S.flags.estate = parentEstate(); queueMilestone('ms_dichuc', { deceased: x }); }
         return;
       }
       if (x.role === 'partner' && x.relation < 22 && Math.random() < 0.35) { x.role = 'ex'; L(x.firstName + ' nói lời chia tay. Bạn khóc cả đêm.', 'bad', '💔'); addStat('happy', -8, deltas); }
@@ -3802,15 +3941,11 @@
         break;
       }
       case 'travel': {
-        const opts = D.TRAVEL.filter((t) => S.money >= t.cost && (!t.abroad || (S.english || 0) >= 30));
-        if (!opts.length) { S.yearActs[id]--; return fail('Cần ít nhất ' + fmtMoney(D.TRAVEL[0].cost) + ' để đi du lịch'); }
-        if ((S.english || 0) < 30 && Math.random() < 0.25) text = 'Bạn định đi nước ngoài nhưng tiếng Anh còn kém (cần ≥ 30), đành chọn du lịch trong nước. ';
-        const t = U.pick(opts);
-        addMoney(-t.cost, deltas); rollEff(a.eff, 1, deltas);
-        S.counters.travel = (S.counters.travel || 0) + 1; if (t.abroad) { S.counters.abroad = (S.counters.abroad || 0) + 1; unlock('abroad'); }
-        title = 'Du lịch ' + t.name;
-        text = (text || '') + U.pick(['Bạn xách ba lô lên đường đến ' + t.name + '. Những ngày tuyệt vời, ảnh chụp đầy điện thoại.', t.name + ' đẹp hơn cả trong ảnh. Bạn ước thời gian ngừng trôi.', 'Chuyến đi ' + t.name + ' cho bạn thấy thế giới thật rộng lớn.']);
-        scene = actScene({ loc: t.loc, time: t.time, weather: t.weather, decor: t.decor, anim: 'cheer', fx: t.fx }, partner ? { people: [{ p: partner, anim: 'love' }] } : null);
+        // tự chọn điểm đến (trong nước / nước ngoài) → chuyến đi có sự kiện riêng mỗi nơi
+        if (S.money < D.TRAVEL[0].cost) { S.yearActs[id]--; return fail('Cần ít nhất ' + fmtMoney(D.TRAVEL[0].cost) + ' để đi du lịch'); }
+        queueMilestone('ms_travel');
+        text = 'Bạn mở app đặt vé, lướt qua hàng chục điểm đến. Năm nay đi đâu đây?';
+        scene = actScene({ loc: 'airport', anim: 'phone' });
         break;
       }
       case 'dating': {
