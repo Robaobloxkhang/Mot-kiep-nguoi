@@ -776,6 +776,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.57', date: '19/10/2026', items: [
+      '🎓 Bán khoá học online bị giảm mạnh: ít fan mua thật hơn, trừ 40% phí nền tảng và thuế, mất tiền quay dựng và chạy quảng cáo, có thể lỗ.',
+      'Mỗi khoá ra sau bán được khoảng một nửa khoá trước, và càng ra nhiều khoá càng dễ bị chê "lùa gà" (hoàn tiền, mất 20% người theo dõi).',
+      '🏷️ Tung bộ sưu tập thương hiệu riêng và hợp đồng đại sứ thương hiệu cũng giảm, có trần thu nhập.',
+    ] },
     { v: '1.56', date: '17/10/2026', items: [
       '📸 Đăng ảnh giờ là tự chụp thật: cầm máy kéo để xoay góc, zoom, nâng/hạ máy, chọn dáng (selfie, thả tim, vẫy tay…) và bộ lọc (Trắng sáng, Hàn Quốc, Film cũ…). Thanh "góc đẹp" mách bạn nên chỉnh gì.',
       '🎬 Chụp xong chọn mẫu CapCut giật giật: Giật beat, Glitch RGB, Zoom sốc, Lắc lư, Nháy đèn, Slow tình cảm — mỗi năm có một mẫu 🔥 HOT dễ lên xu hướng. Góc càng đẹp + đúng mẫu hot càng nhiều like.',
