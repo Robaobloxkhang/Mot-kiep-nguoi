@@ -44,7 +44,7 @@
     tor.position.set(0, 0, -1.8); g.add(tor);
     // đền nhỏ phía sau
     const hall = H.group(H.at(H.box(3.6, 0.35, 1.8, '#8c7b66'), 0, 0.17, 0), H.at(H.box(3.0, 1.6, 1.3, '#efe4cf'), 0, 1.15, 0), H.at(H.box(0.9, 1.2, 0.05, '#5a2c1a'), 0, 0.95, 0.66));
-    const roof = H.cone(2.6, 1.1, '#3b3f46', { seg: 4 }); roof.rotation.y = PI / 4; roof.scale.set(1, 1, 0.65); hall.add(H.at(roof, 0, 2.45, 0));
+    const roof = H.cone(2.3, 1.1, '#3b3f46', { seg: 4 }); roof.rotation.y = PI / 4; roof.scale.set(1.0, 1, 0.62); const rg = H.group(roof); rg.rotation.y = 0; hall.add(H.at(rg, 0, 2.45, 0));
     hall.position.set(0, 0, -3.8); g.add(hall);
     // hoa anh đào
     [[-3.6, -2.6], [3.5, -2.8], [-3.9, 1.6], [3.8, 1.2]].forEach(([x, z], i) => g.add(H.at(blossomTree(H, ['#ffc0d6', '#ffd1e0', '#ffb3cc'][i % 3], 20 + i, 2.6 + r() * 0.6), x, 0, z)));
