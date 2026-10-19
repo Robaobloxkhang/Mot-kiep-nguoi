@@ -1218,3 +1218,11 @@ details.more.risk p { margin: 0 0 8px; }
 .mg-ic { font-size: 20px; line-height: 1.2; flex: none; }
 .mg-steps { margin: 4px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.55; color: var(--fg-dim); } .mg-steps li { margin: 2px 0; }
 .mini-guide kbd, .mini-keys kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border-radius: 6px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); border-bottom-width: 2px; font: 600 12px/1.6 system-ui, sans-serif; text-align: center; color: var(--fg); }
+
+/* Cúp Hax */
+.cup-br { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: left; }
+.cup-col { display: grid; gap: 6px; align-content: center; } .cup-col > b { text-align: center; font-size: 13px; opacity: .8; }
+.cup-m { padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, .06); font-size: 12.5px; line-height: 1.5; }
+.cup-m b { float: right; } .cup-me { color: var(--lantern); font-weight: 700; }
+.cup-trophy { font-size: 64px; animation: bootSway 2s ease-in-out infinite; }
+@media (max-width: 560px) { .cup-br { grid-template-columns: 1fr; } }

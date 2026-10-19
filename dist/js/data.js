@@ -776,6 +776,12 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.64', date: '19/10/2026', items: [
+      '🏃 Haxball: giữ Shift để chạy nước rút (thanh thể lực vàng dưới chân, hết thì phải nghỉ cho hồi). Hai người một máy: Q / dấu chấm.',
+      '🦵 Xoạc bóng bằng phím E (C): chạm bóng trước là xoạc sạch, xoạc thẳng vào người là phạm lỗi — người bị xoạc choáng 💫. 2 lỗi thẻ vàng, 4 lỗi thẻ đỏ rời sân. Hai người một máy: E / dấu phẩy.',
+      '🚨 Phạm lỗi ngoài vòng cấm được đá phạt (đối phương phải lùi xa), trong vòng cấm là PHẠT ĐỀN: thủ môn đứng trên vạch, mọi người ra khỏi vòng cấm. Máy cũng biết chạy nước rút và xoạc.',
+      '🏆 Cúp Hax: 8 đội đấu loại trực tiếp (tứ kết máy Dễ → bán kết Thường → chung kết Khó), sơ đồ nhánh đấu, đếm số cúp qua các mùa. Đang sống một cuộc đời thì có thưởng: bán kết 3 triệu, chung kết 8 triệu, vô địch 20 triệu.',
+    ] },
     { v: '1.63', date: '19/10/2026', items: [
       '📖 Màn hướng dẫn trước mỗi minigame làm lại cho dễ hiểu: chia rõ 🎯 Mục tiêu · 🕹️ Cách chơi (từng bước, phím bấm hiện thành nút) · 💪 Chỉ số của bạn ảnh hưởng thế nào.',
       '🧪 Nút "Chơi thử" (phím T): chơi một lượt làm quen không tính điểm, xong quay lại màn hướng dẫn và cho biết lượt thử được bao nhiêu %. Chơi thử bao nhiêu lần cũng được.',
