@@ -36,7 +36,13 @@ async function cloudflare() {
 module.exports = async (req, res) => {
   try {
     if (CF_ID && CF_TOKEN) return send(res, 200, { iceServers: await cloudflare() }, 1800);
-    const urls = String(process.env.TURN_URLS || '').split(',').map((s) => s.trim()).filter(Boolean);
+    // chấp nhận cả "host:port" (tự thêm turn:), và tự thêm bản TCP cho mạng chặn UDP
+    const urls = [];
+    String(process.env.TURN_URLS || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((u) => {
+      if (!/^turns?:/i.test(u)) u = 'turn:' + u;
+      if (!urls.includes(u)) urls.push(u);
+      if (/^turn:/i.test(u) && !/transport=/i.test(u)) { const t = u + '?transport=tcp'; if (!urls.includes(t)) urls.push(t); }
+    });
     if (urls.length) return send(res, 200, { iceServers: [{ urls, username: process.env.TURN_USERNAME || '', credential: process.env.TURN_CREDENTIAL || '' }] }, 1800);
     return send(res, 200, { iceServers: [], off: true });
   } catch (e) {
