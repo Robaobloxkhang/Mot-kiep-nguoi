@@ -241,6 +241,7 @@
       const t = Math.max(0, Math.min(70, ((p.x - b.x) * b.vx + (p.y - b.y) * b.vy) / (sp * sp))), cx = b.x + b.vx * t, cy = b.y + b.vy * t;
       if (t > 0 && Math.hypot(cx - p.x, cy - p.y) < 110) { const v = go(cx, cy, speed); v.k = false; return v; }
     }
+    const co = m.coach && m.coach.team === p.team ? m.coach : null;
     if (rank > 0) {
       let tx, ty;
       const side = b.y < CY ? 1 : -1;
@@ -250,6 +251,10 @@
         else { tx = b.x - dir * 85; ty = b.y + side * 95; }
       } else if (rank === 1 || ownHalf) { tx = own + (b.x - own) * 0.32 + dir * 25; ty = CY + (b.y - CY) * 0.5 + (p.hy - CY) * 0.35; }
       else { tx = b.x - dir * 110; ty = CY + (p.hy - CY) * 0.9; }
+      // vai trò HLV giao: hậu vệ đứng gần khung thành nhà, tiền đạo đứng cao; HLV hô dâng lên / lùi về thì cả đội dịch theo
+      if (p.role === 'def') tx = Math.min(tx * dir, (own + (b.x - own) * 0.3 + dir * 30) * dir) * dir;
+      else if (p.role === 'att' && !ownHalf) tx += dir * 50;
+      if (co && co.line) tx += dir * co.line * 70;
       tx = Math.max(L + PR, Math.min(R - PR, tx)); ty = Math.max(T + PR, Math.min(B - PR, ty));
       const v = go(tx, ty, speed * (poss ? 0.95 : 0.9));
       v.k = !justPassed && myD < KICK_RANGE && dir * (b.x - p.x) > 0;
@@ -262,7 +267,7 @@
       if (!p.plan || p.plan.until < m.phaseT) {
         const goalD = Math.hypot(opp - b.x, CY - b.y), pass = pickPass(m, i, dir);
         const shootR = MP.basket ? MP.arc + 20 : [200, 240, 280][lvl] ?? 240;
-        const rate = [0.25, 0.45, 0.6][lvl] ?? 0.45;
+        const rate = ([0.25, 0.45, 0.6][lvl] ?? 0.45) * (co ? co.pass : 1);
         let plan = { until: m.phaseT + 30 };
         if (goalD < shootR && !(pass && pass.sc > 140 && Math.random() < 0.3)) plan.shoot = true;
         else if (pass && (foeD < 70 || (pass.sc > 60 && Math.random() < rate))) { plan.j = pass.j; plan.until = m.phaseT + 45; }
@@ -441,9 +446,9 @@
     let acc = 0, last = performance.now(), over = false;
     const sim = () => {
       if (over) return;
-      const now = performance.now(), dt = Math.min(0.25, (now - last) / 1000); last = now; acc += dt;
+      const now = performance.now(), dt = Math.min(0.25, (now - last) / 1000); last = now; acc += dt * (opts.speed ? opts.speed() : 1);
       let n = 0;
-      while (acc >= 1 / 60) { step(m, getInputs(m)); acc -= 1 / 60; n++; }
+      while (acc >= 1 / 60 && n < 3000 && m.phase !== 'end') { step(m, getInputs(m)); acc -= 1 / 60; n++; }
       if (n && opts.broadcast) opts.broadcast(m);
       if (m.phase === 'end') { over = true; draw(ctx, m, opts.me ?? 0); hud(m); finish(m, opts); }
     };
@@ -556,6 +561,35 @@
     open(pitchHtml('🏆 ' + ROUND[c.round] + ' · ' + foe.name + ' · ' + MP.icon + ' ' + MP.name));
     document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Esc: menu';
     runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { cupEnd: (gf, ga) => { cupAdvance(c, gf, ga); setTimeout(cupScreen, 1200); }, onQuit: () => cupScreen() });
+  }
+  // 📋 HLV XEM TRẬN: 2 đội toàn máy (4 đấu 4), sức mạnh từng cầu thủ theo chỉ số; HLV chỉ đạo dâng/lùi, lối chơi, tua nhanh hoặc xem luôn kết quả
+  function watch(o) {
+    return new Promise((res) => {
+      const ros = [], owners = [], meta = [];
+      [o.home, o.away].forEach((t, ti) => t.players.forEach((pl) => { ros.push({ team: ti, name: String(pl.name || '').split(' ').pop().slice(0, 10) }); owners.push(pl.ovr >= 72 ? 2 : pl.ovr >= 56 ? 1 : 0); meta.push(pl); }));
+      const m = newMatch({ dur: o.dur || 90, map: o.map || 'classic', roster: ros });
+      m.players.forEach((P, i) => { P.slowK = Math.max(0.7, Math.min(1.12, 0.72 + (meta[i].ovr - 45) / 110)); P.role = meta[i].role || null; });
+      const myTeam = o.coachTeam || 0;
+      m.coach = { team: myTeam, line: 0, pass: 1 };
+      let speed = 1;
+      open(pitchHtml('📋 ' + o.home.name + ' – ' + o.away.name + (o.title ? ' · ' + o.title : '')));
+      document.getElementById('hxHint').textContent = 'Bạn là HLV (đội ' + NAMES[myTeam] + '): chỉ đạo bằng các nút bên dưới.';
+      const bar = document.createElement('div'); bar.className = 'hax-coach';
+      bar.innerHTML = '<button type="button" data-c="up">⬆️ Dâng cao</button><button type="button" data-c="mid" class="on">⏺️ Giữ vị trí</button><button type="button" data-c="down">⬇️ Lùi sâu</button><span></span><button type="button" data-c="pass">🎯 Chuyền ngắn</button><button type="button" data-c="direct">⚡ Đánh nhanh</button><span></span><button type="button" data-c="fast">⏩ Tua ×4</button><button type="button" data-c="skip">⏭️ Xem kết quả</button>';
+      document.querySelector('.hax-foot').before(bar);
+      bar.querySelectorAll('button').forEach((b) => (b.onclick = () => {
+        const c = b.dataset.c; sfx('click');
+        if (c === 'up' || c === 'mid' || c === 'down') { m.coach.line = c === 'up' ? 1 : c === 'down' ? -1 : 0; bar.querySelectorAll('[data-c="up"],[data-c="mid"],[data-c="down"]').forEach((x) => x.classList.toggle('on', x === b)); }
+        else if (c === 'pass' || c === 'direct') { const on = !b.classList.contains('on'); bar.querySelectorAll('[data-c="pass"],[data-c="direct"]').forEach((x) => x.classList.remove('on')); if (on) b.classList.add('on'); m.coach.pass = on ? (c === 'pass' ? 1.7 : 0.3) : 1; }
+        else if (c === 'fast') { speed = speed === 4 ? 1 : 4; b.classList.toggle('on', speed === 4); }
+        else if (c === 'skip') speed = 400;
+      }));
+      runLocal(m, (mm) => owners.map((lv, i) => aiInput(mm, i, lv)), {
+        me: -1, myTeam, speed: () => speed,
+        cupEnd: (gf, ga) => { const sc = []; Object.keys(m.goalsBy).forEach((i) => { const pl = meta[+i]; if (pl && m.players[+i].team === myTeam) sc.push({ id: pl.id, name: pl.name, n: m.goalsBy[i] }); }); setTimeout(() => { close(true); res({ gf, ga, scorers: sc }); }, speed > 4 ? 50 : 1800); },
+        onQuit: () => { speed = 400; },
+      });
+    });
   }
   function playLocal2() {
     const n = cfg.size, roster = [{ team: 0, name: 'Đỏ' }, { team: 1, name: 'Xanh' }], owners = ['p1', 'p2'];
@@ -846,5 +880,5 @@
     document.getElementById('hxCode').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('hxJoin').click(); };
     document.getElementById('hxClose').onclick = () => close();
   }
-  KN.Hax = { open: menu, close, playCareer, MAPS, _sim: { newMatch, step, aiInput, applyMap, draw } };
+  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _sim: { newMatch, step, aiInput, applyMap, draw } };
 })();

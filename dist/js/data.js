@@ -104,6 +104,7 @@
     dulich: { name: 'Du lịch – Khách sạn', years: 4, tuition: 25 * TR, diff: 44, icon: '🧳' },
     anninh: { name: 'Học viện Cảnh sát', years: 4, tuition: 0, diff: 66, icon: '👮' },
     nongnghiep: { name: 'Nông nghiệp', years: 4, tuition: 16 * TR, diff: 38, icon: '🌾' },
+    dienanh: { name: 'Sân khấu – Điện ảnh', years: 4, tuition: 28 * TR, diff: 42, icon: '🎭' },
   };
 
   // salary = monthly VND per level
@@ -149,7 +150,7 @@
     hoasi: { title: 'Họa sĩ', icon: '🎨', minAge: 18, volatile: true, req: { minStat: { smarts: 50 } }, levels: [['Họa sĩ vẽ thuê', 5], ['Họa sĩ có triển lãm', 14], ['Họa sĩ nổi tiếng', 40], ['Danh họa', 110]], loc: 'studio', style: 'shirt', fame: true },
     nhaccong: { title: 'Nhạc công', icon: '🎸', minAge: 16, req: { minStat: { smarts: 45 } }, levels: [['Nhạc công quán bar', 6], ['Nhạc công ban nhạc', 13], ['Nhạc công dàn nhạc giao hưởng', 22], ['Nhạc sĩ nổi tiếng', 60]], loc: 'karaoke', style: 'jacket', fame: true },
     hlv: { title: 'Huấn luyện viên thể thao', icon: '📋', minAge: 28, req: { flag: 'ex_athlete' }, levels: [['Trợ lý huấn luyện viên', 15], ['HLV trưởng câu lạc bộ', 40], ['HLV đội tuyển quốc gia', 90]], loc: 'stadium', style: 'polo' },
-    dienvien: { title: 'Diễn viên', icon: '🎬', minAge: 16, req: { minStat: { looks: 60 } }, levels: [['Diễn viên quần chúng', 4], ['Diễn viên phụ', 15], ['Diễn viên chính', 55], ['Ngôi sao màn bạc', 120]], loc: 'studio', style: 'shirt', fame: true },
+    dienvien: { title: 'Diễn viên', icon: '🎬', minAge: 16, req: { minStat: { looks: 50 } }, levels: [['Diễn viên quần chúng', 4], ['Diễn viên phụ', 15], ['Diễn viên chính', 55], ['Ngôi sao màn bạc', 120]], loc: 'studio', style: 'shirt', fame: true },
     nguoimau: { title: 'Người mẫu', icon: '📸', minAge: 16, maxStart: 26, retireAt: 40, req: { minStat: { looks: 75 } }, levels: [['Người mẫu ảnh', 6], ['Người mẫu sàn diễn', 25], ['Siêu mẫu', 90]], loc: 'studio', style: 'suit', fame: true },
     tiepvien: { title: 'Tiếp viên hàng không', icon: '🛫', minAge: 18, maxStart: 30, req: { hs: true, minStat: { looks: 65, health: 60 } }, levels: [['Tiếp viên', 18], ['Tiếp viên trưởng', 30], ['Quản lý đoàn tiếp viên', 45]], loc: 'airport', style: 'suit' },
     phicong: { title: 'Phi công', icon: '✈️', minAge: 22, maxStart: 35, fee: 1.8 * TY, req: { degree: true, minMoney: 1.8 * TY, minStat: { smarts: 65, health: 70 } }, levels: [['Học viên phi công', 20], ['Cơ phó', 90], ['Cơ trưởng', 180], ['Phi công huấn luyện', 240]], loc: 'airport', style: 'uniform' },
@@ -777,6 +778,16 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.69', date: '22/10/2026', items: [
+      '📋 Phòng HLV đá 4 người như Haxball: chỉ 4 cầu thủ đá chính (sơ đồ 1-2-1, 2-1-1, 1-1-2, 2-2, 1-3). "Xem & chỉ đạo trận" mở trận Haxball 4 đấu 4 do máy đá — chỉ số cầu thủ quyết định tốc độ và độ khôn; HLV bấm ⬆️ Dâng cao / ⬇️ Lùi sâu, 🎯 Chuyền ngắn / ⚡ Đánh nhanh, ⏩ tua nhanh hoặc ⏭️ xem luôn kết quả. Hoặc chỉ xem kết quả.',
+      '⚽ Trận đấu khi làm cầu thủ chuyên nghiệp cũng là 4 đấu 4 cho giống Phòng HLV.',
+      '💍 Người yêu cũng có thể chủ động quỳ xuống cầu hôn bạn (đồng ý / xin thêm thời gian / từ chối).',
+      '💬 Minigame hỏi – đáp giờ đúng ngữ cảnh: nói chuyện với người thân là "Trò chuyện", ra toà / tố cáo là "Tranh luận", nhận giải / livestream là "Phát biểu" — chỉ xin việc mới là "Phỏng vấn".',
+      '📜 Con thừa kế khi chưa đủ 18 tuổi: tiền được gửi giữ trong tài khoản riêng và nhận đủ khi tròn 18, không còn bị "mẹ giữ hộ" (dù bố mẹ đã mất). Câu "giữ hộ" giờ nói đúng người còn sống (bố hoặc mẹ).',
+      '🎭 Thêm ngành đại học Sân khấu – Điện ảnh (học xong dễ đậu Diễn viên hơn hẳn); nghề Diễn viên chỉ cần ngoại hình từ 50.',
+      '🧧 Sửa hiển thị tiền Tết: tiền tiêu vặt cả năm giờ được ghi rõ trong nhật ký, nên tổng tiền tăng khớp với các khoản hiện ra.',
+      '🏸 Hướng nghiệp theo thể thao: được chọn môn (bóng đá, bóng rổ, cầu lông, bơi, điền kinh, bóng chuyền, võ) chứ không chỉ bóng đá.',
+    ] },
     { v: '1.68', date: '22/10/2026', items: [
       '🧠 PHÒNG HLV kiểu game quản lý bóng đá: làm Huấn luyện viên (vận động viên giải nghệ) sẽ có nút "Phòng HLV" trong mục Công việc.',
       '👥 Đội hình 22 cầu thủ với chỉ số, tuổi, tiềm năng, tinh thần, giá trị; 📌 ghim đá chính / 💺 cho dự bị. 🧠 Chiến thuật: 5 sơ đồ (4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2), 5 lối chơi khắc chế nhau (Gegenpressing, tiki-taka, phản công, dựng xe buýt…) và cường độ pressing.',

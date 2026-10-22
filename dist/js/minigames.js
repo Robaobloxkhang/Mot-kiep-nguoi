@@ -214,12 +214,13 @@
       const goal = p.mode === 'duel' ? 'Ai được điểm cao hơn sẽ thắng.' : p.mode === 'buy' ? 'Mặc cả càng khéo càng được giảm nhiều (tối đa <b>15%</b>).' : 'Đạt từ <b>' + Math.round(p.need * 100) + '%</b> trở lên là thành công. Thua thì cuộc đời rẽ sang hướng xấu hơn một chút.';
       const skip = p.mode === 'duel' ? '🏳️ Bỏ cuộc' : p.mode === 'buy' ? '💸 Mua luôn giá gốc' : '🎲 Để số phận quyết định';
       const first = !seenMap()[p.type], canTry = p.mode !== 'duel', hint = hintOf(p);
-      const box = open('<div class="mini-head"><b>' + NAME[p.type] + '</b><small>' + esc(p.title) + ' · ' + esc(p.label) + '</small></div>' +
+      const nm = p.type === 'interview' && ivKind(p) !== 'job' ? IV_CTX[ivKind(p)].title : NAME[p.type], how = p.type === 'interview' && ivKind(p) !== 'job' ? '4 lượt hỏi – đáp. Chọn câu trả lời khéo léo nhất trước khi hết giờ (phím 1–3). ' + IV_CTX[ivKind(p)].tip : HOWTO[p.type];
+      const box = open('<div class="mini-head"><b>' + nm + '</b><small>' + esc(p.title) + ' · ' + esc(p.label) + '</small></div>' +
         (practice && practice.stopped ? '<div class="mini-new">🧪 Bạn đã dừng lượt chơi thử. Thử lại bao nhiêu lần cũng được, không tính điểm.</div>' : practice ? '<div class="mini-new">🧪 Lượt chơi thử vừa rồi: <b>' + practice.pct + '%</b>' + (p.mode === 'duel' || p.mode === 'buy' ? '' : practice.pct >= Math.round(p.need * 100) ? ' — đủ để thành công rồi! ✅' : ' — chưa đủ ' + Math.round(p.need * 100) + '%, thử thêm hoặc chơi thật nhé.') + '</div>'
           : first ? '<div class="mini-new">🆕 <b>Lần đầu chơi trò này?</b> Đọc 30 giây cách chơi bên dưới' + (canTry ? ', hoặc bấm <b>🧪 Chơi thử</b> để làm quen — lượt thử không tính điểm.' : '.') + '</div>' : '') +
         '<div class="mini-guide">' +
         '<div class="mg-row"><span class="mg-ic">🎯</span><div><b>Mục tiêu</b><p>' + goal + '</p></div></div>' +
-        '<div class="mg-row"><span class="mg-ic">🕹️</span><div><b>Cách chơi</b>' + howSteps(HOWTO[p.type]) + '</div></div>' +
+        '<div class="mg-row"><span class="mg-ic">🕹️</span><div><b>Cách chơi</b>' + howSteps(how) + '</div></div>' +
         (hint ? '<div class="mg-row"><span class="mg-ic">💪</span><div><b>Chỉ số của bạn ảnh hưởng thế nào</b><p>' + esc(hint) + '</p></div></div>' : '') +
         '</div>' +
         '<div class="mini-btns"><button type="button" class="btn btn-ghost" data-skip>' + skip + '</button>' + (canTry ? '<button type="button" class="btn btn-soft" data-try>🧪 Chơi thử</button>' : '') + '<button type="button" class="btn btn-primary" data-play>▶ Chơi thật!</button></div>' +
@@ -808,7 +809,28 @@
     uniform: [['Tình huống khẩn cấp mà mệnh lệnh chưa rõ?', 'Đảm bảo an toàn, báo cáo, làm theo quy trình', 'Đứng chờ lệnh', 'Tự ý làm theo cảm tính'], ['Đồng đội vi phạm quy định?', 'Nhắc nhở và báo cáo theo đúng quy trình', 'Làm ngơ một lần', 'Bao che cho anh em']],
     sport: [['HLV xếp bạn dự bị cả mùa?', 'Tập thêm, hỏi HLV mình cần cải thiện gì', 'Kiên nhẫn chờ cơ hội', 'Lên mạng than trách'], ['Có lời mời “bán độ”?', 'Từ chối thẳng, báo ban huấn luyện', 'Bảo để nghĩ thêm', 'Nhận, “một trận thôi mà”']],
   };
+  // cùng một trò "chọn câu trả lời khéo nhất", nhưng đổi bộ câu hỏi theo ngữ cảnh: không phải lúc nào cũng là phỏng vấn xin việc
+  const IV_CTX = {
+    talk: { title: '💬 Trò chuyện', face: '🧑', good: ['Người ấy gật gù, nét mặt dịu lại.', '“Ừ, mình hiểu rồi.”', 'Không khí ấm lên hẳn.'], mid: ['“Ừm…”', 'Người ấy im lặng suy nghĩ.'], bad: ['Người ấy nhíu mày.', 'Không khí căng thẳng hơn…', '“Sao lại nói thế?”'],
+      end: ['Cuộc nói chuyện rất cởi mở, hai bên hiểu nhau hơn.', 'Nói chuyện tạm ổn, vẫn còn vài chỗ gượng gạo.', 'Cuộc nói chuyện đổ bể, ai cũng khó chịu.'], tip: 'Chọn câu chân thành, tôn trọng người nghe nhất.',
+      qs: [['“Sao dạo này về muộn thế?”', 'Kể thật lý do và hỏi lại xem người ấy có lo gì không', 'Bảo dạo này công việc nhiều', 'Gắt: “Hỏi lắm thế!”'], ['Người thân phàn nàn chuyện tiền nong trong nhà?', 'Ngồi xuống cùng xem lại chi tiêu, đề xuất cách chia sẻ', 'Hứa sẽ cố gắng hơn', 'Bảo đó không phải việc của mình'], ['“Con/em nghĩ sao về chuyện này?”', 'Nói rõ quan điểm của mình nhưng nhẹ nhàng, lắng nghe ý kiến lại', 'Tuỳ mọi người quyết', 'Nói thẳng là ý kiến kia vô lý'], ['Người ấy đang buồn mà không nói lý do?', 'Ngồi cạnh, hỏi han và cho người ấy thời gian', 'Rủ đi ăn cho khuây khoả', 'Bảo: “Có gì đâu mà buồn”'], ['Bị trách vì lỡ hẹn quan trọng?', 'Xin lỗi chân thành, không viện cớ, hẹn bù', 'Giải thích lý do thật dài', 'Đổ lỗi ngược lại cho người kia'], ['Hai bên bất đồng gay gắt?', 'Đề nghị tạm dừng, bình tĩnh rồi nói tiếp', 'Im lặng cho qua', 'Nói to át đi để thắng']] },
+    argue: { title: '⚖️ Tranh luận', face: '🧑‍⚖️', good: ['Lập luận sắc bén, đối phương cứng họng.', 'Mọi người gật gù đồng tình.'], mid: ['Chưa thuyết phục lắm.', 'Đối phương vẫn giữ quan điểm.'], bad: ['Bạn bị bắt bẻ ngay.', 'Lập luận lộ sơ hở.', 'Có tiếng cười khẩy.'],
+      end: ['Bạn tranh luận xuất sắc, lý lẽ chặt chẽ.', 'Cuộc tranh luận ngang ngửa.', 'Bạn bị đối phương áp đảo.'], tip: 'Chọn lập luận có bằng chứng, bình tĩnh và đúng trọng tâm.',
+      qs: [['Đối phương đưa ra chứng cứ bất lợi cho bạn?', 'Bình tĩnh chỉ ra điểm chưa chính xác bằng giấy tờ cụ thể', 'Nói rằng đó chỉ là hiểu lầm', 'Lớn tiếng phủ nhận tất cả'], ['Bị cáo buộc làm sai?', 'Trình bày mốc thời gian, hoá đơn, nhân chứng', 'Xin thêm thời gian giải trình', 'Tấn công cá nhân người cáo buộc'], ['Câu hỏi bẫy “Có hay không?”', 'Trả lời đúng sự thật kèm bối cảnh ngắn gọn', 'Né sang chuyện khác', 'Trả lời bừa cho nhanh'], ['Đối phương ngắt lời liên tục?', 'Đề nghị được nói hết, giữ giọng điềm tĩnh', 'Im lặng nhường', 'Ngắt lời lại to hơn'], ['Cần thuyết phục người phân xử?', 'Tóm tắt 3 ý chính có bằng chứng', 'Kể lại toàn bộ sự việc từ đầu', 'Than vãn mình bị oan']] },
+    speech: { title: '🎤 Phát biểu', face: '👥', good: ['Khán giả vỗ tay rào rào.', 'Mọi người chăm chú lắng nghe.'], mid: ['Có vài tiếng vỗ tay lác đác.', 'Khán giả hơi lơ đãng.'], bad: ['Có tiếng xì xào phía dưới.', 'Bạn vấp, khán phòng im phăng phắc.'],
+      end: ['Bài phát biểu chạm đến mọi người.', 'Bài phát biểu tròn vai.', 'Bài phát biểu khá vụng về.'], tip: 'Chọn câu chân thành, ngắn gọn, đúng hoàn cảnh.',
+      qs: [['Mở đầu thế nào?', 'Cảm ơn ngắn gọn rồi kể một câu chuyện thật', 'Đọc nguyên văn bài chuẩn bị sẵn', 'Đùa một câu nhạy cảm cho vui'], ['Bị hỏi câu khó trước đám đông?', 'Thừa nhận điều chưa làm được và nói hướng sửa', 'Hứa sẽ trả lời sau', 'Lảng sang chuyện khác'], ['Khán giả có người phản đối?', 'Lắng nghe, cảm ơn góp ý và trả lời bằng sự thật', 'Lờ đi', 'Mỉa mai người phản đối'], ['Kết thúc bài nói?', 'Nhắc lại thông điệp chính và cảm ơn', 'Nói “Hết rồi” rồi đi xuống', 'Nói thêm thật dài cho đủ giờ']] },
+  };
+  function ivKind(p) {
+    const t = fold((p.title || '') + ' ' + (p.label || ''));
+    if (p.mode === 'job' || /(phong van|ung tuyen|tuyen dung|xin viec|nha tuyen dung|tang luong|giam luong|o lai|shark|goi von|pitch|thang chuc)/.test(t)) return 'job';
+    if (/(toa|kien|luat su|doi chat|to cao|cong an|thanh tra|giai trinh|chung minh|bang chung)/.test(t)) return 'argue';
+    if (/(phat bieu|nhan giai|livestream|live |cong bo|hop bao|truoc dam dong|san khau)/.test(t)) return 'speech';
+    return 'talk';
+  }
   function interview(p) {
+    const kind = ivKind(p);
+    if (kind !== 'job') return talkGame(p, IV_CTX[kind]);
     return new Promise((res) => {
       const st = p.ctx.stats, field = p.field || fieldOf(p.ctx.jobId);
       const qs = shuffle((IV_FIELD[field] || []).slice()).slice(0, 2).concat(shuffle(IV_GEN.slice())).slice(0, 4);
@@ -838,6 +860,31 @@
     });
   }
 
+  function talkGame(p, C) {
+    return new Promise((res) => {
+      const st = p.ctx.stats, qs = shuffle(C.qs.slice()).slice(0, 4), secs = 10 + st.smarts / 12, hint = st.smarts >= 70;
+      let i = 0, sum = 0, timer = null;
+      const box = open('<div class="mini-head"><b>' + C.title + '</b><small id="ivN"></small></div><div class="mini-bar"><i id="ivT"></i></div><div class="iv-boss"><span>' + C.face + '</span><p id="ivQ"></p></div><div class="mini-ans one" id="ivA"></div><p class="mini-tip" id="ivR"></p><p class="mini-keys">⌨️ Click câu trả lời hoặc bấm phím số <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>. ' + C.tip + '</p>');
+      const show = () => {
+        if (i >= qs.length) { clearInterval(timer); const score = clamp(sum / qs.length + (st.happy - 50) / 600, 0, 1); res({ score, text: score >= 0.75 ? C.end[0] : score >= 0.45 ? C.end[1] : C.end[2] }); return; }
+        const q = qs[i], opts = shuffle([[q[1], 1], [q[2], 0.45], [q[3], 0]]);
+        box.querySelector('#ivN').textContent = 'Lượt ' + (i + 1) + '/' + qs.length;
+        box.querySelector('#ivQ').textContent = q[0];
+        box.querySelector('#ivA').innerHTML = opts.map((o, k) => '<button type="button" class="mini-opt" data-v="' + o[1] + '"' + (hint && o[1] === 0 ? ' style="opacity:.45"' : '') + '><span>' + (k + 1) + '</span>' + esc(o[0]) + '</button>').join('');
+        let left = secs, answered = false; const bar = box.querySelector('#ivT'); bar.style.width = '100%';
+        const answer = (v, btn) => {
+          if (answered) return; answered = true; clearInterval(timer); sum += v; sfx(v === 1 ? 'good' : v > 0 ? 'click' : 'bad');
+          box.querySelectorAll('.mini-opt').forEach((b) => { b.disabled = true; if (b === btn) b.classList.add(v === 1 ? 'right' : v > 0 ? 'mid' : 'wrong'); });
+          box.querySelector('#ivR').textContent = v === 1 ? pick(C.good) : v > 0 ? pick(C.mid) : btn ? pick(C.bad) : 'Bạn ngập ngừng mãi không nói được gì.';
+          i++; setTimeout(show, 1000);
+        };
+        timer = every(() => { left -= 0.1; bar.style.width = Math.max(0, left / secs * 100) + '%'; if (left <= 0) answer(0, null); }, 100);
+        box.querySelectorAll('.mini-opt').forEach((b) => (b.onclick = () => answer(+b.dataset.v, b)));
+        onKeysOnce((e) => { const n = +e.key; if (n >= 1 && n <= 3) { const b = box.querySelectorAll('.mini-opt')[n - 1]; if (b && !b.disabled) answer(+b.dataset.v, b); return true; } return false; });
+      };
+      show();
+    });
+  }
   // ------------------------------------------------------------------ 11. bán hàng / nấu ăn
   const ING = { banhmi: ['🥖', 'Bánh mì'], pate: ['🥫', 'Pa-tê'], thit: ['🥩', 'Thịt'], rau: ['🥬', 'Rau'], banhpho: ['🍝', 'Bánh phở'], nuocdung: ['🍲', 'Nước dùng'], hanh: ['🧅', 'Hành'], caphe: ['☕', 'Cà phê'], suadac: ['🥛', 'Sữa đặc'], da: ['🧊', 'Đá'], tra: ['🍵', 'Trà'], sua: ['🍼', 'Sữa tươi'], tranchau: ['⚫', 'Trân châu'], bun: ['🍜', 'Bún'], cha: ['🍖', 'Chả'], nuocmam: ['🧂', 'Nước mắm'] };
   const RECIPES = [
@@ -1314,8 +1361,9 @@
     else if (!pro || /(phui|hem|ngo|xom|via he|duong lang)/.test(t)) map = 'street';
     const big = /(chung ket|ban ket|derby|world cup|aff|sea games|doi tuyen|tuyen quoc gia|sieu kinh dien|champions|qua bong vang)/.test(t);
     if (p.mode === 'duel') { map = 'classic'; size = 1; }
-    else if (big) { size = 3; if (map === 'classic') map = 'big'; }
-    else if (pro) size = 2;
+    else if (big) { size = 4; if (map === 'classic') map = 'big'; }
+    else if (pro) size = 4; // trận chuyên nghiệp: 4 đấu 4 (giống Phòng HLV)
+    else size = age < 11 ? 2 : 3;
     return { map, size };
   }
   // kỹ năng sút theo chỉ số: thể lực ≥ 55 thì sút tích lực, trí tuệ ≥ 55 (hoặc cầu thủ chuyên nghiệp) thì sút xoáy; thách đấu thì ai cũng có

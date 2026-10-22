@@ -761,6 +761,15 @@
       { label: 'Tự thưởng một món đồ xịn', fn: () => ({ text: 'Bạn mua đôi giày mơ ước bấy lâu. Đi đâu cũng ngắm chân mình.', effects: { happy: 7, looks: 2, money: -Math.round(monthly() * 0.6) }, scene: { anim: 'cheer', fx: 'sparkle' } }) },
       { label: 'Gửi tiết kiệm hết', text: 'Bạn mở sổ tiết kiệm. Cảm giác người lớn thật sự.', effects: { happy: 2, smarts: 1 }, scene: { anim: 'nod' } },
     ] });
+  // 💍 người yêu chủ động cầu hôn mình (không phải lúc nào mình cũng là người quỳ xuống)
+  ms({ id: 'ms_bi_cauhon', title: 'Được cầu hôn', icon: '💍', age: [18, 99],
+    text: 'Bữa tối kỷ niệm, {partner} bỗng đứng dậy, quỳ một chân xuống và mở hộp nhẫn: “Mình đã nghĩ kỹ rồi. Lấy mình nhé?” Cả nhà hàng im phăng phắc chờ câu trả lời của bạn.',
+    scene: { loc: 'park', time: 'night', anim: 'scared', expr: 'surprised', npcs: [{ role: 'partner', anim: 'love', say: 'Lấy mình nhé?' }, { role: 'crowd', anim: 'clap' }], fx: 'hearts', shot: 'close' },
+    choices: [
+      { label: '💍 Đồng ý!', fn: () => { const p = alive('partner').find((x) => x.id === S.flags.cauhonBy) || alive('partner')[0]; if (!p) return { text: 'Người ấy đã không còn ở bên bạn.' }; p.relation = r100(p.relation + 10); const nx = instantiate(MS.ms_wedding, { partner: p }); if (nx) S.pending.unshift(nx); return { text: 'Bạn bật khóc gật đầu. Cả nhà hàng vỡ oà vỗ tay. Hai bên gia đình bắt đầu bàn chuyện cưới xin ngay tuần sau.', effects: { happy: 12 }, scene: { anim: 'cry', fx: ['hearts', 'fireworks'] }, tone: 'milestone' }; } },
+      { label: '⏳ Mình chưa sẵn sàng, đợi thêm nhé', fn: () => { const p = alive('partner')[0]; if (p) p.relation = r100(p.relation - 8); return { text: 'Bạn nắm tay người ấy: “Cho mình thêm thời gian.” Người ấy cười gượng, cất hộp nhẫn vào túi. Về nhà cả hai đều im lặng.', effects: { happy: -3 }, scene: { anim: 'sad' }, tone: 'neutral' }; } },
+      { label: '💔 Từ chối, mình không muốn cưới người này', fn: () => { const p = alive('partner')[0]; if (p) { p.role = 'ex'; } return { text: 'Bạn lắc đầu. Không khí đóng băng. Người ấy lặng lẽ đứng dậy rời đi — mối tình khép lại từ tối hôm đó.', effects: { happy: -8 }, scene: { anim: 'shake', fx: 'heartbreak' }, tone: 'bad' }; } },
+    ] });
   ms({ id: 'ms_wedding', title: 'Đám cưới', icon: '💍', age: [16, 99],
     text: 'Ngày trọng đại đã đến. {partner} trong bộ đồ cưới rạng rỡ, hai họ tề tựu đông đủ. Bạn hồi hộp đến mức quên cả lời phát biểu.{weddingnote}',
     scene: { loc: 'wedding', anim: 'love', fx: 'petals', npcs: [{ role: 'partner', anim: 'love' }, { role: 'mother', anim: 'clap' }, { role: 'father', anim: 'clap' }, { role: 'friend', anim: 'cheer' }] },
@@ -2336,7 +2345,7 @@
     Lg.pend = foe.name;
     const big = sorted.indexOf(foe) <= 1 || Lg.round >= LEAGUE_ROUNDS - 2;
     changed();
-    return { ok: true, foe: foe.name, round: Lg.round + 1, title: Lg.name + ' · vòng ' + (Lg.round + 1) + ': ' + Lg.me + ' – ' + foe.name, need: U.clamp((foe.str - myStr()) / 60 + 0.45, 0.2, 0.85), map: big ? 'big' : 'classic', size: big ? 3 : 2, skills: { charge: S.stats.health >= 55, curve: S.stats.smarts >= 55 || S.job.level >= 2 }, big };
+    return { ok: true, foe: foe.name, round: Lg.round + 1, title: Lg.name + ' · vòng ' + (Lg.round + 1) + ': ' + Lg.me + ' – ' + foe.name, need: U.clamp((foe.str - myStr()) / 60 + 0.45, 0.2, 0.85), map: big ? 'big' : 'classic', size: 4, skills: { charge: S.stats.health >= 55, curve: S.stats.smarts >= 55 || S.job.level >= 2 }, big };
   }
   function leagueResult(gf, ga, mine) {
     const Lg = ensureLeague(); if (!Lg || !Lg.pend) return fail('Không có trận nào đang chờ.');
@@ -3396,17 +3405,21 @@
     });
     loansYear(L, deltas);
     // tiền tiêu vặt: phần lớn tiêu vào quà vặt, chỉ để dành được chút ít
-    if (pa >= 6 && pa < 18 && parentsBack()) { const pm = (pa < 12 ? U.randi(1, 4) : U.randi(2, 10)) * 1e5 * (S.flags.perk_giau ? 3 : 1) * ({ chieu: 1.8, thoo: 0.4 }[S.parenting] || 1); addMoney(pm, deltas); }
+    if (pa >= 6 && pa < 18 && parentsBack()) { const pm = Math.round((pa < 12 ? U.randi(1, 4) : U.randi(2, 10)) * 1e5 * (S.flags.perk_giau ? 3 : 1) * ({ chieu: 1.8, thoo: 0.4 }[S.parenting] || 1) / 1e4) * 1e4; addMoney(pm, deltas); L('💵 Cả năm để dành được ' + fmtMoney(pm) + ' tiền tiêu vặt ' + (has('mother') ? 'mẹ' : 'bố') + ' cho.', 'neutral', '💵'); }
     // “mẹ giữ hộ”: trẻ con cầm nhiều tiền thì bố mẹ cất giùm — lớn lên mới trả lại (một phần)
     if (pa < 16 && parentsBack()) {
       const cap = 3e5 + Math.max(0, pa - 5) * 2e5;
-      if (S.money > cap) { const ex = S.money - cap; S.kidSaved = (S.kidSaved || 0) + ex; addMoney(-ex, deltas); if (ex >= 1e6) L('Mẹ “giữ hộ” ' + fmtMoney(ex) + ' tiền của bạn: “Để mẹ cất cho, lớn mẹ trả.”', 'neutral', '🐷'); }
+      const who = has('mother') ? 'mẹ' : 'bố';
+      if (S.money > cap) { const ex = S.money - cap; S.kidSaved = (S.kidSaved || 0) + ex; addMoney(-ex, deltas); if (ex >= 1e6) L(who.charAt(0).toUpperCase() + who.slice(1) + ' “giữ hộ” ' + fmtMoney(ex) + ' tiền của bạn: “Để ' + who + ' cất cho, lớn ' + who + ' trả.”', 'neutral', '🐷'); }
     }
     if (pa === 18 && S.kidSaved) {
       const back = parentsBack() ? Math.round(S.kidSaved * 0.5 / 1e5) * 1e5 : 0;
-      if (back) { addMoney(back, deltas); L('Tròn 18 tuổi, mẹ đưa lại ' + fmtMoney(back) + ' “tiền mẹ giữ hộ”. Phần còn lại mẹ bảo đã… đóng học phí và mua quần áo cho bạn.', 'neutral', '🐷'); }
+      const who = has('mother') ? 'mẹ' : 'bố';
+      if (back) { addMoney(back, deltas); L('Tròn 18 tuổi, ' + who + ' đưa lại ' + fmtMoney(back) + ' “tiền ' + who + ' giữ hộ”. Phần còn lại ' + who + ' bảo đã… đóng học phí và mua quần áo cho bạn.', 'neutral', '🐷'); }
       S.kidSaved = 0;
     }
+    // tiền thừa kế của con chưa đủ 18 tuổi: gửi trong tài khoản đứng tên con, đủ tuổi thì nhận đủ
+    if (pa >= 18 && S.trust) { addMoney(S.trust, deltas); L('Tròn 18 tuổi, bạn chính thức nhận toàn bộ ' + fmtMoney(S.trust) + ' tiền thừa kế được gửi giữ theo luật từ khi bố/mẹ mất.', 'milestone', '📜'); S.trust = 0; }
     if (pa === 18 && S.flags.perk_giau && !S.flags.giau_paid && parentsBack()) { S.flags.giau_paid = S.year; addMoney(600e6, deltas); L('Tròn 18 tuổi, bố mẹ trao cho bạn 600 triệu làm vốn vào đời.', 'good', '💰'); }
     if (pa < 18) return;
     const parentsAlive = parentsBack();
@@ -3496,6 +3509,7 @@
         if ((x.role === 'mother' || x.role === 'father') && !has('mother') && !has('father') && P().age >= 18 && !S.flags.dichuc && !S.flags.richkid) { S.flags.dichuc = S.year; S.flags.estate = parentEstate(); queueMilestone('ms_dichuc', { deceased: x }); }
         return;
       }
+      if (x.role === 'partner' && x.relation >= 68 && P().age >= 20 && x.age >= 20 && !has('spouse') && !S.pending.some((e) => e.id === 'ms_bi_cauhon') && (!S.flags.cauhonAsked || S.year - S.flags.cauhonAsked >= 2) && Math.random() < (x.gender === 'm' ? 0.28 : 0.14)) { S.flags.cauhonAsked = S.year; S.flags.cauhonBy = x.id; queueMilestone('ms_bi_cauhon', { partner: x }); }
       if (x.role === 'partner' && x.relation < 22 && Math.random() < 0.35) { x.role = 'ex'; L(x.firstName + ' nói lời chia tay. Bạn khóc cả đêm.', 'bad', '💔'); addStat('happy', -8, deltas); }
       if (x.role === 'spouse' && x.relation < 12 && Math.random() < 0.2) { x.role = 'ex'; x.wasSpouse = true; L('Bạn và ' + x.firstName + ' ra tòa ly hôn.', 'bad', '📄'); if (S.money > 0) addMoney(-S.money * 0.4, deltas); unlock('divorce'); addStat('happy', -12, deltas); }
       if (x.role === 'friend' && x.relation < 10) { x.alive = false; x.gone = true; L('Bạn và ' + x.firstName + ' dần mất liên lạc.', 'neutral', '🍂'); }
@@ -3823,12 +3837,17 @@
   }
   // định hướng nghề lúc 14 tuổi: tư vấn dựa trên hồ sơ sở thích
   function huongNghiepDef() {
-    const routeChoice = (cat) => {
+    const SPORT_ICON = { cauthu: '⚽', bongro: '🏀', caulong: '🏸', boi: '🏊', dienkinh: '🏃', bongchuyen: '🏐', vdv_vo: '🥋' };
+    // môn thể thao để chọn: môn bạn hay chơi nhất trước, rồi thêm vài môn khác (tối đa 4)
+    const sportOptions = () => { const all = ['cauthu', 'bongro', 'caulong', 'boi', 'dienkinh', 'bongchuyen', 'vdv_vo'].filter((c) => D.CAREERS[c]); const fav = Object.keys(S.sportPick || {}).filter((c) => all.includes(c)).sort((a, b) => S.sportPick[b] - S.sportPick[a]); return fav.concat(all.filter((c) => !fav.includes(c))).slice(0, 4); };
+    const routeChoice = (key) => {
+      // 'the:caulong' = hướng thể thao, môn cầu lông (mỗi môn một lựa chọn riêng)
+      const [cat, sp] = String(key).split(':');
       const I = D.INTERESTS[cat];
       let label = I.icon + ' ' + I.route, hint = 'Hợp với: ' + I.careers.slice(0, 3).map((c) => D.CAREERS[c].title.toLowerCase()).join(', ');
-      const sport = cat === 'the' ? (topPick(S.sportPick) || 'cauthu') : null;
+      const sport = cat === 'the' ? (sp && D.CAREERS[sp] ? sp : topPick(S.sportPick) || 'cauthu') : null;
       const trade = cat === 'tayngh' ? D.VOC_TRADES.find((v) => v.id === (topPick(S.tradePick) || 'dien')) : null;
-      if (sport) label += ' (' + D.CAREERS[sport].title.toLowerCase() + ')';
+      if (sport) { label = (SPORT_ICON[sport] || I.icon) + ' ' + I.route + ': ' + D.CAREERS[sport].title.toLowerCase(); hint = 'Lộ trình năng khiếu → chuyên nghiệp → đội tuyển quốc gia môn ' + D.CAREERS[sport].title.toLowerCase(); }
       if (trade) { label = I.icon + ' Vào trường nghề ' + trade.name.toLowerCase() + ' sau lớp 9'; hint = '2 năm, ra trường làm ' + D.CAREERS[trade.career].title.toLowerCase() + ' · không cần thi đại học'; }
       return { key: cat, label, hint, fn: () => {
         S.flags.route = cat; S.flags['route_' + cat] = S.year;
@@ -3843,7 +3862,7 @@
     return { id: 'ms_huongnghiep', title: 'Buổi tư vấn hướng nghiệp', icon: '🧭', age: [12, 16], many: true,
       text: 'Cuối năm lớp 8, trường mời chuyên gia về tư vấn hướng nghiệp. Cô xem lại những trò bạn thích chơi từ nhỏ rồi nói: “Mỗi người có một thế mạnh riêng. Em muốn đi theo hướng nào?”',
       scene: { loc: 'school', anim: 'think', npcs: [{ role: 'teacher', gender: 'f', anim: 'talk', say: 'Em thích nhất điều gì?' }, { role: 'mother', anim: 'idle' }] },
-      choicesFn: () => interestProfile().slice(0, 3).map((x) => x.id).concat(['none']).map(byKey),
+      choicesFn: () => { const ks = []; interestProfile().slice(0, 3).forEach((x) => { if (x.id === 'the') sportOptions().forEach((sp) => ks.push('the:' + sp)); else ks.push(x.id); }); return ks.concat(['none']).map(byKey); },
       choiceByKey: (k) => byKey(k) };
     function byKey(k) {
       if (k !== 'none') return Object.assign(routeChoice(k), { key: k });
@@ -4488,7 +4507,7 @@
     const talent = S.flags['talent_' + id] ? 0.35 : 0;
     const status = c.fame || id === 'kinhdoanh' ? Math.min(0.12, prestige() * 0.01) : 0;
     const sportFit = c.sport ? (S.stats.health - 70) / 120 : 0;
-    const fitBonus = (S.flags.veteran && ['canhsat', 'cuuhoa', 'chinhtri'].includes(id) ? 0.2 : 0) + (S.flags.duhoc || S.flags.master ? 0.12 : 0) + (careerFit(id) ? 0.1 : 0) + (S.flags.route && D.INTERESTS[S.flags.route].careers.includes(id) ? 0.12 : 0) + (S.flags['voc_' + id] ? 0.4 : 0);
+    const fitBonus = (id === 'dienvien' && S.edu.major === 'dienanh' ? 0.3 : 0) + (S.flags.veteran && ['canhsat', 'cuuhoa', 'chinhtri'].includes(id) ? 0.2 : 0) + (S.flags.duhoc || S.flags.master ? 0.12 : 0) + (careerFit(id) ? 0.1 : 0) + (S.flags.route && D.INTERESTS[S.flags.route].careers.includes(id) ? 0.12 : 0) + (S.flags['voc_' + id] ? 0.4 : 0);
     const record = S.flags.tienan && id !== 'giangho' ? (S.flags.hocnghe_tu && ['congnhan', 'nongdan', 'phucvu', 'shipper'].includes(id) ? -0.05 : -0.2) : 0; // có tiền án thì khó xin việc
     return U.clamp((c.fame ? 0.25 : 0.55) + (S.stats.smarts - 50) / 150 + (S.stats.looks - 50) / (c.fame ? 120 : 300) + (S.edu.perf - 50) / 300 + talent + status + sportFit + fitBonus + record + (S.flags.phd ? 0.08 : 0) + jmHire(id), 0.08, 0.95);
   }
@@ -6091,6 +6110,8 @@
     S.stats = { happy: U.randi(45, 70), health: r100(100 - Math.max(0, pa - 30) * 0.7 - U.randi(0, 10)), smarts: U.randi(35, 85), looks: U.randi(35, 85) };
     S.karma = r100(50 + (old.karma - 50) * 0.3);
     S.money = share;
+    // con chưa đủ 18 tuổi: tiền thừa kế gửi giữ trong tài khoản riêng, 18 tuổi mới nhận — không ai “giữ hộ” rồi tiêu mất
+    if (heir.age < 18 && share > 0) { S.trust = share; S.money = 0; }
     // con nối dõi thừa hưởng học lực từ cách bố mẹ nuôi dạy, cộng phúc từ đồ gia truyền
     if (heir.smart != null) S.stats.smarts = r100(S.stats.smarts * 0.4 + heir.smart * 0.6);
     const hl = heirloomsOf(S);
