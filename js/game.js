@@ -580,7 +580,7 @@
   function hire(id) {
     const c = D.CAREERS[id]; if (!c) return;
     if (S.job && S.job.club) S.abroad = null;
-    S.job = { id, level: 0, perf: 55, years: 0, mult: 1 };
+    S.job = { id, level: 0, perf: 55, years: 0, mult: 1 }; S.flags.kolFull = false; S.flags.perfWarn = 0;
     S.retired = false;
     if (!S.flags.had_job) { S.flags.had_job = true; S.flags.firstjob_pending = true; }
   }
@@ -896,7 +896,31 @@
       { label: '📋 Ở lại làm huấn luyện viên', fn: () => { retireTo('hlv'); return { text: 'Bạn khoác áo huấn luyện viên, đứng bên đường biên chỉ đạo lứa đàn em. Hóa ra dạy người khác thắng cũng sướng chẳng kém tự mình ghi bàn.', effects: { happy: 8 }, scene: { anim: 'point', fx: 'sparkle', npcAnim: { crowd: 'cheer' } }, tone: 'milestone' }; } },
       { label: '🎙️ Làm bình luận viên thể thao', fn: () => { retireTo('nhabao', 1); return { text: 'Nhà đài mời bạn ngồi ghế bình luận. Giọng bạn vang lên trong mọi trận cầu lớn, khán giả quen đến mức nghe là nhận ra.', effects: { happy: 7, looks: 2 }, scene: { loc: 'office', anim: 'talk', fx: 'music' }, tone: 'milestone' }; } },
       { label: '🏪 Mở cửa hàng đồ thể thao (300 triệu)', req: { minMoney: 300000000 }, fn: () => { retireTo('kinhdoanh'); return { text: 'Bạn mở cửa hàng đồ thể thao mang tên mình. Người hâm mộ kéo đến chụp ảnh, mua giày, xin chữ ký.', effects: { money: -300000000, happy: 6 }, scene: { loc: 'market', anim: 'cheer', fx: 'money' }, tone: 'milestone' }; } },
+      { label: '📱 Treo giày, làm KOL / streamer thể thao toàn thời gian', fn: () => { retireTo(null); S.flags.kolFull = true; if (S.social) S.social.followers += 3000 + Math.round((S.social.followers || 0) * 0.1); return { text: 'Bạn mở kênh riêng: hậu trường phòng thay đồ, bình luận trận đấu, dạy kỹ thuật cho trẻ con. Fan cũ kéo sang theo dõi đông nghịt. Từ nay mạng xã hội là “sân cỏ” mới của bạn.', effects: { happy: 6 }, scene: { loc: 'bedroom', anim: 'phone', fx: 'sparkle' } }; } },
+      { label: '💪 Chưa! Tôi còn đá thêm một mùa nữa', fn: () => { const c = S.job && D.CAREERS[S.job.id]; if (!c) return { text: 'Bạn đã rời sân rồi.' }; S.job.perf = r100(S.job.perf - 8); return { text: 'Bạn xin ban huấn luyện thêm một mùa. Tập gấp đôi, ăn kiêng khắt khe hơn. Ai cũng nể ý chí ấy — nhưng cơ thể sẽ nhắc bạn mỗi sáng thức dậy. (Năm sau sẽ được hỏi lại.)', effects: { happy: 3, health: -3 }, scene: { loc: 'gym', anim: 'lift', fx: 'sparkle' } }; } },
       { label: '🌅 Nghỉ hẳn, sống cho gia đình', fn: () => { retireTo(null); return { text: 'Bạn treo giày sau trận chia tay đầy nước mắt. Sáng mai không còn tập lúc 5 giờ — bạn ngủ một giấc thật dài.', effects: { happy: 5, health: 3 }, scene: { anim: 'wave', fx: 'tears', npcAnim: { crowd: 'clap' } }, tone: 'milestone' }; } },
+    ] });
+  // 🚪 tự nghỉ việc / giải nghệ: chọn lý do và bước tiếp theo
+  ms({ id: 'ms_quit', title: 'Nghỉ việc?', icon: '🚪', age: [15, 120],
+    text: 'Bạn đang tính chuyện nghỉ công việc hiện tại. Nghỉ rồi thì làm gì tiếp đây?',
+    scene: { loc: 'office', anim: 'think', fx: 'question' },
+    choicesFn: () => { const k = ['rest']; if (S.social && S.social.followers >= 10000) k.unshift('kol'); if (S.job && D.CAREERS[S.job.id].sport) k.push('coach'); k.push('stay'); return k.map(quitChoice); }, choiceByKey: quitChoice });
+  function quitChoice(k) {
+    const c = S.job && D.CAREERS[S.job.id], sport = !!(c && c.sport), tl = c ? c.title.toLowerCase() : 'công việc cũ';
+    const leave = () => { if (sport) S.flags.ex_athlete = S.flags.ex_athlete || S.year; S.job = null; };
+    if (k === 'kol') return { key: k, label: '📱 Nghỉ để làm KOL / streamer toàn thời gian (' + (S.social ? fmtF(S.social.followers) : 0) + ' theo dõi)', fn: () => { if (!S.job) return { text: 'Bạn đã nghỉ rồi.' }; leave(); S.flags.kolFull = true; S.social.followers += Math.round(S.social.followers * 0.08); return { text: 'Bạn ' + (sport ? 'tuyên bố giải nghệ' : 'nộp đơn nghỉ ' + tl) + ' ngay trên livestream: “Từ hôm nay, mạng xã hội là công việc chính của mình!” Video thông báo lên xu hướng. Làm KOL toàn thời gian: được đăng nhiều bài hơn mỗi năm và tiền quảng cáo tăng 60% — nhưng không còn lương cứng.', effects: { happy: 6 }, scene: { loc: 'bedroom', anim: 'phone', fx: 'sparkle' }, tone: 'good' }; } };
+    if (k === 'coach') return { key: k, label: '📋 Giải nghệ, chuyển sang làm huấn luyện viên', fn: () => { if (!S.job) return { text: 'Bạn đã nghỉ rồi.' }; retireTo('hlv'); return { text: 'Bạn treo giày và nhận lời dẫn dắt đội trẻ. Tiếng còi tập vẫn vang lên mỗi sáng — chỉ là giờ bạn đứng bên đường biên.', effects: { happy: 5 }, scene: { loc: 'stadium', anim: 'talk', fx: 'sparkle' }, tone: 'good' }; } };
+    if (k === 'rest') return { key: k, label: sport ? '🌅 Giải nghệ, nghỉ ngơi một thời gian' : '🌅 Nghỉ việc, nghỉ ngơi rồi tính tiếp', fn: () => { if (!S.job) return { text: 'Bạn đã nghỉ rồi.' }; leave(); return { text: sport ? 'Bạn tổ chức trận chia tay, cởi áo đấu tặng cổ động viên rồi treo giày. Sáng mai không còn tập lúc 5 giờ.' : 'Bạn nộp đơn nghỉ ' + tl + '. Đồng nghiệp làm bữa chia tay nho nhỏ. Tự do, nhưng cũng hơi chênh vênh.', effects: { happy: 4, health: 2 }, scene: { loc: sport ? 'stadium' : 'street', anim: 'wave' }, tone: 'neutral' }; } };
+    return { key: 'stay', label: '↩️ Thôi, chưa nghỉ nữa', fn: () => ({ text: 'Bạn đóng file đơn xin nghỉ lại. Cứ làm thêm một thời gian nữa xem sao.', effects: {}, scene: { anim: 'shrug' }, tone: 'neutral' }) };
+  }
+  // ⚠️ hiệu suất quá thấp: cảnh cáo trước một năm rồi mới cho thôi việc
+  ms({ id: 'ms_job_warn', title: 'Bị cảnh cáo', icon: '⚠️', age: [15, 120],
+    text: 'Sếp gọi bạn vào phòng, đặt bản đánh giá lên bàn: “Hiệu suất của em đang rất thấp. Nếu năm sau không cải thiện, công ty sẽ phải cho em nghỉ.”',
+    scene: { loc: 'office', anim: 'scared', expr: 'scared', npcs: [{ role: 'boss', anim: 'point', say: 'Năm sau là cơ hội cuối.' }], shot: 'dramatic' },
+    choices: [
+      { label: '💪 Hứa sẽ cố gắng gấp đôi', fn: () => { if (S.job) S.job.perf = r100(S.job.perf + 14); return { text: 'Bạn đi làm sớm nhất, về muộn nhất. Hiệu suất nhích lên rõ rệt. (Nhớ dùng nút “Làm việc chăm chỉ” để giữ phong độ.)', effects: { happy: -2, health: -2 }, scene: { loc: 'office', anim: 'type' } }; } },
+      { label: '🚪 Tự nộp đơn nghỉ trước cho đẹp', fn: () => { if (S.job) { if (D.CAREERS[S.job.id].sport) S.flags.ex_athlete = S.flags.ex_athlete || S.year; S.job = null; } S.flags.perfWarn = 0; return { text: 'Bạn chủ động xin nghỉ, giữ được hồ sơ sạch đẹp. Sếp bắt tay: “Chúc em tìm được chỗ phù hợp hơn.”', effects: { happy: 1 }, scene: { loc: 'street', anim: 'shrug' } }; } },
+      { label: '😶 Im lặng, làm tiếp như cũ', fn: () => ({ text: 'Bạn gật đầu cho qua. Năm sau mà vẫn thế thì…', effects: { happy: -3 }, scene: { loc: 'office', anim: 'sad' } }) },
     ] });
   ms({ id: 'ms_model_retire', title: 'Rời sàn diễn', icon: '👠', age: [30, 60],
     text: 'Những show diễn lớn bắt đầu gọi các gương mặt trẻ hơn. Công ty quản lý ngỏ ý kết thúc hợp đồng một cách êm đẹp. Bước tiếp theo của bạn là gì?',
@@ -2033,7 +2057,10 @@
       S.job.years++; S.job.levelYears = (S.job.levelYears || 0) + 1; S.job.perf = r100(S.job.perf + U.rand(-9, 5) + (S.stats.smarts - 55) / 25);
       if (S.flags.firstjob_pending) { delete S.flags.firstjob_pending; unlock('first_job'); queueMilestone('ms_firstpay'); }
       if (S.job.perf > 75 && promoGate() && Math.random() < 0.25) { if (promote()) { L('Bạn được thăng chức: ' + D.CAREERS[S.job.id].levels[S.job.level].title + '!', 'milestone', '📈'); addStat('happy', 6, deltas); } }
-      else if (S.job.perf < 22 && Math.random() < 0.4) { L('Bạn bị cho thôi việc vì hiệu suất kém.', 'bad', '📦'); S.job = null; addStat('happy', -10, deltas); }
+      else if (S.job.perf < 22 && Math.random() < 0.5) {
+        if (!S.flags.perfWarn) { S.flags.perfWarn = S.year; queueMilestone('ms_job_warn'); }
+        else if (S.year - S.flags.perfWarn >= 1) { L('Sau lần cảnh cáo năm ngoái, hiệu suất vẫn không khá hơn. Bạn bị cho thôi việc.', 'bad', '📦'); if (D.CAREERS[S.job.id].sport) S.flags.ex_athlete = S.flags.ex_athlete || S.year; S.job = null; S.flags.perfWarn = 0; addStat('happy', -10, deltas); }
+      } else if (S.job.perf >= 35 && S.flags.perfWarn) S.flags.perfWarn = 0;
       const cj = S.job && D.CAREERS[S.job.id];
       if (cj && cj.prize) { try { leagueYear(L, deltas); } catch (e) { U.warnOnce('league', 'league', e); } sportYear(L, deltas); }
       // vận động viên: chấn thương là chuyện thường ngày
@@ -3906,9 +3933,11 @@
         const sch = S.stats.smarts >= 80 && Math.random() < 0.6, cost = sch ? 0 : 900e6;
         if (!sch && S.money < cost) { S.yearActs[id]--; return fail('Cần 900 triệu, hoặc trí tuệ ≥ 80 để xin học bổng'); }
         addMoney(-cost, deltas); S.flags.master = S.year; S.edu.degrees.push('Thạc sĩ (nước ngoài)'); S.english = r100((S.english || 0) + 12);
+        const quitNote = S.job ? ' Bạn đã nghỉ việc ' + D.CAREERS[S.job.id].title.toLowerCase() + ' để lên đường du học.' : '';
         if (S.job) S.job = null;
         rollEff({ smarts: [5, 9], happy: [3, 6] }, 1, deltas); unlock('abroad');
         text = (sch ? 'Bạn giành học bổng toàn phần! ' : 'Bạn dốc 900 triệu tiền dành dụm. ') + 'Hai năm thạc sĩ ở ' + U.pick(ABROAD) + ': thư viện đến nửa đêm, làm thêm cuối tuần, bạn bè khắp thế giới. Bằng thạc sĩ nước ngoài giúp xin việc dễ hơn, lương cao hơn.';
+        text += quitNote;
         scene = actScene({ loc: 'university', anim: 'cheer', fx: 'confetti' });
         break;
       }
@@ -4552,6 +4581,10 @@
     } else if (id === 'raise') {
       if (Math.random() < 0.05 + Math.max(0, S.job.perf - 50) / 120) { S.job.mult = (S.job.mult || 1) * U.rand(1.05, 1.12); addStat('happy', 5, deltas); text = 'Sếp gật đầu: "Em xứng đáng." Lương tăng ngay từ tháng sau!'; scene = sceneFor(c.loc, { anim: 'cheer', fx: 'money', people: [{ p: boss, anim: 'nod', say: 'Được, tăng lương!' }] }); tone = 'good'; }
       else { S.job.perf = r100(S.job.perf - 4); addStat('happy', -3, deltas); text = 'Sếp cười trừ: "Công ty đang khó khăn, em thông cảm."'; scene = sceneFor(c.loc, { anim: 'sad', people: [{ p: boss, anim: 'shrug', say: 'Khó khăn chung mà em…' }] }); tone = 'bad'; }
+    } else if (id === 'quit' && !S.pending.length) {
+      queueMilestone('ms_quit');
+      text = c.sport ? 'Bạn ngồi một mình trong phòng thay đồ, nghĩ về chuyện treo giày…' : 'Bạn mở file đơn xin nghỉ việc, con trỏ nhấp nháy rất lâu…';
+      scene = sceneFor(c.loc, { anim: 'think' });
     } else if (id === 'quit') {
       text = c.sport ? 'Bạn rời đội, treo giày/găng/vợt. Sân đấu khép lại, một chương mới bắt đầu.' : 'Bạn nộp đơn nghỉ việc ' + c.title.toLowerCase() + '. Tự do, nhưng cũng hơi chênh vênh.';
       if (c.sport) S.flags.ex_athlete = S.flags.ex_athlete || S.year;
@@ -4695,7 +4728,7 @@
     // tiền quảng cáo từ nền tảng (chỉ khi còn đăng bài đều và đủ 10K theo dõi để bật kiếm tiền)
     s.adIncome = 0;
     if (s.followers >= 10000 && s.lastYear >= S.year - 1) {
-      s.adIncome = pay(s.followers * U.rand(120, 520) * (nicheOf() ? 1.2 : 1) * (s.verified ? 1.15 : 1));
+      s.adIncome = pay(s.followers * U.rand(120, 520) * (nicheOf() ? 1.2 : 1) * (s.verified ? 1.15 : 1) * (kolFull() ? 1.6 : 1));
       addMoney(s.adIncome, {});
       L('💸 Tiền quảng cáo nền tảng năm nay: ' + fmtMoney(s.adIncome) + ' (' + fmtF(s.followers) + ' người theo dõi).', 'good', '📲');
     }
@@ -4768,6 +4801,8 @@
     { id: 'detox', icon: '🧘', label: 'Tạm nghỉ MXH', min: 0 },
   ];
   const SOC_PER_YEAR = 4;
+  const kolFull = () => !!(S.flags.kolFull && !S.job);
+  const socPerYear = () => SOC_PER_YEAR + (kolFull() ? 3 : 0); // KOL / streamer toàn thời gian: đăng 7 bài mỗi năm
   // bảng xếp hạng KOL (người ảo, cố định theo năm) + vị trí của bạn
   const KOL_NAMES = ['Mây Review', 'Thánh Ăn Đường Phố', 'Coder Đêm Khuya', 'Chị Bảy Bán Hàng', 'Bác Sĩ Tâm Sự', 'Gymer Hà Thành', 'Nấm Lùn Du Ký', 'Thầy Giáo Vật Lý Vui', 'Game Thủ Tí Hon', 'Cô Ba Sài Gòn', 'Lão Nông Tiktok', 'Hot Girl Trà Sữa', 'Anh Shipper Hài', 'Mẹ Bỉm Kể Chuyện', 'Thánh Soi Phốt'];
   function kolBoard() {
@@ -4785,7 +4820,7 @@
       verified: !!s.verified, canVerify: !s.verified && s.followers >= 100000 && !(s.verifyTried >= S.year),
       niche: n ? { id: n.id, icon: n.icon, name: n.name } : null, niches: NICHES.map((x) => ({ id: x.id, icon: x.icon, name: x.name, desc: x.desc, fit: (S.job && CAREER_NICHE[S.job.id] === x.id) || false })),
       income: s.adIncome ? fmtMoney(s.adIncome) : '', brand: s.brand || null,
-      actions: SOC_ACTS.map((a) => ({ id: a.id, icon: a.icon, label: a.niche && n ? a.label.replace('theo kênh', n.name.split(' – ')[0].toLowerCase()) : a.label, available: used < SOC_PER_YEAR && s.followers >= a.min && !(a.niche && !n), reason: a.niche && !n ? 'Chọn kênh chủ đề trước' : s.followers < a.min ? 'Cần ' + fmtF(a.min) + ' theo dõi' : used >= SOC_PER_YEAR ? 'Đã đăng đủ năm nay' : null })),
+      actions: SOC_ACTS.map((a) => ({ id: a.id, icon: a.icon, label: a.niche && n ? a.label.replace('theo kênh', n.name.split(' – ')[0].toLowerCase()) : a.label, available: used < socPerYear() && s.followers >= a.min && !(a.niche && !n), reason: a.niche && !n ? 'Chọn kênh chủ đề trước' : s.followers < a.min ? 'Cần ' + fmtF(a.min) + ' theo dõi' : used >= socPerYear() ? 'Đã đăng đủ năm nay' : null })),
       offers: s.offers.map((o) => ({ id: o.id, brand: o.brand, item: o.item, payText: fmtMoney(o.pay), shady: o.shady })),
       posts: (s.hist || []).map((p) => ({ id: p.id, icon: p.icon, title: p.title, views: fmtF(p.views), likes: fmtF(p.likes), viral: !!p.viral, flop: !!p.flop, when: p.year === S.year ? 'năm nay' : (S.year - p.year) + ' năm trước' })),
       inbox: (s.inbox || []).map((m) => ({ id: m.id, kind: m.kind, icon: m.icon, from: m.from, text: m.text, a: m.a })),
@@ -4855,7 +4890,7 @@
   function socialAction(id) {
     if (!socOpen()) return fail('Chưa dùng được mạng xã hội.');
     const s = soc(), a = SOC_ACTS.find((x) => x.id === id); if (!a) return fail('Không có thao tác này.');
-    if ((S.yearActs.soc || 0) >= SOC_PER_YEAR) return fail('Năm nay bạn đã đăng đủ rồi.');
+    if ((S.yearActs.soc || 0) >= socPerYear()) return fail('Năm nay bạn đã đăng đủ rồi.');
     if (s.followers < a.min) return fail('Cần ' + fmtF(a.min) + ' người theo dõi.');
     if (a.niche && !nicheOf()) return fail('Chọn kênh chủ đề trước đã.');
     if (KN.Weekly) KN.Weekly.track('post');
@@ -5397,7 +5432,7 @@
   function pkStart() {
     if (!socOpen()) return fail('Chưa dùng được mạng xã hội.');
     const s = soc(), a = SOC_ACTS.find((x) => x.id === 'pk');
-    if ((S.yearActs.soc || 0) >= SOC_PER_YEAR) return fail('Năm nay bạn đã đăng đủ rồi.');
+    if ((S.yearActs.soc || 0) >= socPerYear()) return fail('Năm nay bạn đã đăng đủ rồi.');
     if (s.followers < a.min) return fail('Cần ' + fmtF(a.min) + ' người theo dõi.');
     S.yearActs.soc = (S.yearActs.soc || 0) + 1; s.lastYear = S.year; s.posts++;
     const foe = U.pick(KOL_NAMES), g = U.pick(['m', 'f']), age = U.clamp(P().age + U.randi(-6, 6), 18, 50), foeF = Math.round(s.followers * U.rand(0.6, 1.9));
@@ -5440,7 +5475,7 @@
   function photoStart() {
     if (!socOpen()) return fail('Chưa dùng được mạng xã hội.');
     const s = soc();
-    if ((S.yearActs.soc || 0) >= SOC_PER_YEAR) return fail('Năm nay bạn đã đăng đủ rồi.');
+    if ((S.yearActs.soc || 0) >= socPerYear()) return fail('Năm nay bạn đã đăng đủ rồi.');
     const night = Math.random() < 0.3;
     return { ok: true, name: fullName(S.player), first: S.player.firstName, followersText: fmtF(s.followers), player: sceneFor('bedroom', { anim: 'idle' }).player, night, templates: CAPCUT, hot: hotTpl(), looks: S.stats.looks };
   }
@@ -5448,7 +5483,7 @@
   function photoPost(o) {
     o = o || {};
     if (!socOpen()) return fail('Chưa dùng được mạng xã hội.');
-    const s = soc(); if ((S.yearActs.soc || 0) >= SOC_PER_YEAR) return fail('Năm nay bạn đã đăng đủ rồi.');
+    const s = soc(); if ((S.yearActs.soc || 0) >= socPerYear()) return fail('Năm nay bạn đã đăng đủ rồi.');
     S.yearActs.soc = (S.yearActs.soc || 0) + 1; s.lastYear = S.year; s.posts++;
     const deltas = {}, f0 = s.followers, k = socK(), q = U.clamp(+o.q || 0, 0, 1), tpl = CAPCUT.find((t) => t.id === o.tpl) || null, hot = tpl && tpl.id === hotTpl();
     const cap = String(o.caption || '').replace(/[<>]/g, '').trim().slice(0, 80) || U.pick(['Một ngày bình yên', 'Hôm nay xinh/đẹp trai không', 'Mood hôm nay ✨', 'Chill thôi']);
@@ -5513,7 +5548,7 @@
     if (!ROOM_KIND[id]) return fail('Không có kiểu live này.');
     if (!socOpen()) return fail('Chưa dùng được mạng xã hội.');
     const s = soc(), a = SOC_ACTS.find((x) => x.id === id);
-    if ((S.yearActs.soc || 0) >= SOC_PER_YEAR) return fail('Năm nay bạn đã đăng đủ rồi.');
+    if ((S.yearActs.soc || 0) >= socPerYear()) return fail('Năm nay bạn đã đăng đủ rồi.');
     if (s.followers < a.min) return fail('Cần ' + fmtF(a.min) + ' người theo dõi.');
     S.yearActs.soc = (S.yearActs.soc || 0) + 1; s.lastYear = S.year; s.posts++;
     const k = ROOM_KIND[id], qs = roomQuestions(id).map((q, i) => ({ id: 'q' + i, text: q[0], topic: q[1] }));
@@ -5766,7 +5801,7 @@
     const p = P();
     return {
       name: p.firstName, fullName: fullName(p), gender: p.gender, age: S.dead ? S.dead.age : p.age, alive: !S.dead,
-      worth: Math.round(S.money + assetsValue() - loanLeft()), job: S.job ? D.CAREERS[S.job.id].levels[S.job.level].title : S.retired ? 'Nghỉ hưu' : S.edu.inSchool ? 'Đi học' : 'Thất nghiệp',
+      worth: Math.round(S.money + assetsValue() - loanLeft()), job: S.job ? D.CAREERS[S.job.id].levels[S.job.level].title : S.retired ? 'Nghỉ hưu' : S.edu.inSchool ? 'Đi học' : S.flags.kolFull ? 'KOL / Streamer' : 'Thất nghiệp',
       stats: { happy: Math.round(S.stats.happy), health: Math.round(S.stats.health), smarts: Math.round(S.stats.smarts), looks: Math.round(S.stats.looks) },
       karma: Math.round(S.karma), score: S.dead ? S.dead.score : score(), cause: S.dead ? S.dead.cause : null,
       married: has('spouse'), kids: S.people.filter((x) => x.role === 'child' && x.alive).length, followers: (S.social && S.social.followers) || 0,
@@ -6120,6 +6155,7 @@
     if (pa < 6) return 'Trẻ con';
     if (S.retired) return 'Nghỉ hưu';
     if (pa >= 60) return 'Người cao tuổi';
+    if (S.flags.kolFull && pa >= 16) return '📱 KOL / Streamer';
     return pa < 18 ? 'Ở nhà' : 'Thất nghiệp';
   }
   function view() {

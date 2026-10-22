@@ -776,6 +776,12 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.67', date: '22/10/2026', items: [
+      '🚪 Tự quyết khi nào nghỉ việc / giải nghệ: bấm "Nghỉ việc" (hoặc "Rời đội / giải nghệ") sẽ hỏi bước tiếp theo — nghỉ ngơi, chuyển sang làm HLV (vận động viên), làm KOL / streamer toàn thời gian (cần từ 10 nghìn người theo dõi), hoặc đổi ý ở lại.',
+      '🏁 Tới tuổi giải nghệ không còn bị ép nữa: có thêm lựa chọn "Chưa! Tôi còn đá thêm một mùa" (năm sau được hỏi lại) và "Treo giày làm KOL thể thao".',
+      '⚠️ Hiệu suất quá thấp sẽ bị sếp cảnh cáo trước (cố gắng gấp đôi / tự xin nghỉ / im lặng); năm sau vẫn tệ mới bị cho thôi việc, không còn mất việc bất ngờ.',
+      '📱 KOL / Streamer toàn thời gian là một "nghề": đăng 7 bài mỗi năm thay vì 4, tiền quảng cáo nền tảng tăng 60%, nhưng không có lương cứng. Đi làm lại thì hết chế độ này.',
+    ] },
     { v: '1.66', date: '22/10/2026', items: [
       '💬 Chat giữa người chơi: nút 💬 góc dưới bên trái. Kênh chung cho cả server, bấm tên ai đó để nhắn riêng, xem ai đang online. Từ thô tục tự bị che, đường link bị xoá.',
       '🎪 Sự kiện tuần toàn server: mỗi tuần một chủ đề (bóng đá, du lịch, tình yêu, tử tế, minigame) có ưu đãi riêng (vé du lịch giảm 30%, hẹn hò dễ hơn, thưởng Cúp Hax ×2…) và 3 nhiệm vụ. Mỗi nhiệm vụ +3 triệu, xong cả 3 nhận huy hiệu tuần + 10 triệu.',
