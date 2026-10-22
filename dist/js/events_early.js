@@ -197,6 +197,317 @@
       ]
     },
 
+    // ── em bé đi đây đi đó: mỗi tình huống một khung cảnh khác cho đỡ chán ──
+    {
+      id: 'c_baby_park', title: 'Buổi sáng ở công viên', icon: '🌳', age: [0, 2],
+      text: 'Sáng sớm, {father.k} {father} đẩy xe nôi đưa bạn ra công viên. Các cụ tập dưỡng sinh, đàn bồ câu sà xuống mổ thóc, một chú bán bong bóng xà phòng đang thổi những quả bong bóng óng ánh.',
+      scene: { loc: 'park', time: 'dawn', anim: 'idle', fx: 'bubbles', shot: 'wide',
+        npcs: [ { role: 'father', anim: 'walk', say: 'Hít thở không khí trong lành nào con!' }, { role: 'crowd', anim: 'dance' } ] },
+      choices: [
+        { label: 'Với tay bắt bong bóng', text: 'Bạn chộp mãi không được quả nào, bong bóng vỡ tách trên mũi. Bạn cười khanh khách, bố mua luôn một lọ về nhà.',
+          effects: { happy: 6, rel: { father: 3 } },
+          scene: { anim: 'laugh', fx: 'bubbles', npcAnim: { father: 'laugh' } } },
+        { label: 'Đuổi theo đàn bồ câu', text: 'Bạn bò lổm ngổm về phía đàn bồ câu, chúng bay vụt lên trời. Bạn ngẩn người nhìn theo rất lâu, mắt sáng rỡ.',
+          effects: { happy: 4, health: 2, smarts: 1 },
+          scene: { anim: 'crawl', fx: 'exclaim', npcAnim: { father: 'run' } } },
+        { label: 'Ngủ quên trong xe nôi', text: 'Gió mát, tiếng chim hót, bạn ngủ ngon lành. Bố ngồi ghế đá đọc báo, hiếm hoi lắm mới có một buổi sáng yên bình.',
+          effects: { health: 3, happy: 2, rel: { father: 2 } },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { father: 'sit' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_beach', title: 'Lần đầu thấy biển', icon: '🏖️', age: [1, 2], weight: 1.2,
+      text: 'Cả nhà đi biển mùa hè. Lần đầu tiên bạn thấy một vũng nước to đến vô tận, sóng ì oạp vỗ vào bờ, cát mịn lún dưới bàn chân bé xíu.',
+      scene: { loc: 'beach', time: 'day', anim: 'idle', fx: 'question', shot: 'wide',
+        npcs: [ { role: 'mother', anim: 'wave', say: 'Biển đó con! To không?' }, { role: 'father', anim: 'phone', say: 'Cười lên cho bố chụp nào!' } ] },
+      choices: [
+        { label: 'Lao ra đón sóng', text: 'Con sóng nhỏ ập tới làm bạn ngã ngửa, uống một ngụm nước mặn chát. Bạn khóc ré, rồi năm phút sau lại đòi ra tiếp.',
+          effects: { happy: 4, health: 2, flag: 'baby_sea' },
+          scene: { anim: 'swim', fx: 'bubbles', npcAnim: { mother: 'run', father: 'laugh' } } },
+        { label: 'Ngồi xúc cát ăn thử', text: 'Bạn xúc một nắm cát cho vào miệng, nhăn mặt nhè ra. Mẹ hốt hoảng lau miệng, bố quay được cả đoạn, đăng lên nhóm gia đình.',
+          effects: { happy: 3, health: -1, rel: { father: 2 } },
+          scene: { anim: 'sit', fx: 'dust', npcAnim: { mother: 'scared', father: 'laugh' } } },
+        { label: 'Sợ quá, ôm chặt cổ mẹ', text: 'Tiếng sóng ầm ào làm bạn sợ hãi, cả buổi chỉ chịu ngồi trên đùi mẹ dưới ô dù. Mẹ kiên nhẫn chỉ cho bạn từng con dã tràng.',
+          effects: { happy: 1, smarts: 1, rel: { mother: 4 } },
+          scene: { anim: 'idle', fx: 'sweat', npcAnim: { mother: 'hug' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_que', title: 'Về quê thăm ông bà', icon: '🐓', age: [0, 2], weight: 1.3,
+      text: 'Cả nhà về quê. Sân gạch phơi thóc vàng óng, đàn gà con chạy lon ton, con trâu đứng nhai rơm ngoài ngõ. {grandparent.K} {grandparent} bế bạn đi khoe khắp xóm.',
+      scene: { loc: 'countryside', time: 'day', anim: 'idle', fx: 'sparkle', shot: 'wide',
+        npcs: [ { role: 'grandparent', anim: 'walk', say: 'Cháu nội nhà tôi đây, bụ chưa?' }, { role: 'neighbor', anim: 'clap', say: 'Ôi giống bố như đúc!' } ] },
+      choices: [
+        { label: 'Đòi sờ con trâu', text: 'Con trâu khịt mũi phì một cái, hơi nóng phả vào mặt. Bạn giật mình rồi cười khanh khách, cả xóm khen đứa nhỏ gan dạ.',
+          effects: { happy: 5, health: 1, rel: { grandparent: 3 } },
+          scene: { anim: 'laugh', fx: 'steam', npcAnim: { grandparent: 'laugh', neighbor: 'point' } } },
+        { label: 'Đuổi theo đàn gà con', text: 'Bạn bò khắp sân đuổi gà, quần áo lấm lem đất cát. {grandparent.K} không mắng mà còn reo hò cổ vũ.',
+          effects: { happy: 5, health: 3 },
+          scene: { anim: 'crawl', fx: 'dust', npcAnim: { grandparent: 'cheer' } } },
+        { label: 'Ngủ trên võng dưới gốc cau', text: 'Gió đồng mát rượi, tiếng võng kẽo kẹt. Bạn ngủ một giấc dài nhất từ lúc chào đời, {grandparent.k} ngồi quạt suốt buổi.',
+          effects: { health: 4, happy: 2, rel: { grandparent: 5 } },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { grandparent: 'sit' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_chua', title: 'Lên chùa xin vía', icon: '🛕', age: [0, 1],
+      text: 'Sáng rằm, {grandparent.k} {grandparent} bế bạn lên chùa xin vía cho cứng cáp, hay ăn chóng lớn. Khói hương nghi ngút, tiếng chuông chùa ngân nga.',
+      scene: { loc: 'temple', time: 'dawn', anim: 'idle', fx: 'smoke', shot: 'wide',
+        npcs: [ { role: 'grandparent', anim: 'pray', say: 'Cầu cho cháu hay ăn chóng lớn…' } ] },
+      choices: [
+        { label: 'Ngoan ngoãn im lặng', text: 'Suốt buổi lễ bạn không khóc tiếng nào, mắt tròn xoe nhìn tượng Phật. Sư thầy xoa đầu khen: “Đứa nhỏ có phúc”.',
+          effects: { karma: 3, happy: 2, rel: { grandparent: 4 } },
+          scene: { anim: 'idle', fx: 'sparkle', npcAnim: { grandparent: 'bow' } } },
+        { label: 'Khóc vì khói hương cay mắt', text: 'Khói hương làm bạn cay mắt, oà khóc giữa chính điện. {grandparent.K} vội bế ra sân, mua cho bạn cái chong chóng giấy.',
+          effects: { happy: 1, health: -1 },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { grandparent: 'hug' } } },
+        { label: 'Với tay túm đĩa oản', text: 'Bạn chộp lấy miếng oản trên mâm cúng. Mọi người bật cười: “Lộc Phật đấy, cho cháu ăn đi!”.',
+          effects: { happy: 4, health: 1, karma: 1 },
+          scene: { anim: 'laugh', fx: 'stars', npcAnim: { grandparent: 'laugh' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_storm', title: 'Đêm mưa giông', icon: '⛈️', age: [0, 2],
+      text: 'Nửa đêm trời đổ giông. Sấm nổ đùng đoàng, mưa quất rào rào lên mái tôn, cửa sổ rung bần bật. Bạn giật mình tỉnh giấc giữa tiếng sét.',
+      scene: { loc: 'bedroom', time: 'night', weather: 'storm', anim: 'cry', fx: 'exclaim', shot: 'close',
+        npcs: [ { role: 'mother', anim: 'hug', say: 'Có mẹ đây, không sợ nha con.' } ] },
+      choices: [
+        { label: 'Rúc vào lòng mẹ', text: 'Mẹ ôm bạn thật chặt, khẽ hát một bài ru. Tiếng tim mẹ đập đều đều át cả tiếng sấm, bạn thiếp đi lúc nào không hay.',
+          effects: { happy: 2, health: 1, rel: { mother: 5 } },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { mother: 'sit' } } },
+        { label: 'Khóc át cả tiếng sấm', text: 'Bạn khóc to tới mức cả nhà phải dậy, bố bật đèn pin làm trò bóng tay trên tường để dỗ bạn.',
+          effects: { happy: -1, rel: { father: 3, mother: 2 } },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { mother: 'hug' } } },
+        { label: 'Nhìn chớp lóe mà cười', text: 'Mỗi lần trời lóe sáng, bạn lại vỗ tay cười như xem pháo hoa. Mẹ vừa thương vừa buồn cười: “Con gan thế!”.',
+          effects: { happy: 4, smarts: 1 },
+          scene: { anim: 'laugh', fx: 'flash', npcAnim: { mother: 'laugh' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_tet', title: 'Cái Tết đầu đời', icon: '🧧', age: [0, 2], weight: 1.4,
+      text: 'Tết đến, nhà đầy hoa đào, bánh chưng và họ hàng. Ai tới cũng giành bế bạn, nựng má, dúi bao lì xì đỏ vào tay. Bạn được mặc bộ áo dài bé xíu mẹ đặt may.',
+      scene: { loc: 'home', time: 'day', decor: 'tet', anim: 'idle', fx: 'petals', shot: 'wide',
+        npcs: [ { role: 'relative', anim: 'talk', say: 'Chúc cháu hay ăn chóng lớn!' }, { role: 'mother', anim: 'clap' }, { role: 'grandparent', anim: 'love' } ] },
+      choices: [
+        { label: 'Cười với tất cả mọi người', text: 'Bạn cười toe với từng người, được lì xì dày cộp. Mẹ cất hết vào “quỹ cho con” — và bạn sẽ không bao giờ thấy lại số tiền đó.',
+          effects: { happy: 4, money: 300000, rel: { grandparent: 3 } },
+          scene: { anim: 'laugh', fx: 'money', npcAnim: { all: 'laugh' } } },
+        { label: 'Xé bao lì xì', text: 'Bạn xé toạc bao lì xì đỏ, cười sằng sặc vì tiếng giấy rách. Ông bà bảo xé lộc là năm nay phát.',
+          effects: { happy: 5, money: 100000 },
+          scene: { anim: 'laugh', fx: 'confetti', npcAnim: { grandparent: 'laugh' } } },
+        { label: 'Khóc vì người lạ bế', text: 'Bị chuyền tay qua mười mấy người lạ, bạn khóc thét. Mẹ phải bế vào phòng trong, cả buổi Tết chỉ chịu theo mẹ.',
+          effects: { happy: -2, rel: { mother: 4 } },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { mother: 'hug', relative: 'shrug' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_trungthu', title: 'Trung thu đầu tiên', icon: '🏮', age: [1, 2],
+      text: 'Đêm Trung thu, phố rực đèn lồng. Bố cõng bạn trên vai đi xem múa lân, tiếng trống “tùng tùng cắc” rộn rã. Mẹ cầm chiếc đèn ông sao bé xíu cho bạn.',
+      scene: { loc: 'street', time: 'night', anim: 'idle', fx: 'sparkle', shot: 'wide',
+        npcs: [ { role: 'father', anim: 'walk', say: 'Lân kìa con, lân kìa!' }, { role: 'crowd', anim: 'dance' }, { role: 'mother', anim: 'wave' } ] },
+      choices: [
+        { label: 'Vỗ tay theo tiếng trống', text: 'Bạn nhún nhảy theo nhịp trống trên vai bố. Ông lân sà xuống chớp mắt với bạn, cả đám đông vỗ tay.',
+          effects: { happy: 6, rel: { father: 3 } },
+          scene: { anim: 'dance', fx: 'music', npcAnim: { father: 'cheer', crowd: 'clap' } } },
+        { label: 'Sợ ông lân, khóc thét', text: 'Cái đầu lân to tướng lao tới làm bạn sợ hết hồn. Bố vội bế ra chỗ vắng, mua cho bạn cái bánh nướng nhân đậu xanh.',
+          effects: { happy: -1, health: 1 },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { father: 'hug' } } },
+        { label: 'Ôm khư khư đèn ông sao', text: 'Bạn ôm cây đèn ông sao không rời, ngắm ánh nến lung linh suốt cả buổi tối. Về nhà ngủ vẫn không chịu buông.',
+          effects: { happy: 4, smarts: 1, rel: { mother: 2 } },
+          scene: { anim: 'idle', fx: 'stars', npcAnim: { mother: 'love' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_wedding', title: 'Đi ăn cưới cùng mẹ', icon: '💒', age: [1, 2],
+      text: 'Mẹ bế bạn đi ăn cưới {relative.k} {relative}. Nhạc xập xình, đèn sân khấu nhấp nháy, cô dâu chú rể bước ra giữa tràng pháo tay.',
+      scene: { loc: 'wedding', time: 'dusk', anim: 'idle', fx: 'confetti', shot: 'wide',
+        npcs: [ { role: 'mother', anim: 'clap' }, { role: 'relative', anim: 'wave', say: 'Cảm ơn cả nhà đã tới!' }, { role: 'crowd', anim: 'clap' } ] },
+      choices: [
+        { label: 'Bò lên sân khấu', text: 'Đúng lúc cô dâu chú rể cắt bánh, bạn bò thẳng lên sân khấu. MC đùa: “Khách mời đặc biệt nhất hôm nay!”, cả hội trường cười rần.',
+          effects: { happy: 5, looks: 1 },
+          scene: { anim: 'crawl', fx: 'stars', npcAnim: { crowd: 'laugh', mother: 'facepalm' } } },
+        { label: 'Nhún nhảy theo nhạc', text: 'Bạn nhún nhảy theo bài nhạc sàn trên đùi mẹ. Cả bàn tiệc quay video, bạn thành “hot boy hot girl” của đám cưới.',
+          effects: { happy: 5 },
+          scene: { anim: 'dance', fx: 'music', npcAnim: { mother: 'laugh' } } },
+        { label: 'Ngủ say giữa tiếng nhạc', text: 'Giữa tiếng loa ầm ầm, bạn ngủ say như chưa từng có. Mẹ được ăn trọn một bữa cỗ hiếm hoi không bị quấy.',
+          effects: { health: 2, rel: { mother: 3 } },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { mother: 'eat' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_photo', title: 'Chụp ảnh studio', icon: '📷', age: [0, 2],
+      text: 'Bố mẹ đưa bạn đi chụp bộ ảnh kỷ niệm ở studio. Anh thợ ảnh bày đủ thứ: mũ thỏ, giỏ mây, bóng bay, phông nền sặc sỡ. “Nhìn chú này, cười nào!”.',
+      scene: { loc: 'studio', time: 'day', anim: 'idle', fx: 'flash', shot: 'close',
+        npcs: [ { role: 'stranger', gender: 'm', anim: 'phone', say: 'Nhìn chú nè, cười lên nào!' }, { role: 'mother', anim: 'wave' } ] },
+      choices: [
+        { label: 'Tạo dáng như người mẫu', text: 'Bạn cười đúng lúc, nghiêng đầu đúng góc. Thợ ảnh xin phép dùng một tấm làm ảnh mẫu treo ở cửa tiệm.',
+          effects: { happy: 4, looks: 2, flag: 'baby_model' },
+          scene: { anim: 'laugh', fx: 'sparkle', npcAnim: { stranger: 'clap', mother: 'love' } } },
+        { label: 'Ăn luôn cái mũ thỏ', text: 'Bạn gặm tai thỏ suốt buổi. Bộ ảnh nào cũng là cảnh bạn đang nhai mũ — mà lại là bộ ảnh cả nhà thích nhất.',
+          effects: { happy: 5 },
+          scene: { anim: 'eat', fx: 'question', npcAnim: { stranger: 'facepalm', mother: 'laugh' } } },
+        { label: 'Khóc ướt cả phông nền', text: 'Đèn chớp liên tục làm bạn khóc mãi không nín. Tấm duy nhất chụp được là bạn đang há miệng khóc, sau này bị mang ra trêu suốt.',
+          effects: { happy: -1 },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { mother: 'hug' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_plane', title: 'Chuyến bay đầu tiên', icon: '✈️', age: [1, 2],
+      text: 'Cả nhà bay vào thăm họ hàng. Sân bay đông nghịt, bạn ngồi xe đẩy nhìn những chiếc máy bay khổng lồ qua lớp kính. Lát nữa thôi bạn sẽ ở trên đó.',
+      scene: { loc: 'airport', time: 'day', anim: 'idle', fx: 'exclaim', shot: 'wide',
+        npcs: [ { role: 'father', anim: 'point', say: 'Máy bay kìa con, to chưa!' }, { role: 'mother', anim: 'walk' }, { role: 'crowd', anim: 'walk' } ] },
+      choices: [
+        { label: 'Hò hét chỉ trỏ máy bay', text: 'Mỗi chiếc máy bay cất cánh bạn lại reo “Ò ò!”. Cô tiếp viên khen bạn dễ thương, tặng một chiếc huy hiệu cánh bay.',
+          effects: { happy: 5, smarts: 1, flag: 'baby_plane' },
+          scene: { anim: 'cheer', fx: 'stars', npcAnim: { father: 'laugh' } } },
+        { label: 'Khóc suốt chuyến bay vì ù tai',
+          outcomes: [
+            { p: 0.6, text: 'Bạn khóc từ lúc cất cánh tới lúc hạ cánh. Bố mẹ cúi đầu xin lỗi cả khoang, một bà cụ ghế bên còn cho bạn mút kẹo.',
+              effects: { happy: -2, health: -1, rel: { mother: 2 } }, scene: { anim: 'cry', fx: 'tears', npcAnim: { mother: 'bow' } } },
+            { p: 0.4, text: 'Mẹ cho bạn bú lúc cất cánh nên đỡ ù tai, bạn nín dần rồi ngủ khì tới nơi. Cả khoang thở phào.',
+              effects: { health: 1, rel: { mother: 3 } }, scene: { anim: 'sleep', fx: 'zzz', npcAnim: { mother: 'hug' } } }
+          ] },
+        { label: 'Ngủ trên xe đẩy', text: 'Chờ lâu quá, bạn ngủ luôn trên xe đẩy. Bố mẹ được ngồi uống cà phê sân bay trong yên lặng.',
+          effects: { health: 2, rel: { father: 1, mother: 1 } },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { father: 'drink' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_pet', title: 'Người bạn bốn chân', icon: '🐾', age: [0, 2],
+      text: 'Bạn và {pet} ngồi nhìn nhau giữa phòng khách. Nó dí cái mũi ướt vào má bạn, đuôi vẫy tít. Bố mẹ đứng nín thở, không biết hai đứa sẽ làm gì nhau.',
+      scene: { loc: 'home', time: 'day', anim: 'crawl', fx: 'question', shot: 'close',
+        npcs: [ { role: 'pet', anim: 'idle' }, { role: 'mother', anim: 'idle', say: 'Nhẹ tay thôi con…' } ] },
+      choices: [
+        { label: 'Ôm chặt lấy nó', text: 'Bạn ôm chầm lấy {pet}, nó ngoan ngoãn nằm im cho bạn ôm. Từ hôm đó hai đứa ngủ trưa chung một tấm chiếu.',
+          effects: { happy: 6, rel: { pet: 10 } },
+          scene: { anim: 'hug', fx: 'hearts', npcAnim: { mother: 'love' } } },
+        { label: 'Kéo đuôi nó', text: 'Bạn túm đuôi kéo mạnh, {pet} kêu ăng ẳng chạy trốn dưới gầm giường. Mẹ dạy: “Phải thương bạn ấy chứ con!”.',
+          effects: { happy: 1, karma: -1, rel: { pet: -4 } },
+          scene: { anim: 'laugh', fx: 'sweat', npcAnim: { mother: 'shake' } } },
+        { label: 'Chia bánh cho nó ăn', text: 'Bạn chìa miếng bánh quy đang gặm dở. {pet} ăn sạch rồi liếm luôn tay bạn. Mẹ hốt hoảng đi rửa tay, còn bạn cười như được mùa.',
+          effects: { happy: 5, karma: 2, rel: { pet: 6 } },
+          scene: { anim: 'laugh', fx: 'hearts', npcAnim: { mother: 'facepalm' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_moto', title: 'Ngồi xe máy dạo phố', icon: '🛵', age: [1, 2],
+      text: 'Chiều mát, bố chở cả nhà đi dạo phố bằng xe máy. Bạn ngồi phía trước, đội chiếc mũ bảo hiểm hình con vịt. Phố xá đèn đóm, xe cộ bấm còi inh ỏi.',
+      scene: { loc: 'street', time: 'dusk', anim: 'drive', fx: 'dust', shot: 'wide',
+        npcs: [ { role: 'father', anim: 'drive', say: 'Ngồi im nha con!' }, { role: 'mother', anim: 'sit' } ] },
+      choices: [
+        { label: 'Vỗ tay theo tiếng còi xe', text: 'Cứ xe nào bấm còi bạn lại vỗ tay reo hò. Bố cười suốt dọc đường: “Con nhà mình ồn y như phố”.',
+          effects: { happy: 5, rel: { father: 3 } },
+          scene: { anim: 'clap', fx: 'music', npcAnim: { father: 'laugh' } } },
+        { label: 'Đòi dừng mua kem', text: 'Bạn chỉ tay vào xe kem, ê a mãi không thôi. Bố đành tấp vào, cả nhà ngồi vỉa hè ăn kem ốc quế.',
+          effects: { happy: 5, health: -1, money: -20000 },
+          scene: { loc: 'street', anim: 'eat', fx: 'sparkle', npcAnim: { father: 'eat', mother: 'laugh' } } },
+        { label: 'Ngủ gật trên xe', text: 'Gió mát, xe lắc lư, bạn gục đầu ngủ ngon lành. Mẹ phải một tay giữ bạn, một tay bám bố suốt quãng đường về.',
+          effects: { health: 2, rel: { mother: 2 } },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { mother: 'hug' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_toy', title: 'Món đồ chơi đầu tiên', icon: '🧸', age: [1, 2],
+      text: 'Mẹ dắt bạn đi chợ đồ chơi. Trên sạp bày đủ thứ: cái trống con, chiếc ô tô điều khiển, quyển sách vải có hình con vật, và một con gấu bông to bằng người bạn.',
+      scene: { loc: 'market', time: 'day', anim: 'idle', fx: 'sparkle', shot: 'close',
+        npcs: [ { role: 'vendor', gender: 'f', anim: 'talk', say: 'Bé thích cái nào cô lấy cho!' }, { role: 'mother', anim: 'point' } ] },
+      choices: [
+        { label: 'Chộp lấy cái trống', text: 'Bạn gõ trống tùng tùng từ chợ về tới nhà, rồi gõ tiếp ba tháng liền. Hàng xóm thuộc lòng nhịp trống của bạn.',
+          effects: { happy: 5, flag: 'toy_trong' },
+          scene: { anim: 'laugh', fx: 'music', npcAnim: { mother: 'facepalm', vendor: 'laugh' } } },
+        { label: 'Ôm quyển sách vải', text: 'Bạn lật đi lật lại quyển sách, chỉ vào từng con vật. Chẳng bao lâu bạn đã biết kêu “meo meo”, “gâu gâu”, “ò ó o”.',
+          effects: { smarts: 4, happy: 2, flag: 'toy_sach' },
+          scene: { anim: 'study', fx: 'idea', npcAnim: { mother: 'love' } } },
+        { label: 'Đòi con gấu bông khổng lồ', text: 'Bạn ôm chặt con gấu không buông, mẹ đành mua dù đắt. Con gấu theo bạn qua bao năm tháng, ngủ cùng bạn mỗi đêm.',
+          effects: { happy: 6, money: -150000, flag: 'toy_gau' },
+          scene: { anim: 'hug', fx: 'hearts', npcAnim: { mother: 'shrug' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_mirror', title: 'Em bé trong gương', icon: '🪞', age: [1, 2],
+      text: 'Bạn bò tới trước tấm gương lớn trong phòng và phát hiện ra… một em bé khác! Em bé đó bắt chước y hệt mọi động tác của bạn.',
+      scene: { loc: 'bedroom', time: 'day', anim: 'crawl', fx: 'question', shot: 'close',
+        npcs: [ { role: 'mother', anim: 'laugh', say: 'Ai đây? Ai trong gương đây?' } ] },
+      choices: [
+        { label: 'Hôn em bé trong gương', text: 'Bạn hôn chụt lên gương, để lại một vệt nước miếng to. Mẹ cười ngặt nghẽo và không thèm lau vệt đó suốt một tuần.',
+          effects: { happy: 5, looks: 1, rel: { mother: 2 } },
+          scene: { anim: 'love', fx: 'hearts', npcAnim: { mother: 'laugh' } } },
+        { label: 'Đập gương đòi đánh nhau', text: 'Bạn đập tay vào gương, em bé kia cũng đập lại! Bạn tức tối oà khóc. Mẹ ôm bạn: “Đó là con mà!”.',
+          effects: { happy: 1, smarts: 1 },
+          scene: { anim: 'angry', fx: 'anger', npcAnim: { mother: 'laugh' } } },
+        { label: 'Nhìn rất lâu, rất lâu', text: 'Bạn ngồi nhìn mình trong gương hồi lâu, như đang nghĩ ngợi điều gì đó lớn lao. Mẹ bảo con mình sau này chắc thành triết gia.',
+          effects: { smarts: 3, happy: 1 },
+          scene: { anim: 'think', fx: 'idea', npcAnim: { mother: 'nod' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_football', title: 'Xem bóng đá cùng cả xóm', icon: '⚽', age: [1, 2],
+      text: 'Tối nay đội tuyển Việt Nam đá trận quan trọng. Bố bế bạn ngồi trước tivi, cả xóm tụ tập, ai cũng quấn băng rôn đỏ sao vàng trên trán.',
+      scene: { loc: 'home', time: 'night', anim: 'sit', fx: 'exclaim', shot: 'wide',
+        npcs: [ { role: 'father', anim: 'cheer', say: 'Vào! Vàooo!' }, { role: 'neighbor', anim: 'cheer' } ] },
+      choices: [
+        { label: 'Hò reo cùng cả xóm', text: 'Việt Nam ghi bàn, cả xóm gào lên, bạn cũng hét theo “Ôôô!”. Bố tung bạn lên trời, tuyên bố: “Con là bùa may mắn của đội tuyển!”.',
+          effects: { happy: 6, rel: { father: 4 }, flag: 'baby_football' },
+          scene: { anim: 'cheer', fx: 'fireworks', npcAnim: { father: 'jump', neighbor: 'cheer' } } },
+        { label: 'Giật mình khóc ré', text: 'Tiếng hò hét ầm ĩ làm bạn khóc ré. Bố đành bế bạn ra sân dỗ, lỡ mất bàn thắng duy nhất của trận.',
+          effects: { happy: -1, rel: { father: 2 } },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { father: 'facepalm' } } },
+        { label: 'Ngủ khì giữa trận', text: 'Hiệp hai chưa bắt đầu bạn đã ngủ say. Bố vặn nhỏ tiếng, ngồi xem mà không dám hò hét, tức anh ách.',
+          effects: { health: 2 },
+          scene: { anim: 'sleep', fx: 'zzz', npcAnim: { father: 'sit' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_cafe', title: 'Cà phê sáng cuối tuần', icon: '☕', age: [1, 2],
+      text: 'Sáng chủ nhật, bố mẹ đưa bạn đi cà phê. Quán đông người, tiếng nhạc nhẹ, mùi cà phê thơm phức. Bạn ngồi ghế em bé, được gọi riêng một ly sữa.',
+      scene: { loc: 'cafe', time: 'day', anim: 'sit', fx: 'steam', shot: 'wide',
+        npcs: [ { role: 'father', anim: 'drink' }, { role: 'mother', anim: 'talk', say: 'Uống sữa đi con, đừng đụng ly của bố!' } ] },
+      choices: [
+        { label: 'Làm đổ ly cà phê của bố', text: 'Bạn với tay hất đổ ly cà phê sữa đá, ướt hết quần bố. Bố nhìn trời, mẹ cười không nhặt được mồm.',
+          effects: { happy: 4, rel: { father: -1, mother: 1 } },
+          scene: { anim: 'laugh', fx: 'sweat', npcAnim: { father: 'facepalm', mother: 'laugh' } } },
+        { label: 'Vẫy tay chào khách bàn bên', text: 'Bạn vẫy tay chào từng người. Mấy chị sinh viên bàn bên sang nựng má, còn tặng bạn một chiếc bánh quy.',
+          effects: { happy: 4, looks: 1, karma: 1 },
+          scene: { anim: 'wave', fx: 'hearts', npcAnim: { mother: 'laugh' } } },
+        { label: 'Uống sữa ngoan ngoãn', text: 'Bạn uống hết ly sữa, ngồi ngoan nghe nhạc. Bố mẹ được một buổi sáng hẹn hò hiếm hoi kể từ ngày có bạn.',
+          effects: { health: 2, rel: { father: 2, mother: 2 } },
+          scene: { anim: 'drink', fx: 'music', npcAnim: { father: 'talk', mother: 'love' } } }
+      ]
+    },
+
+    {
+      id: 'c_baby_nhatre', title: 'Ngày đầu đi nhà trẻ', icon: '🎒', age: [2, 2], weight: 1.5,
+      text: 'Hôm nay là ngày đầu tiên bạn đi nhà trẻ. Lớp học đầy đồ chơi màu sắc, mấy đứa nhỏ đứa thì khóc, đứa thì chạy lung tung. Cô giáo dang tay đón bạn ở cửa.',
+      scene: { loc: 'school', time: 'dawn', anim: 'idle', fx: 'question', shot: 'wide',
+        npcs: [ { role: 'teacher', gender: 'f', anim: 'wave', say: 'Chào con, vào lớp với cô nào!' }, { role: 'mother', anim: 'wave' }, { role: 'kid', anim: 'cry' } ] },
+      choices: [
+        { label: 'Ôm chân mẹ khóc không buông', text: 'Bạn ôm chân mẹ gào khóc. Mẹ đi khuất rồi mà bạn vẫn đứng ở cửa sổ nhìn theo. Tới trưa thì bạn đã chơi xếp hình vui vẻ.',
+          effects: { happy: -2, rel: { mother: 3 } },
+          scene: { anim: 'cry', fx: 'tears', npcAnim: { mother: 'sad', teacher: 'hug' } } },
+        { label: 'Chạy ngay vào chơi', text: 'Bạn buông tay mẹ, lao thẳng vào góc đồ chơi không thèm ngoái lại. Mẹ đứng ngoài cửa, hơi tủi thân vì con mình không nhớ mẹ.',
+          effects: { happy: 5, smarts: 1 },
+          scene: { anim: 'run', fx: 'sparkle', npcAnim: { mother: 'shrug', teacher: 'clap' } } },
+        { label: 'Dỗ đứa bạn đang khóc', text: 'Thấy một bạn nhỏ khóc nhè, bạn lẫm chẫm tới chia cho nó cái bánh. Cô giáo khen trước cả lớp, hai đứa thành bạn thân.',
+          effects: { happy: 3, karma: 4, rel: { mother: 2 } },
+          scene: { anim: 'hug', fx: 'hearts', npcAnim: { teacher: 'love', kid: 'laugh' } } }
+      ]
+    },
+
     // ───────────────────────── TRẺ NHỎ 3–6 ─────────────────────────
     {
       id: 'c_kinder_cry', title: 'Cuộc chia ly mỗi sáng', icon: '😭', age: [3, 4], weight: 1.5,

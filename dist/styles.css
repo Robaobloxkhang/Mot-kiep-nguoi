@@ -65,7 +65,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .icon-btn { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; border: 1px solid var(--line-2); background: rgba(14, 17, 32, .62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); cursor: pointer; font-size: 18px; transition: transform .15s var(--ease), background .2s; }
 .icon-btn:hover { background: rgba(30, 36, 64, .85); transform: translateY(-1px); }
 .icon-btn:active { transform: translateY(1px); }
-.loc-tag { position: absolute; left: 16px; bottom: 14px; padding: 6px 12px; border-radius: 999px; background: rgba(14, 17, 32, .55); border: 1px solid var(--line); font-size: 12.5px; color: var(--fg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); pointer-events: none; letter-spacing: .02em; }
+.loc-tag { position: absolute; left: 16px; bottom: 64px; padding: 6px 12px; border-radius: 999px; background: rgba(14, 17, 32, .55); border: 1px solid var(--line); font-size: 12.5px; color: var(--fg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); pointer-events: none; letter-spacing: .02em; }
 .drag-hint { position: absolute; right: 16px; bottom: 14px; font-size: 12px; color: rgba(255, 255, 255, .85); background: rgba(14, 17, 32, .45); padding: 5px 10px; border-radius: 999px; pointer-events: none; animation: fadeOut 1s 5s forwards; }
 @keyframes fadeOut { to { opacity: 0; } }
 
@@ -1282,3 +1282,14 @@ details.more.risk p { margin: 0 0 8px; }
 .btn.on { outline: 2px solid var(--lantern); }
 .hax-coach { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; margin-top: 8px; } .hax-coach span { width: 10px; }
 .hax-coach button { border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px; background: rgba(255, 255, 255, .06); color: inherit; font: 600 13px var(--f-body); cursor: pointer; } .hax-coach button.on { background: var(--lantern); color: #2a1a05; }
+
+/* phán xét cuối đời */
+.death-sec.afterlife { margin: 12px 0; padding: 12px; border-radius: 12px; border: 1px solid var(--line-2); text-align: left; }
+.death-sec.afterlife.heaven { background: linear-gradient(135deg, rgba(255, 220, 130, .18), rgba(255, 255, 255, .04)); border-color: rgba(255, 210, 110, .6); }
+.death-sec.afterlife.hell { background: linear-gradient(135deg, rgba(255, 80, 30, .2), rgba(60, 0, 0, .2)); border-color: rgba(255, 90, 40, .6); }
+.death-sec.afterlife.limbo { background: rgba(160, 170, 190, .1); }
+.death-sec.afterlife .btn { margin-top: 8px; }
+.path-card { margin-bottom: 12px; border-color: rgba(255, 179, 71, .45); }
+.path-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; } .path-head small { color: var(--lantern, #ffb347); font-weight: 700; }
+.path-steps { display: grid; gap: 4px; margin: 8px 0 6px; font-size: 13px; } .path-steps .ps { display: flex; gap: 6px; align-items: baseline; opacity: .7; } .path-steps .ps.ok { opacity: .9; } .path-steps .ps.cur { opacity: 1; font-weight: 700; }
+.path-next { margin: 4px 0 0; font-size: 13px; color: var(--lantern, #ffb347); }

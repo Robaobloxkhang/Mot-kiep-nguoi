@@ -116,7 +116,7 @@
 <script>
 (function () {
   // màn hình chờ: đếm số file game đã tải xong (58 file) rồi tới bước dựng cảnh 3D
-  var TOTAL = 58, n = 0, pct = 0, t0 = Date.now(), el = document.getElementById('boot');
+  var TOTAL = 60, n = 0, pct = 0, t0 = Date.now(), el = document.getElementById('boot');
   var fill = document.getElementById('bootFill'), msg = document.getElementById('bootMsg'), pc = document.getElementById('bootPct'), tip = document.getElementById('bootTip');
   var TIPS = ['💡 Bấm +1 tuổi (hoặc phím cách) để lớn lên, mỗi năm là một câu chuyện mới.', '💡 Chăm học, giữ sức khoẻ và tâm trạng thì đời dễ thở hơn.', '💡 Mở MXH để nổi tiếng, nhận quảng cáo và livestream.', '💡 Haxball có chế độ online: tạo phòng rồi gửi mã cho bạn bè.', '💡 Máy yếu? Vào ⚙️ Cài đặt → Đồ họa chọn Mượt.', '💡 Nghiệp tốt thì kiếp sau đầu thai vào nhà khá giả hơn.', '💡 Minigame có ghi phím ở dưới, đọc trước khi chơi nhé.'];
   var ti = Math.floor(Math.random() * TIPS.length);
@@ -165,6 +165,7 @@
 <script src="js/events_career_office.js"></script>
 <script src="js/events_career_service.js"></script>
 <script src="js/events_global.js"></script>
+<script src="js/events_holiday.js"></script>
 <script src="js/characters.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/env_core.js"></script>
@@ -172,6 +173,7 @@
 <script src="js/env_outdoor.js"></script>
 <script src="js/env_sport.js"></script>
 <script src="js/env_travel.js"></script>
+<script src="js/env_afterlife.js"></script>
 <script src="js/world.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/jobs_tasks.js"></script>

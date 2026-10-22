@@ -20,6 +20,117 @@
           effects: { karma: 3, flag: 'gh_invite_no' }, scene: { anim: 'shake' } }
       ]
     },
+    // ── đánh nhau: dân giang hồ năm nào cũng phải ra tay (gangYear ép ít nhất một trận) ──
+    {
+      id: 's_gh_hon_chien', title: 'Hỗn chiến đêm khuya', icon: '🔥', age: [15, 60], weight: 2.5,
+      req: gh(0),
+      text: 'Nửa đêm, điện thoại réo: “Anh em bị bọn chợ Đêm chặn đánh ở gầm cầu, ra ngay!”. Bạn vớ cây gậy sau cửa, nổ máy phóng đi. Dưới gầm cầu đã có mấy chục người đứng thủ thế.',
+      scene: { loc: 'street', time: 'night', anim: 'run', npcs: [{ role: 'thug', anim: 'angry', say: 'Đứa nào dám đụng anh em tao?' }, { role: 'thug', anim: 'angry' }, { role: 'crowd', anim: 'scared' }], fx: 'anger', shot: 'dramatic' },
+      choices: [
+        { label: '👊 Xông vào giữa trận', mini: 'fight', foe: 'gang',
+          success: { stat: 'health', base: 0.25, scale: 0.5 },
+          outcomes: [
+            { text: 'Bạn lao vào như con thú, hạ liền ba tên. Bọn chợ Đêm tan tác bỏ chạy. Sáng ra cả khu đồn ầm tên bạn.', effects: { perf: 15, karma: -5, happy: 4, money: 3000000 }, scene: { anim: 'cheer', fx: 'stars' } },
+            { text: 'Bạn dính một gậy vào đầu, ngã gục giữa đường. Anh em khiêng bạn vào viện khâu năm mũi.', effects: { health: -14, perf: -6, happy: -4 }, scene: { loc: 'hospital', anim: 'sick', fx: 'tears' } }
+          ] },
+        { label: '🏍️ Chở đàn em bị thương chạy trước', text: 'Bạn bỏ trận, chở thằng em máu me đầy mặt vào viện. Nó sống, nhưng mấy anh em khác bảo bạn “hèn”.', effects: { karma: 3, perf: -6, rel: { friend: 3 } }, scene: { anim: 'drive', fx: 'sweat' } },
+        { label: '🚓 Gọi công an giải tán', text: 'Bạn lén gọi 113. Còi hú vang, hai phe chạy tán loạn. Không ai biết là bạn, nhưng lòng bạn nhẹ nhõm lạ thường.', effects: { karma: 6, perf: -10 }, scene: { anim: 'phone', fx: 'exclaim' } }
+      ]
+    },
+    {
+      id: 's_gh_phuc_kich', title: 'Bị phục kích', icon: '🗡️', age: [16, 60], weight: 2.2,
+      req: gh(0),
+      text: 'Đang đi một mình về nhà, bạn bị bốn tên bịt mặt chặn đầu xe. Một tên rút dao: “Đại ca mày nợ bọn tao một món. Hôm nay mày trả thay.”',
+      scene: { loc: 'street', time: 'night', anim: 'scared', npcs: [{ role: 'thug', anim: 'angry', say: 'Xuống xe!' }, { role: 'thug', anim: 'point' }], fx: 'exclaim', shot: 'dramatic' },
+      choices: [
+        { label: '👊 Đánh trả tên cầm dao', mini: 'fight', foe: 'dao',
+          success: { stat: 'health', base: 0.2, scale: 0.5 },
+          outcomes: [
+            { text: 'Bạn né nhát dao, quật tên cầm đầu xuống đất. Ba tên còn lại hoảng hồn bỏ chạy. Đại ca thưởng nóng cho bạn.', effects: { perf: 14, money: 5000000, karma: -3, happy: 3 }, scene: { anim: 'cheer', fx: 'stars' } },
+            { text: 'Nhát dao sượt qua bụng. Bạn ôm vết thương chạy được ra đường lớn, nằm viện cả tháng.', effects: { health: -20, happy: -6 }, scene: { loc: 'hospital', anim: 'sick', fx: 'tears' } }
+          ] },
+        { label: '🏃 Bỏ xe, chạy thoát thân', success: { stat: 'health', base: 0.4, scale: 0.4 },
+          outcomes: [
+            { text: 'Bạn chạy một mạch qua ba con hẻm. Mất chiếc xe nhưng còn nguyên người.', effects: { money: -15000000, perf: -5 }, scene: { anim: 'run', fx: 'sweat' } },
+            { text: 'Chạy không kịp, bạn bị đánh hội đồng một trận nhừ tử.', effects: { health: -15, money: -15000000, perf: -5 }, scene: { anim: 'fall', fx: 'dust' } }
+          ] }
+      ]
+    },
+    {
+      id: 's_gh_solo', title: 'Solo với đại ca phe kia', icon: '🥊', age: [17, 55], weight: 2,
+      req: gh(1),
+      text: 'Hai băng thoả thuận giải quyết món nợ cũ bằng một trận solo tay đôi, không dao, không gậy. Bên kia cử ra một gã cao to từng đi đánh võ đài. Bên bạn, đại ca chỉ tay về phía bạn.',
+      scene: { loc: 'ring', time: 'night', anim: 'box', npcs: [{ role: 'thug', anim: 'box', say: 'Lên đây!' }, { role: 'crowd', anim: 'cheer' }], fx: 'anger', shot: 'dramatic' },
+      choices: [
+        { label: '🥊 Lên đài', mini: 'fight', foe: 'vo',
+          success: { stat: 'health', base: 0.15, scale: 0.55 },
+          outcomes: [
+            { text: 'Ba hiệp nghẹt thở, bạn hạ đo ván gã võ sĩ. Băng bên kia xoá nợ, đại ca nâng bạn lên làm “tay chân thân tín”.', effects: { perf: 22, happy: 6, karma: -2, money: 10000000 }, scene: { anim: 'cheer', fx: 'confetti' } },
+            { text: 'Bạn bị đấm gãy mũi ở hiệp hai. Thua trận, mất mặt, “nhà mình” phải nhường bãi.', effects: { health: -12, perf: -12, happy: -6 }, scene: { anim: 'fall', fx: 'tears' } }
+          ] },
+        { label: '🙅 Từ chối, nhờ người khác đánh', text: 'Bạn lắc đầu. Đại ca cử thằng khác lên, nó thua. Từ đó đại ca nhìn bạn bằng nửa con mắt.', effects: { perf: -12, health: 1 }, scene: { anim: 'shake' } }
+      ]
+    },
+    {
+      id: 's_gh_cuu_em', title: 'Giải cứu đàn em', icon: '⛓️', age: [17, 60], weight: 1.8,
+      req: gh(1),
+      text: 'Thằng em ruột trong băng bị bọn cho vay nặng lãi bắt giữ ở một kho hàng bỏ hoang, đòi chuộc 100 triệu. Đại ca bảo: “Tiền thì không có. Có tay chân thôi.”',
+      scene: { loc: 'street', time: 'night', anim: 'angry', npcs: [{ role: 'thug', anim: 'idle', say: 'Mang tiền tới chưa?' }, { role: 'friend', anim: 'scared' }], fx: 'exclaim', shot: 'dramatic' },
+      choices: [
+        { label: '👊 Đột nhập đánh úp', mini: 'fight', foe: 'gang',
+          success: { stat: 'health', base: 0.2, scale: 0.5 },
+          outcomes: [
+            { text: 'Bạn phá cửa sau, hạ gục hai tên canh và cõng thằng em ra. Từ đó nó coi bạn như anh ruột.', effects: { perf: 16, karma: 2, happy: 5, rel: { friend: 10 } }, scene: { anim: 'cheer', fx: 'stars' } },
+            { text: 'Bạn bị bắt luôn, ăn một trận đòn rồi bị ném ra đường. Đại ca phải bỏ tiền chuộc cả hai.', effects: { health: -14, perf: -10, happy: -6 }, scene: { anim: 'fall', fx: 'tears' } }
+          ] },
+        { label: '💵 Bỏ tiền túi chuộc', text: 'Bạn dốc hết tiền tiết kiệm chuộc thằng em. Nó khóc, thề cả đời không quên. Đại ca thì cười khẩy: “Ngu.”', effects: { money: -100000000, karma: 5, rel: { friend: 8 } }, scene: { anim: 'sad', fx: 'money' } }
+      ]
+    },
+    {
+      id: 's_gh_dam_cuoi', title: 'Phá đám cưới phe đối thủ', icon: '💥', age: [17, 55], weight: 1.6,
+      req: gh(0),
+      text: 'Đại ca ra lệnh: tối nay đám cưới con trai trùm phe bên kia, “sang chào hỏi” cho chúng nó biết mặt. Rạp cưới rực rỡ, nhạc xập xình, khách khứa đông nghịt.',
+      scene: { loc: 'wedding', time: 'night', anim: 'angry', npcs: [{ role: 'thug', anim: 'idle', say: 'Vào thôi anh em!' }, { role: 'crowd', anim: 'dance' }], fx: 'anger', shot: 'dramatic' },
+      choices: [
+        { label: '👊 Lật bàn, đánh nhau giữa tiệc', mini: 'fight', foe: 'say',
+          success: { stat: 'health', base: 0.3, scale: 0.45 },
+          outcomes: [
+            { text: 'Cỗ bàn đổ ngổn ngang, khách chạy tán loạn. Bạn đánh gục mấy tay bảo kê say xỉn. Đại ca hả hê, nhưng nhà bạn bị khắc tên vào sổ thù.', effects: { perf: 14, karma: -10, happy: 2 }, scene: { anim: 'cheer', fx: 'smoke' } },
+            { text: 'Phe bên kia đông gấp ba. Bạn bị đánh văng ra cổng rạp, có người quay clip tung lên mạng.', effects: { health: -12, perf: -6, karma: -6 }, scene: { anim: 'fall', fx: 'dust' } }
+          ] },
+        { label: '🍻 Lặng lẽ đi phong bì rồi về', text: 'Bạn bỏ phong bì, chúc mừng một câu rồi kéo anh em về. Trùm bên kia gật đầu nể. Đại ca chửi bạn suốt đêm, nhưng đêm đó không ai đổ máu.', effects: { perf: -8, karma: 6, money: -2000000 }, scene: { anim: 'bow' } }
+      ]
+    },
+    {
+      id: 's_gh_vo_duong', title: 'Lò võ của đại ca', icon: '🥋', age: [15, 50], weight: 1.6,
+      req: gh(0),
+      text: 'Đại ca mở lò luyện võ trong kho hàng cho anh em. Ai muốn lên chức phải qua được ba đàn anh trong một buổi đấu tập.',
+      scene: { loc: 'gym', time: 'night', anim: 'box', npcs: [{ role: 'thug', anim: 'box', say: 'Đỡ được ba đòn thì lên!' }, { role: 'crowd', anim: 'cheer' }], fx: 'sweat' },
+      choices: [
+        { label: '🥊 Đấu tập với đàn anh', mini: 'fight', foe: 'danAnh',
+          success: { stat: 'health', base: 0.35, scale: 0.45 },
+          outcomes: [
+            { text: 'Bạn qua cả ba đàn anh, người tím bầm nhưng đứng vững. Đại ca ghi tên bạn vào danh sách “lên chức”.', effects: { perf: 15, health: 2, happy: 3 }, scene: { anim: 'cheer', fx: 'levelup' } },
+            { text: 'Bạn gục ở đàn anh thứ hai. Đại ca bảo: “Về tập thêm đi.”', effects: { health: -5, perf: -3 }, scene: { anim: 'sad', fx: 'sweat' } }
+          ] },
+        { label: '💪 Tập thể lực cả đêm', text: 'Bạn chưa dám đấu, ở lại tập tạ tới sáng. Người rắn chắc hẳn ra.', effects: { health: 4, perf: 2 }, scene: { anim: 'lift', fx: 'sweat' } }
+      ]
+    },
+    {
+      id: 's_gh_teen_danh', title: 'Đánh nhau ở cổng trường', icon: '🤜', age: [12, 17], weight: 2,
+      req: { flag: 'scnGang', jail: false },
+      text: 'Tan học, đám học sinh trường bên kéo sang chặn cổng, đòi “nói chuyện” với bạn vì tội nhìn đểu. Mấy anh lớn trong khu phố đứng xa xa, khoanh tay xem bạn xử lý ra sao.',
+      scene: { loc: 'school', time: 'dusk', anim: 'angry', npcs: [{ role: 'classmate', anim: 'angry', say: 'Mày nhìn gì?' }, { role: 'thug', anim: 'idle' }], fx: 'anger' },
+      choices: [
+        { label: '👊 Ra tay luôn', mini: 'fight', foe: 'kid',
+          success: { stat: 'health', base: 0.4, scale: 0.4 },
+          outcomes: [
+            { text: 'Bạn hạ gục thằng cầm đầu chỉ bằng hai cú đấm. Mấy anh lớn trong khu gật gù: “Thằng này có máu.”', effects: { happy: 3, karma: -3, flag: 'gh_teen_win', rel: { mother: -3 } }, scene: { anim: 'cheer', fx: 'stars' } },
+            { text: 'Bạn bị đánh bầm mắt, mẹ bị mời lên trường. Về nhà còn ăn thêm trận roi.', effects: { health: -5, happy: -4, rel: { mother: -4 } }, scene: { anim: 'cry', fx: 'tears' } }
+          ] },
+        { label: '🚶 Đi đường khác về', text: 'Bạn lặng lẽ vòng cổng sau. Mấy anh lớn cười khẩy, nhưng mẹ không phải lên trường.', effects: { karma: 2, rel: { mother: 2 } }, scene: { anim: 'walk' } }
+      ]
+    },
     {
       id: 's_gh_bao_ke', title: 'Thu tiền bảo kê', icon: '💵', age: [15, 60], weight: 2,
       req: gh(0),

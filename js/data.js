@@ -715,31 +715,40 @@
   YOUTH_SPORT.dienkinh = ySport('Điền kinh', '🏃', 'stadium', 8, [['Đội điền kinh của trường', 8], ['Đội năng khiếu điền kinh', 11, 'Hội khỏe Phù Đổng cấp thành phố: chạy 100 mét, nhảy xa, ném bóng.'], ['Đội tuyển trẻ tỉnh', 13, 'Giải điền kinh trẻ toàn quốc: phải có huy chương mới được gọi lên đội tỉnh.'], ['Đội tuyển trẻ quốc gia', 16, 'Đợt tuyển chọn đội tuyển trẻ quốc gia, đo thành tích từng phần trăm giây.']], 'Lên đội tuyển điền kinh chuyên nghiệp của tỉnh', ['Năm nay bạn chạy {n} giải, cải thiện thành tích đáng kể.', 'Bạn tập {n} buổi một tuần trên đường chạy đất đỏ của trường.', 'Năm nay bạn bị đau cổ chân, chỉ thi được {n} giải.']);
   YOUTH_SPORT.bongchuyen = ySport('Bóng chuyền', '🏐', 'court', 10, [['Đội bóng chuyền của trường', 10], ['CLB bóng chuyền trẻ', 12, 'CLB bóng chuyền trẻ tuyển quân: đo chiều cao, bật nhảy, chuyền và đập bóng.'], ['Đội trẻ tỉnh', 14, 'Giải bóng chuyền trẻ toàn quốc, các đội VĐQG cử người xem.'], ['Đội trẻ của CLB VĐQG', 16, 'Trại tuyển chọn của CLB bóng chuyền VĐQG.']], 'Ký hợp đồng với CLB bóng chuyền VĐQG', ['Mùa này bạn có {n} cú đập ghi điểm mỗi trận.', 'Bạn đá chính {n} trận, chuyền hai cực ăn ý.', 'Năm nay bạn ngồi dự bị, vào sân {n} trận.']);
   // đội nước ngoài có thể chiêu mộ VĐV Việt (tier càng cao càng khó, mult = hệ số thu nhập)
+  // câu lạc bộ nước ngoài, gọi theo biệt danh quen thuộc của fan Việt; stars = ngôi sao (biệt danh) có thể làm đồng đội
   const FOREIGN_CLUBS = {
     cauthu: [
-      { clubs: ['Buriram United', 'Port FC', 'BG Pathum United'], country: 'Thái Lan', mult: 2, minLv: 1 },
-      { clubs: ['Yokohama F. Marinos', 'Ulsan HD', 'Cerezo Osaka'], country: 'Nhật Bản / Hàn Quốc', mult: 4, minLv: 2 },
-      { clubs: ['Sint-Truiden', 'Real Sociedad', 'Feyenoord'], country: 'châu Âu', mult: 8, minLv: 3 },
-      { clubs: ['Manchester United', 'Arsenal', 'Liverpool', 'Manchester City', 'Chelsea', 'Tottenham Hotspur'], country: 'Anh (Premier League)', mult: 25, minLv: 3, rare: true }
+      { clubs: ['Voi chiến Buriram United', 'Port FC "Bến cảng"', 'BG Pathum United', 'Muangthong "Bầy trâu"'], country: 'Thái Lan', mult: 2, minLv: 1, stars: ['Chanathip "Messi Thái"', 'Teerasil "Sát thủ"', 'thủ môn Kawin'] },
+      { clubs: ['Yokohama F. Marinos', 'Ulsan HD "Hổ Ulsan"', 'Kawasaki Frontale', 'Vissel Kobe', 'Jeonbuk "Lục long"'], country: 'Nhật Bản / Hàn Quốc', mult: 4, minLv: 2, stars: ['Iniesta "Ảo thuật gia"', 'Son "Sơn Hưng Mẫn"', 'Mitoma "Lá phổi nhỏ"'] },
+      { clubs: ['Sint-Truiden "Đội của Công Phượng"', 'Real Sociedad', 'Feyenoord', 'Ajax "Thần Zeus"', 'Benfica "Đại bàng"', 'Porto "Rồng xanh"', 'Celtic "Cỏ ba lá"'], country: 'châu Âu', mult: 8, minLv: 3, stars: ['Pepe "Đồ tể"', 'Di María "Thiên thần"', 'Kubo "Messi Nhật"'] },
+      { clubs: ['Man đần (Manchester United)', 'Pháo thủ Arsenal', 'Lữ đoàn đỏ Liverpool', 'Man xanh (Manchester City)', 'Chen-xi Chelsea', 'Gà trống Tottenham', 'Bầy cáo Leicester', 'Chích chòe Newcastle'], country: 'Anh (Premier League)', mult: 25, minLv: 3, rare: true, stars: ['Haaland "Người máy"', 'Pharaoh Salah', 'Bruno "Penalty"', 'Saka "Măng non"', 'De Bruyne "Tóc gừng"'] },
+      { clubs: ['Kền kền trắng Real Madrid', 'Gã khổng lồ xứ Catalan Barcelona', 'Hùm xám Bayern Munich', 'Bầy ong vàng đen Dortmund', 'Bà đầm già Juventus', 'Rắn Inter Milan', 'Quỷ đỏ đen AC Milan', 'Gã nhà giàu PSG'], country: 'châu Âu (siêu CLB)', mult: 30, minLv: 3, rare: true, stars: ['Rùa ninja Mbappé', 'Vini "Samba"', 'Kane "Không danh hiệu"', 'Lewan "Máy ghi bàn"', 'Bellingham "Hoàng tử"'] },
+      { clubs: ['Al Nassr "Đội của Rô điệu"', 'Al Hilal', 'Inter Miami "Đội của Si"'], country: 'Ả Rập / Mỹ', mult: 20, minLv: 3, rare: true, stars: ['Rô "điệu"', 'Si "M10"', 'Ney "ăn vạ"', 'Benzema "Mũi to"'] }
     ],
     bongro: [
-      { clubs: ['Saigon Heat (ABL)', 'Hong Kong Eastern', 'Zamboanga Valientes'], country: 'giải ABL Đông Nam Á', mult: 2, minLv: 1 },
-      { clubs: ['Chiba Jets', 'Alvark Tokyo', 'Seoul SK Knights'], country: 'Nhật Bản / Hàn Quốc', mult: 4, minLv: 2 },
-      { clubs: ['Real Madrid Baloncesto', 'Fenerbahçe', 'Olympiacos'], country: 'châu Âu (EuroLeague)', mult: 9, minLv: 3 },
-      { clubs: ['Los Angeles Lakers', 'Golden State Warriors', 'Boston Celtics', 'Miami Heat', 'Chicago Bulls'], country: 'Mỹ (NBA)', mult: 30, minLv: 3, rare: true }
+      { clubs: ['Sức nóng Saigon Heat', 'Trâu Hà Nội (Hanoi Buffaloes)', 'Rồng Đà Nẵng', 'Cá heo Nha Trang'], country: 'giải VBA / ABL', mult: 2, minLv: 1, stars: ['Justin Young "Ông chú VBA"', 'Chris Dierker "Tây Việt"'] },
+      { clubs: ['Chiba Jets', 'Alvark Tokyo', 'Seoul SK Knights', 'Đại bàng Philippines Ginebra'], country: 'Nhật Bản / Hàn Quốc / Philippines', mult: 4, minLv: 2, stars: ['Kawamura "Tí hon"', 'Kai Sotto "Người khổng lồ"'] },
+      { clubs: ['Kền kền trắng Real Madrid Baloncesto', 'Fenerbahçe "Hoàng yến"', 'Olympiacos "Lữ đoàn đỏ Hy Lạp"', 'Barça Basket'], country: 'châu Âu (EuroLeague)', mult: 9, minLv: 3, stars: ['Llull "Sát thủ cuối trận"', 'Tavares "Bức tường"'] },
+      { clubs: ['Hồ nhân Lakers', 'Chiến binh Golden State', 'Cỏ ba lá Boston Celtics', 'Sức nóng Miami Heat', 'Bò tót Chicago Bulls', 'Gà trống Spurs'], country: 'Mỹ (NBA)', mult: 30, minLv: 3, rare: true, stars: ['LeBron "Nhà vua"', 'Curry "Thánh ném ba"', 'Giannis "Quái vật Hy Lạp"', 'Wemby "Người ngoài hành tinh"', 'Jokić "Ông Joker"'] }
     ],
     esports: [
-      { clubs: ['Talon Esports', 'Team Secret', 'Bleed Esports'], country: 'Đông Nam Á', mult: 2, minLv: 1 },
-      { clubs: ['Paper Rex', 'DRX', 'Gen.G'], country: 'châu Á – Thái Bình Dương', mult: 4, minLv: 1 },
-      { clubs: ['G2 Esports', 'Sentinels', 'LOUD', 'Fnatic', 'Team Liquid', 'T1'], country: 'quốc tế', mult: 10, minLv: 2, rare: true }
+      { clubs: ['GAM Esports "Rồng xanh"', 'Team Flash "Tia chớp"', 'Saigon Phantom', 'V Gaming', 'Saigon Buffalo "Trâu Sài Gòn"'], country: 'Việt Nam (VCS)', mult: 1.5, minLv: 1, stars: ['Levi "Anh cả"', 'Kiaya "Đường trên"', 'Slayder "Sát thủ"'] },
+      { clubs: ['Talon Esports', 'Team Secret', 'Paper Rex "Báo giấy"', 'Bleed Esports'], country: 'Đông Nam Á', mult: 2, minLv: 1, stars: ['Something "Ma nhập"', 'f0rsakeN "Thánh vẩy"'] },
+      { clubs: ['Hổ vàng Gen.G', 'DRX "Rồng"', 'Đế chế T1', 'Hanwha Life "Cam"'], country: 'Hàn Quốc (LCK)', mult: 5, minLv: 2, stars: ['Faker "Quỷ vương bất tử"', 'Chovy "Cỗ máy farm"', 'Keria "Thánh hỗ trợ"'] },
+      { clubs: ['G2 "Samurai"', 'Fnatic "Cam đen"', 'Team Liquid "Ngựa xanh"', 'Sentinels', 'LOUD "Đội Brazil ồn ào"'], country: 'quốc tế', mult: 10, minLv: 2, rare: true, stars: ['Caps "Baby Faker"', 'TenZ "Thánh aim"', 's1mple "Thiên tài"'] }
     ],
     caulong: [
-      { clubs: ['Bengaluru Raptors', 'Hyderabad Hunters'], country: 'Ấn Độ (Premier Badminton League)', mult: 2.5, minLv: 2 },
-      { clubs: ['Đội tuyển BWF World Tour của Yonex', 'Đội tuyển BWF World Tour của Victor'], country: 'quốc tế', mult: 5, minLv: 3, rare: true }
+      { clubs: ['Bengaluru Raptors', 'Hyderabad Hunters'], country: 'Ấn Độ (Premier Badminton League)', mult: 2.5, minLv: 2, stars: ['Sindhu "Nữ hoàng Ấn"', 'Srikanth'] },
+      { clubs: ['Đội tuyển BWF World Tour của Yonex', 'Đội tuyển BWF World Tour của Victor', 'CLB cầu lông Hàng Châu "Tiểu Long"'], country: 'quốc tế', mult: 5, minLv: 3, rare: true, stars: ['Axelsen "Người khổng lồ Đan Mạch"', 'Momota "Tay vợt thép"', 'Lee Chong Wei "Huyền thoại"'] }
+    ],
+    bongchuyen: [
+      { clubs: ['Nakhon Ratchasima "Voi Thái"', 'Supreme Chonburi'], country: 'Thái Lan', mult: 2, minLv: 1, stars: ['Pleumjit "Chuyền hai thần"'] },
+      { clubs: ['JT Marvelous', 'Toray Arrows', 'Hyundai Hillstate'], country: 'Nhật Bản / Hàn Quốc', mult: 4, minLv: 2, stars: ['Kim Yeon-koung "Nữ hoàng bóng chuyền"'] },
+      { clubs: ['VakıfBank "Nữ hoàng châu Âu"', 'Imoco Conegliano "Thần bảo hộ"', 'Fenerbahçe "Hoàng yến"'], country: 'châu Âu', mult: 10, minLv: 3, rare: true, stars: ['Egonu "Đại bác"', 'Boskovic "Búa tạ"'] }
     ],
     vdv_vo: [
-      { clubs: ['ONE Championship', 'Lion Championship (Singapore)'], country: 'Singapore', mult: 3, minLv: 2 },
-      { clubs: ['UFC', 'Bellator MMA'], country: 'Mỹ', mult: 10, minLv: 3, rare: true }
+      { clubs: ['ONE Championship', 'Lion Championship (Singapore)'], country: 'Singapore', mult: 3, minLv: 2, stars: ['Nguyễn Trần Duy Nhất "Độc cô cầu bại"', 'Rodtang "Người sắt"'] },
+      { clubs: ['UFC', 'Bellator MMA'], country: 'Mỹ', mult: 10, minLv: 3, rare: true, stars: ['McGregor "Gã điên Ailen"', 'Khabib "Đại bàng"', 'Jon Jones "Xương"'] }
     ]
   };
   // độ khó: inc = thu nhập, ill = khả năng mắc bệnh, haz = rủi ro đời sống, mort = tử vong, exam = cộng/trừ tỉ lệ đỗ, score = hệ số điểm
@@ -778,6 +787,17 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.71', date: '22/10/2026', items: [
+      '👶 Tuổi 0–2 hết chán: thêm 17 tình huống mới ở công viên, biển, quê ngoại, chùa, đám cưới, sân bay, studio, nhà trẻ…; năm nào cũng có chuyện xảy ra, cảnh thường ngày đổi chỗ liên tục.',
+      '💸 Âm tiền: dưới 18 tuổi bố mẹ phải trả thay (và mắng); từ 18 tuổi bắt buộc vay ngân hàng, vay người thân, bán tài sản hoặc vay app để lấp.',
+      '🧭 Bảng “Con đường của bạn” ở đầu nhật ký: hiện từng bước đã qua, bước đang ở và việc cần làm tiếp.',
+      '🦹 Giang hồ năm nào cũng phải đánh nhau: hỗn chiến, bị phục kích, solo trên võ đài, giải cứu đàn em, phá đám cưới, lò võ; tuổi teen cũng có đánh nhau ở cổng trường.',
+      '🎉 Thêm dịp lễ: 1/6, Trung thu rước đèn, Noel, Halloween, 8/3, 20/10, Valentine, Vu Lan, ông Công ông Táo, lễ hội đầu xuân, Giỗ Tổ, 30/4, Quốc khánh, giao thừa dương lịch, Rằm tháng Giêng.',
+      '⚽ Thêm nhiều câu lạc bộ lớn cho bóng đá, bóng rổ, eSports, bóng chuyền, cầu lông, võ thuật — gọi theo biệt danh quen thuộc: Man đần, Pháo thủ, Gà trống, Kền kền trắng, Hồ nhân Lakers, T1 "Đế chế"… cùng các ngôi sao có biệt danh.',
+      '🎲 Chỉ số ban đầu ngẫu nhiên rộng hơn (sức khoẻ, trí tuệ, ngoại hình). Quá thấp sẽ gặp chuyện: xấu bị chê bai, dốt bị bố mẹ thầy cô mắng, yếu phải đi khám, buồn chán kéo dài phải tìm cách vượt qua (nói với người thân, gặp bác sĩ tâm lý).',
+      '🔧 Dời thẻ địa điểm lên cao hơn để không bị nút 💬 ✈️ 💒 che mất.',
+      '⚖️ Chết rồi được phán xét: nhiều đức (≥ 65) lên THIÊN ĐÀNG, ít đức (< 35) xuống ĐỊA NGỤC, có cảnh 3D để xem linh hồn đi về đâu.',
+    ] },
     { v: '1.70', date: '22/10/2026', items: [
       '🖥️ Bóng đá Hax online qua MÁY CHỦ RIÊNG: không còn bị mạng trường/công ty chặn, 2 máy khác nhau vào được cùng một trận.',
       '⚡ Phòng chung luôn mở sẵn: bấm "Vào phòng chung" là tự ghép trận, đủ 2 người tự đếm ngược rồi đá.',

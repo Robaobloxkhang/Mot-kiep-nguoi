@@ -1018,7 +1018,13 @@
     const fam = [], add = (role, n) => alive(role).slice(0, n || 1).forEach((p) => fam.push(p.id));
     let loc = 'home', anim = 'idle', time = wt([['day', 6], ['dusk', 2], ['night', 1.5], ['dawn', 0.6]]);
     const weather = wt([['clear', 7], ['cloudy', 2], ['rain', 1.2], ['fog', 0.3]]);
-    if (pa <= 2) { loc = 'home'; anim = pk(['crawl', 'sleep', 'laugh', 'crawl']); add('mother'); add('father'); add('pet'); time = 'day'; }
+    if (pa <= 2) {
+      // em bé: mỗi năm một khung cảnh khác cho đỡ chán (ở nhà, phòng ngủ, công viên, quê ngoại, chợ, biển, chùa)
+      loc = wt([['home', 3], ['bedroom', 1.2], ['park', 1.5], ['countryside', 1.2], ['market', 0.8], ['beach', 0.7], ['temple', 0.5]]);
+      anim = loc === 'bedroom' ? pk(['sleep', 'crawl', 'laugh']) : loc === 'home' ? pk(['crawl', 'laugh', 'crawl', 'sleep']) : pk(['laugh', 'idle', 'crawl']);
+      add('mother'); add(loc === 'countryside' || loc === 'temple' ? 'grandparent' : 'father'); if (loc === 'home' || loc === 'park') add('pet');
+      if (loc === 'bedroom') time = pk(['night', 'day']); else if (loc === 'market' || loc === 'temple') time = 'dawn'; else if (time === 'night') time = 'dusk';
+    }
     else if (pa <= 5) { loc = pk(['home', 'park', 'home']); anim = pk(['run', 'laugh', 'idle', 'dance']); add('mother'); add('grandparent'); add('pet'); }
     else if (pa <= 17) {
       loc = S.edu.inSchool ? wt([['school', 4], ['home', 3], ['bedroom', 2], ['park', 1], ['street', 1]]) : wt([['home', 3], ['street', 2], ['park', 1]]);
@@ -1051,7 +1057,7 @@
   function baseState(gen, year, city) {
     return {
       v: 1, generation: gen || 1, year: year || 2026, born: year || 2026, city: city || 'hanoi', player: null,
-      stats: { happy: U.randi(70, 92), health: U.randi(72, 100), smarts: U.randi(30, 90), looks: U.randi(30, 90) }, karma: 50, money: 0,
+      stats: { happy: U.randi(60, 92), health: U.randi(45, 100), smarts: U.randi(12, 95), looks: U.randi(12, 95) }, karma: 50, money: 0,
       edu: { level: 'none', grade: 0, perf: U.randi(45, 70), inSchool: false, major: null, uniYear: 0, degrees: [], dropped: false },
       job: null, retired: false, pension: 0, people: [], assets: [], illnesses: [], flags: {}, log: [], goals: [], ach: {}, usedEvents: {},
       yearActs: {}, yearInter: {}, pending: [], forced: [], counters: {}, daily: null, dead: null, goldPrice: 85e6,
@@ -1659,6 +1665,10 @@
     if (!S.job || S.job.id !== 'giangho') return;
     addStat('karma', -U.rand(1, 4), deltas);
     const lv = S.job.level;
+    // dân giang hồ năm nào cũng phải ra tay: ép ít nhất một trận đánh nhau
+    const FIGHTS = ['s_gh_hon_chien', 's_gh_phuc_kich', 's_gh_dam_cuoi', 's_gh_vo_duong', 's_gh_bao_ke'].concat(lv >= 1 ? ['s_gh_solo', 's_gh_cuu_em', 's_gh_dia_ban'] : []);
+    const fresh = FIGHTS.filter((id) => S.usedEvents[id] !== S.year - 1 && !S.forced.some((f) => (f.id || f) === id));
+    if (fresh.length && Math.random() < 0.85) S.forced.push({ id: U.pick(fresh), at: S.year });
     if (Math.random() < 0.05 + lv * 0.03) {
       const y = 2 + lv * 2 + U.randi(0, 2);
       L('🚨 Công an triệt phá băng nhóm. Bạn bị bắt ngay tại ổ.', 'bad', '🚨');
@@ -1955,6 +1965,79 @@
     if (ok && P().age <= sc.deadline) { S.scn.done = S.year; meta.scnDone = meta.scnDone || {}; meta.scnDone[sc.id] = (meta.scnDone[sc.id] || 0) + 1; L('🎬 HOÀN THÀNH KỊCH BẢN “' + sc.name + '”: ' + sc.goal + '!', 'milestone', '🏆'); addStat('happy', 12, {}); }
     else if (P().age > sc.deadline) { S.scn.failed = S.year; L('🎬 Kịch bản “' + sc.name + '” thất bại: đã quá hạn (' + sc.goal.toLowerCase() + ').', 'bad', '🎬'); }
   }
+  // ------------------------------------------------------------------ CON ĐƯỜNG CỦA BẠN: hiện rõ hướng đi đang theo + từng bước tiếp theo
+  function pathView() {
+    if (!S || S.dead) return null;
+    const pa = P().age, job = S.job ? D.CAREERS[S.job.id] : null, top = job ? S.job.level >= job.levels.length - 1 : false;
+    const thpt = S.edu.degrees.includes('THPT');
+    const mk = (name, icon, steps, extra) => { const i = steps.findIndex((x) => !x.done); steps.forEach((x, k) => (x.cur = k === i)); return Object.assign({ name, icon, steps, next: i < 0 ? '🏁 Bạn đã đi hết con đường này!' : steps[i].hint, pct: Math.round((100 * steps.filter((x) => x.done).length) / steps.length) }, extra || {}); };
+    const sc = scnDef();
+    if (sc && !S.scn.done && !S.scn.failed) {
+      const ST = {
+        giangho: [
+          { t: 'Nhận lời đại ca', done: !!S.flags.gh_invite, hint: 'Khoảng 16 tuổi đại ca sẽ tìm đến mời bạn — nhận tiền và theo anh ấy.' },
+          { t: 'Đánh nhau lên chức (đàn em → tay chân → trùm)', done: !!S.flags.ghBoss, hint: 'Mỗi năm đều có trận đánh nhau: thắng các trận 👊 để tăng hiệu suất và lên chức.' },
+          { t: 'Hoàn lương', done: !!S.flags.ghBoss && !(S.job && S.job.id === 'giangho'), hint: 'Khi đã làm trùm, vào mục Sự nghiệp bấm Nghỉ việc để hoàn lương.' },
+          { t: 'Sống đến 60 tuổi, không ngồi tù', done: pa >= 60 && !S.jail, hint: 'Giữ sức khoẻ, tránh vào tù cho tới 60 tuổi.' }],
+        ngheo: [
+          { t: 'Học hết THPT', done: thpt, hint: 'Chăm học để tốt nghiệp THPT.' },
+          { t: 'Có việc làm ổn định', done: !!S.job, hint: 'Vào mục Sự nghiệp tìm việc.' },
+          { t: 'Tài sản 1 tỷ', done: S.money + assetsValue() >= 1e9, hint: 'Tiết kiệm, đầu tư, mở công ty để có tỷ đầu tiên.' },
+          { t: 'Tài sản 10 tỷ trước 50 tuổi', done: S.money + assetsValue() >= 10e9, hint: 'Đầu tư nhà đất, chứng khoán, kinh doanh để đạt 10 tỷ trước 50 tuổi.' }],
+        thieugia: [
+          { t: 'Trải qua biến cố phá sản', done: !!S.flags.scnPhasan, hint: 'Năm 25 tuổi gia đình sẽ phá sản.' },
+          { t: 'Gây dựng lại 1 tỷ', done: !!S.flags.scnPhasan && S.money + assetsValue() >= 1e9, hint: 'Làm lại từ đầu: đi làm, tiết kiệm, khởi nghiệp.' },
+          { t: 'Có lại 30 tỷ trước 60 tuổi', done: !!S.flags.scnPhasan && S.money + assetsValue() >= 30e9, hint: 'Mở công ty, đầu tư để chạm mốc 30 tỷ.' }],
+        thoichien: [
+          { t: 'Sống qua chiến tranh (1975)', done: S.year >= 1975, hint: 'Giữ mạng sống qua những năm chiến tranh.' },
+          { t: 'Thọ 80 tuổi', done: pa >= 80, hint: 'Sống lành mạnh, đi khám bệnh đều đặn.' }],
+        cauthu: [
+          { t: 'Vào đội năng khiếu', done: !!(S.ys || S.flags.talent_cauthu), hint: 'Chơi bóng đá thường xuyên, buổi hướng nghiệp chọn đội năng khiếu bóng đá.' },
+          { t: 'Ký hợp đồng chuyên nghiệp', done: !!(S.job && S.job.id === 'cauthu'), hint: 'Vào mục Sự nghiệp xin làm cầu thủ.' },
+          { t: 'Khoác áo đội tuyển quốc gia', done: !!S.flags.nationalTeam || !!(S.job && S.job.id === 'cauthu' && S.job.level >= 3), hint: 'Đá tốt các trận để lên tuyển.' }],
+        hocthuat: [
+          { t: 'Tốt nghiệp đại học', done: hasDegree(), hint: 'Học giỏi, thi đỗ đại học.' },
+          { t: 'Học thạc sĩ / tiến sĩ', done: !!S.flags.master || S.edu.degrees.some((d) => /Thạc sĩ|Tiến sĩ/.test(d)), hint: 'Vào mục Học tập học lên cao học.' },
+          { t: 'Phong hàm giáo sư', done: !!S.flags.giaosu, hint: 'Làm giảng viên, nghiên cứu để được phong giáo sư.' }],
+        tramnam: [
+          { t: 'Kết hôn', done: has('spouse'), hint: 'Hẹn hò rồi cầu hôn người thương.' },
+          { t: 'Có 3 con', done: S.people.filter((x) => x.role === 'child').length >= 3, hint: 'Sinh thêm con cùng vợ/chồng.' },
+          { t: 'Không ly hôn, thọ 85 tuổi', done: has('spouse') && !S.people.some((x) => x.wasSpouse) && pa >= 85, hint: 'Giữ gìn hạnh phúc gia đình và sức khoẻ.' }],
+      }[sc.id];
+      if (ST) return mk('Kịch bản: ' + sc.name, sc.icon, ST, { goal: sc.goal });
+    }
+    const route = S.flags.route, I = route && D.INTERESTS[route];
+    if (I) {
+      if (route === 'the') {
+        const sp = Object.keys(S.flags).filter((k) => /^talent_/.test(k)).map((k) => k.slice(7)).find((c) => D.CAREERS[c] && D.CAREERS[c].sport) || 'cauthu', C = D.CAREERS[sp];
+        return mk(I.route + ': ' + C.title.toLowerCase(), I.icon, [
+          { t: 'Chọn hướng thể thao', done: true },
+          { t: 'Tập luyện ở đội năng khiếu', done: !!(S.ys && S.ys.stage >= 1) || !!(S.job && S.job.id === sp), hint: 'Mỗi năm vào mục Học tập → Tập luyện để tích điểm rèn luyện.' },
+          { t: 'Thi đấu chuyên nghiệp', done: !!(S.job && S.job.id === sp), hint: 'Đủ tuổi thì vào mục Sự nghiệp xin làm ' + C.title.toLowerCase() + '.' },
+          { t: 'Lên đội tuyển quốc gia', done: !!(S.job && S.job.id === sp && top) || !!S.flags.nationalTeam, hint: 'Thi đấu tốt, giữ thể lực để lên cấp cao nhất.' }]);
+      }
+      if (route === 'tayngh') {
+        const v = D.VOC_TRADES.find((x) => x.id === (S.flags.voc_plan || S.edu.voc)) || D.VOC_TRADES[0], C = D.CAREERS[v.career];
+        return mk('Học nghề ' + v.name.toLowerCase(), I.icon, [
+          { t: 'Học hết lớp 9', done: pa >= 15 || thpt, hint: 'Học hết lớp 9 rồi vào trường nghề.' },
+          { t: 'Học trường nghề ' + v.name.toLowerCase(), done: !!S.flags['voc_' + v.career], hint: 'Hai năm học nghề sau lớp 9.' },
+          { t: 'Đi làm ' + C.title.toLowerCase(), done: !!(S.job && S.job.id === v.career), hint: 'Vào mục Sự nghiệp xin làm ' + C.title.toLowerCase() + '.' },
+          { t: 'Lên thợ cả / mở tiệm riêng', done: !!(S.job && S.job.id === v.career && top), hint: 'Làm tốt để lên cấp cao nhất.' }]);
+      }
+      const fit = job && I.careers.includes(S.job.id);
+      return mk(I.route, I.icon, [
+        { t: 'Chọn hướng ' + I.label.toLowerCase(), done: true },
+        { t: 'Tốt nghiệp THPT', done: thpt, hint: 'Chăm học, giữ điểm số để tốt nghiệp THPT.' },
+        { t: 'Học đại học / cao đẳng', done: hasDegree(), hint: 'Thi đại học ngành gần với ' + I.label.toLowerCase() + '.' },
+        { t: 'Làm nghề hợp: ' + I.careers.slice(0, 3).map((c) => D.CAREERS[c].title.toLowerCase()).join(', '), done: !!fit, hint: 'Vào mục Sự nghiệp xin làm một trong các nghề: ' + I.careers.slice(0, 4).map((c) => D.CAREERS[c].title.toLowerCase()).join(', ') + '.' },
+        { t: 'Lên đỉnh nghề', done: !!(fit && top), hint: 'Làm tốt, giữ hiệu suất cao để thăng chức.' }]);
+    }
+    if (pa < 14) return mk('Chưa chọn hướng đi', '🧭', [
+      { t: 'Đi chơi, khám phá sở thích', done: interestProfile().length > 0 && (interestProfile()[0].pct >= 18), hint: 'Bấm “Đi chơi” trong mục Hoạt động để lộ ra sở thích của bạn.' },
+      { t: 'Buổi hướng nghiệp năm 14 tuổi', done: false, hint: 'Năm 14 tuổi sẽ có buổi tư vấn để chọn hướng đi.' }]);
+    if (job) return mk('Nghề ' + job.title.toLowerCase(), job.icon || '💼', job.levels.map((l, k) => ({ t: l[0], done: S.job.level >= k, hint: 'Làm tốt (hiệu suất cao) để lên ' + l[0].toLowerCase() + '.' })));
+    return null;
+  }
   function scenarioView() { const sc = scnDef(); if (!sc) return null; return { id: sc.id, name: sc.name, icon: sc.icon, goal: sc.goal, status: S.scn.done ? 'done' : S.scn.failed ? 'failed' : 'progress' }; }
   ms({ id: 'ms_scn_phasan', title: 'Gia đình phá sản', icon: '📉', age: [20, 40],
     text: 'Tập đoàn của bố vỡ nợ chỉ sau một đêm. Ngân hàng niêm phong biệt thự, siết toàn bộ tài khoản. Bố mẹ ngồi lặng trong căn phòng trọ thuê vội. Mọi thứ của bạn cũng đi theo.',
@@ -2058,7 +2141,7 @@
     try { xkYear(L, deltas); if (S.abroad && S.abroad.settled && S.year - S.abroad.since === 5 && !S.flags.citizen) queueMilestone('ms_quoctich'); } catch (e) { U.warnOnce('xk', 'xk', e); }
     try { officeYear(L); if (S.company) chainYear(L, deltas); } catch (e) { U.warnOnce('batchB2', 'office/chain', e); }
     try { groupsYear(L); familyBYear(L); rivalYear(L); } catch (e) { U.warnOnce('famB', 'family batch B', e); }
-    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); if (!S.blackDebt && S.money < 0 && P().age >= 18 && P().age <= 60 && S.pending.length < 2 && Math.random() < 0.35) queueMilestone('ms_tdd_moi'); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
+    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
     // công việc tự tìm đến: mỗi năm có khả năng gặp một ca làm việc nổi bật của nghề
     try { if (S.job && !S.jail && S.pending.length < 2 && Math.random() < 0.4) { const ev = jobTaskEvent(); if (ev) S.pending.push(ev); } } catch (e) { U.warnOnce('jt', 'jobtask', e); }
     jailYear(L, deltas);
@@ -2136,7 +2219,7 @@
         if (inst) { S.pending.push(inst); S.usedEvents[o.id] = S.year; }
       });
       S.forced = later;
-      let n = pa <= 2 ? (Math.random() < 0.5 ? 1 : 0) : pa <= 5 ? 1 : 1 + (Math.random() < 0.5 ? 1 : 0) + (Math.random() < 0.1 ? 1 : 0);
+      let n = pa <= 2 ? 1 + (Math.random() < 0.3 ? 1 : 0) : pa <= 5 ? 1 : 1 + (Math.random() < 0.5 ? 1 : 0) + (Math.random() < 0.1 ? 1 : 0);
       n = Math.max(0, n - S.pending.length);
       S.pending.push(...pickEvents(n));
       scene = birthdayScene(pa);
@@ -3197,23 +3280,121 @@
   function loansYear(L, deltas) {
     if (!S.loans || !S.loans.length) return;
     S.loans.forEach((ln) => {
-      const interest = ln.left * LOAN_RATE, pay = Math.min(ln.pay, Math.round(ln.left + interest));
+      const interest = ln.left * (ln.rate || LOAN_RATE), pay = Math.min(ln.pay, Math.round(ln.left + interest));
       addMoney(-pay, deltas); ln.left = Math.max(0, Math.round(ln.left + interest - pay)); ln.years--;
     });
     const done = S.loans.filter((ln) => ln.left <= 0 || ln.years <= 0);
-    done.forEach((ln) => L('🏦 Bạn đã trả hết khoản vay mua ' + ln.name.toLowerCase() + '. Sổ hồng giờ hoàn toàn đứng tên bạn!', 'milestone', '🏡'));
+    done.forEach((ln) => L(ln.cash ? '🏦 Bạn đã trả hết ' + ln.name.toLowerCase() + '. Nhẹ cả người!' : '🏦 Bạn đã trả hết khoản vay mua ' + ln.name.toLowerCase() + '. Sổ hồng giờ hoàn toàn đứng tên bạn!', 'milestone', '🏡'));
     S.loans = S.loans.filter((ln) => !done.includes(ln));
     // trả không nổi 2 năm liền → ngân hàng siết nhà
     if (S.money < 0 && S.loans.length) {
       S.loanLate = (S.loanLate || 0) + 1;
-      if (S.loanLate >= 2) {
-        const ln = S.loans.shift(), i = S.assets.findIndex((a) => a.id === ln.assetId);
+      if (S.loanLate >= 2 && !S.loans.some((l) => l.assetId)) {
+        // vay tín chấp không có nhà để siết → thành nợ xấu, bị ghi tên lên trung tâm tín dụng
+        if (!S.flags.noxau) L('🏦 Nợ quá hạn hai năm, khoản vay tín chấp thành NỢ XẤU. Từ nay ngân hàng không cho bạn vay nữa.', 'bad', '📛');
+        S.flags.noxau = S.year; addStat('happy', -6, deltas); S.loanLate = 0;
+      } else if (S.loanLate >= 2) {
+        const i0 = S.loans.findIndex((l) => l.assetId); const ln = S.loans.splice(i0, 1)[0], i = S.assets.findIndex((a) => a.id === ln.assetId);
         if (i >= 0) { const a = S.assets[i]; S.assets.splice(i, 1); const rest = Math.max(0, a.value * 0.8 - ln.left); addMoney(rest, deltas); L('🏦 Nợ quá hạn hai năm, ngân hàng siết ' + a.name.toLowerCase() + ' và bán đấu giá. ' + (rest > 0 ? 'Trừ nợ xong bạn nhận lại ' + fmtMoney(rest) + '.' : 'Bạn trắng tay.'), 'bad', '🏦'); }
         addStat('happy', -15, deltas); S.loanLate = 0;
       } else L('🏦 Ngân hàng gửi thư nhắc nợ: bạn đang chậm trả góp nhà. Thêm một năm nữa là bị siết nhà.', 'bad', '📨');
     } else S.loanLate = 0;
   }
   const loanLeft = () => (S.loans || []).reduce((s, l) => s + l.left, 0);
+
+  // ------------------------------------------------------------------ CHỈ SỐ QUÁ THẤP: đến ngưỡng thì xã hội, bố mẹ, thầy cô phản ứng và buộc bạn chọn cách đối mặt
+  function lowStatYear(L) {
+    if (!S || S.dead || S.jail || S.pending.length >= 2) return;
+    const pa = P().age, st = S.stats, due = (f, gap) => !S.flags[f] || S.year - S.flags[f] >= gap;
+    const cand = [];
+    if (st.happy < 22 && pa >= 10 && due('lsHappy', 3)) cand.push(['ms_ls_tram', 'lsHappy', 3]);
+    if (st.looks < 30 && pa >= 8 && pa <= 55 && due('lsLooks', 4)) cand.push(['ms_ls_xau', 'lsLooks', 4]);
+    if (st.smarts < 30 && pa >= 6 && pa <= 17 && S.edu.inSchool && due('lsSmart', 3)) cand.push(['ms_ls_dot', 'lsSmart', 3]);
+    if (st.health < 32 && pa >= 5 && due('lsHealth', 3)) cand.push(['ms_ls_yeu', 'lsHealth', 3]);
+    if (!cand.length || Math.random() > 0.65) return;
+    const c = U.pick(cand); S.flags[c[1]] = S.year; queueMilestone(c[0]);
+  }
+  ms({ id: 'ms_ls_xau', title: 'Lời chê bai về ngoại hình', icon: '🪞', age: [8, 55],
+    text: 'Dạo này đi đâu bạn cũng nghe những lời xì xào về ngoại hình của mình: bạn bè trêu đặt biệt danh, người quen nói thẳng “trông không được ưa nhìn”. Soi gương, bạn thở dài.',
+    scene: { loc: 'bedroom', time: 'night', anim: 'sad', expr: 'sad', fx: 'tears', shot: 'close' },
+    choices: [
+      { label: '💪 Mặc kệ, sống tự tin', text: 'Bạn tự nhủ giá trị con người không nằm ở khuôn mặt. Những lời chê vẫn còn đó, nhưng bạn không để chúng quyết định mình là ai.', effects: { happy: 2, karma: 2 }, scene: { anim: 'nod', fx: 'sparkle' } },
+      { label: '💄 Chăm chút bản thân (500 nghìn)', req: { minMoney: 500000 }, text: 'Bạn đổi kiểu tóc, học cách ăn mặc, tập thể dục đều đặn. Sau vài tháng, người quen bảo trông bạn khác hẳn.', effects: { money: -500000, looks: 4, happy: 3, health: 1 }, scene: { loc: 'street', anim: 'dance', fx: 'sparkle' } },
+      { label: '🏥 Đi thẩm mỹ (50 triệu, từ 18 tuổi)', req: { minMoney: 50000000 }, fn: () => { if (P().age < 18) return { text: 'Bạn chưa đủ 18 tuổi, bố mẹ không đồng ý cho can thiệp thẩm mỹ.', effects: { happy: -2, rel: { mother: -2 } }, scene: { anim: 'sad' } }; return { text: 'Ca phẫu thuật thành công, bạn nhìn mình trong gương với ánh mắt khác. Tiền hết, nhưng lòng tự tin quay lại.', effects: { money: -50e6, looks: 12, happy: 4 }, scene: { loc: 'hospital', anim: 'cheer', fx: 'sparkle' } }; } },
+      { label: '😶 Thu mình, tránh gặp người khác', text: 'Bạn đeo khẩu trang, né những buổi gặp mặt. Sự tự ti nuốt dần niềm vui của bạn.', effects: { happy: -5, health: -1 }, scene: { anim: 'sad', fx: 'tears' } },
+    ] });
+  ms({ id: 'ms_ls_dot', title: 'Học dốt bị mắng', icon: '📉', age: [6, 17],
+    text: 'Bảng điểm lại toàn điểm kém. Thầy cô gọi bạn lên nhắc nhở trước lớp, về nhà bố mẹ ngồi chờ sẵn với cuốn sổ liên lạc. “Sao mày dốt thế hả con?”',
+    scene: { loc: 'home', time: 'night', anim: 'sad', expr: 'sad', npcs: [{ role: 'father', anim: 'angry', say: 'Học hành kiểu gì thế này!' }, { role: 'mother', anim: 'sad' }], fx: 'anger', shot: 'close' },
+    choices: [
+      { label: '📚 Hứa sẽ cố gắng, xin học thêm', text: 'Bạn xin được đi học thêm, bố mẹ gật đầu. Những tối sau đó, bạn ngồi cặm cụi giải bài đến khuya. Chậm mà chắc, điểm số nhích dần lên.', effects: { smarts: 4, happy: -2, rel: { mother: 2, father: 2 } }, scene: { loc: 'bedroom', anim: 'study', fx: 'idea' } },
+      { label: '😤 Cãi lại: “Con không hợp học!”', text: 'Bạn cãi lại rồi bỏ vào phòng đóng sầm cửa. Cả nhà căng thẳng suốt tuần, điểm số vẫn đứng yên.', effects: { happy: -3, rel: { father: -6, mother: -4 } }, scene: { anim: 'angry', fx: 'anger' } },
+      { label: '🙇 Nhận lỗi, im lặng chịu mắng', text: 'Bạn cúi đầu nghe hết. Lòng buồn rười rượi, tự thấy mình kém cỏi, nhưng ít nhất bố mẹ cũng nguôi giận.', effects: { happy: -4, rel: { father: 1 } }, scene: { anim: 'sad', fx: 'tears' } },
+      { label: '🗣️ Nói thật là bạn học không theo kịp', text: 'Bạn lấy hết can đảm nói thật. Bố mẹ im lặng rất lâu, rồi mẹ nắm tay bạn: “Vậy mình cùng tìm cách.” Cả nhà thuê gia sư kèm cho bạn.', effects: { smarts: 3, happy: 2, money: -3000000, rel: { mother: 5, father: 3 } }, scene: { anim: 'hug', fx: 'hearts' } },
+    ] });
+  ms({ id: 'ms_ls_yeu', title: 'Cơ thể suy nhược', icon: '🩺', age: [5, 100],
+    text: 'Bạn thường xuyên mệt mỏi, hụt hơi chỉ sau vài bước chân. Người thân nhìn bạn xanh xao mà lo lắng: “Con/bạn phải đi khám ngay thôi.”',
+    scene: { loc: 'home', anim: 'sick', expr: 'sick', fx: 'sweat', shot: 'close' },
+    choices: [
+      { label: '🏥 Đi khám tổng quát (2 triệu)', req: { minMoney: 2000000 }, text: 'Bác sĩ dặn nghỉ ngơi, ăn uống đủ chất, tập nhẹ mỗi ngày. Bạn làm theo, thể trạng khá lên thấy rõ.', effects: { money: -2000000, health: 8, happy: 2 }, scene: { loc: 'hospital', anim: 'nod', fx: 'sparkle' } },
+      { label: '🛌 Nghỉ ngơi dài ngày', text: 'Bạn xin nghỉ một thời gian, ngủ nhiều hơn, ăn cháo bồi bổ. Sức khoẻ khá lên chút ít.', effects: { health: 4, happy: -1 }, scene: { loc: 'bedroom', anim: 'sleep', fx: 'zzz' } },
+      { label: '🙈 Cứ để đó, chắc không sao', text: 'Bạn gạt đi, tiếp tục sống như cũ. Cơ thể càng lúc càng kêu cứu.', effects: { health: -4 }, scene: { anim: 'sick', fx: 'sweat' } },
+    ] });
+  ms({ id: 'ms_ls_tram', title: 'Những ngày u tối', icon: '🌧️', age: [10, 100],
+    text: 'Đã rất lâu rồi bạn không thấy vui. Mọi thứ đều xám xịt, bạn mệt mỏi, mất ngủ, chẳng muốn làm gì. Có lúc trong đầu bạn thoáng qua những ý nghĩ tiêu cực về chính mình.',
+    scene: { loc: 'bedroom', time: 'night', weather: 'rain', anim: 'sad', expr: 'sad', fx: 'tears', shot: 'close' },
+    choices: [
+      { label: '🗣️ Nói với người thân', text: 'Bạn lấy hết can đảm kể ra. Người thân lặng đi, rồi ôm chặt bạn: “Có chuyện thế mà sao con/bạn không nói sớm.” Gánh nặng như vơi đi một nửa. Nói ra không phải yếu đuối — đó là bước dũng cảm nhất.', effects: { happy: 8, health: 2, rel: { mother: 4, father: 2 } }, scene: { loc: 'home', anim: 'hug', fx: 'hearts' } },
+      { label: '🩺 Đi gặp bác sĩ tâm lý (1,5 triệu)', req: { minMoney: 1500000 }, text: 'Bác sĩ giải thích đây là một căn bệnh thật sự chứ không phải “yếu đuối hay nghĩ nhiều”. Sau các buổi trị liệu, bạn dần thấy nhẹ hơn.', effects: { money: -1500000, happy: 12, health: 2, smarts: 1 }, scene: { loc: 'hospital', anim: 'nod', fx: 'sparkle' } },
+      { label: '🌳 Ra ngoài vận động, gặp bạn bè', text: 'Bạn ép mình ra công viên, gọi cho một người bạn cũ. Từng bước nhỏ, cảm giác nặng nề cũng dịu bớt phần nào.', effects: { happy: 6, health: 3, rel: { friend: 3 } }, scene: { loc: 'park', anim: 'walk', fx: 'sparkle' } },
+      { label: '🤐 Giữ trong lòng, chịu đựng một mình', fn: () => { const p = U.clamp(0.04 + (30 - S.stats.happy) / 400, 0.02, 0.12); if (S.stats.happy < 12 && Math.random() < p) return { text: 'Bạn không kể với ai. Nỗi buồn chồng chất qua từng đêm, đến một ngày bạn cạn kiệt hết sức lực… Giá như đã có ai đó biết để cùng gánh. Nếu ngoài đời bạn có những ý nghĩ như vậy, hãy nói với người thân hoặc gọi đường dây hỗ trợ tại nơi bạn sống — bạn không đơn độc.', effects: { die: 'Kiệt quệ vì trầm cảm không được chữa trị' }, scene: { anim: 'sad', fx: 'tears' }, tone: 'bad' }; return { text: 'Bạn nuốt hết vào trong. Vẻ ngoài vẫn bình thường nhưng mỗi ngày trôi qua nặng nề hơn. Chịu đựng một mình thật sự rất mệt…', effects: { happy: -6, health: -3 }, scene: { anim: 'sad', fx: 'tears' }, tone: 'bad' }; } },
+    ] });
+
+  // ------------------------------------------------------------------ ÂM TIỀN: dưới 18 tuổi bố mẹ trả thay; từ 18 tuổi bắt buộc phải vay / bán đồ để trả
+  const CASH_RATE = 0.15, CASH_YEARS = 5;
+  const debtNeed = () => Math.ceil((-S.money * 1.05) / 1e6) * 1e6;
+  function debtYear(L, deltas) {
+    if (S.money >= 0 || S.dead) return;
+    const pa = P().age, owe = -S.money;
+    if (pa < 18) {
+      const payer = alive('mother')[0] || alive('father')[0] || alive('grandparent')[0] || alive('sibling')[0];
+      S.money = 0; deltas.money = (deltas.money || 0) + owe;
+      if (payer) { addRel(payer, -Math.min(12, 3 + owe / 2e6), []); L('👪 Bạn đang nợ ' + fmtMoney(owe) + '. Chưa đủ 18 tuổi nên ' + nameOf(payer) + ' phải trả thay, mắng cho một trận nên thân.', 'bad', '💸'); }
+      else L('🤝 Bạn đang nợ ' + fmtMoney(owe) + '. Chưa đủ 18 tuổi, họ hàng góp tiền trả giúp.', 'neutral', '💸');
+      addStat('happy', -3, deltas);
+      return;
+    }
+    if (S.jail) return;
+    if (!S.pending.some((e) => e.id === 'ms_no_am')) queueMilestone('ms_no_am');
+  }
+  function nameOf(p) { const r = { mother: 'mẹ', father: 'bố', grandparent: p.gender === 'f' ? 'bà' : 'ông', sibling: p.gender === 'f' ? 'chị' : 'anh' }[p.role]; return r || p.name; }
+  function debtChoice(k) {
+    const need = debtNeed(), payTxt = fmtMoney(need);
+    if (k === 'bank') {
+      const ok = !S.flags.noxau && (S.job || assetsValue() > need) && P().age <= 65;
+      const pay = annuity(need, CASH_RATE, CASH_YEARS);
+      return { key: k, label: '🏦 Vay ngân hàng tín chấp ' + payTxt, hint: ok ? 'Lãi ' + CASH_RATE * 100 + '%/năm, góp ' + fmtMoney(pay) + '/năm × ' + CASH_YEARS + ' năm' : S.flags.noxau ? 'Bạn đang có nợ xấu, ngân hàng từ chối' : 'Cần có việc làm hoặc tài sản đảm bảo', _ok: ok,
+        fn: () => { S.loans = S.loans || []; S.loans.push({ assetId: null, cash: true, name: 'Khoản vay tín chấp', left: need, pay, rate: CASH_RATE, years: CASH_YEARS, since: S.year }); return { text: 'Bạn ký hợp đồng vay ' + payTxt + ' để lấp khoản âm. Mỗi năm phải góp ' + fmtMoney(pay) + ' trong ' + CASH_YEARS + ' năm. Thoát nợ trước mắt, nhưng đeo nợ dài hạn.', effects: { money: need, happy: -3 }, scene: { loc: 'office', anim: 'type', fx: 'money', npcs: [{ role: 'stranger', anim: 'talk', say: 'Anh/chị ký vào đây nhé.' }] } }; } };
+    }
+    if (k === 'fam') {
+      const fam = alive('mother').concat(alive('father'), alive('spouse'), alive('sibling')).filter((p) => (p.relation ?? 60) >= 30);
+      const p = fam[0];
+      return { key: k, label: '🙏 Hỏi vay người thân ' + payTxt, hint: p ? 'Không lãi nhưng mất lòng · ' + nameOf(p) + ' sẽ cho vay' : 'Không còn người thân nào chịu cho vay', _ok: !!p,
+        fn: () => { addRel(p, -8, []); S.flags.famDebt = (S.flags.famDebt || 0) + need; return { text: nameOf(p).replace(/^./, (c) => c.toUpperCase()) + ' thở dài rồi chuyển cho bạn ' + payTxt + ': “Lần này thôi đấy.” Món nợ ân tình này còn nặng hơn nợ ngân hàng.', effects: { money: need, happy: -4 }, scene: { loc: 'home', anim: 'bow', npcs: [{ role: p.role, anim: 'sad', say: 'Lo mà làm ăn đi con.' }], fx: 'sweat' } }; } };
+    }
+    if (k === 'sell') {
+      const a = S.assets.slice().sort((x, y) => y.value - x.value)[0];
+      return { key: k, label: a ? '🏷️ Bán gấp ' + a.name.toLowerCase() : '🏷️ Bán tài sản', hint: a ? 'Bán rẻ 85% giá, thu ' + fmtMoney(Math.round(a.value * 0.85)) : 'Không có tài sản nào để bán', _ok: !!a,
+        fn: () => { const i = S.assets.indexOf(a); if (i >= 0) S.assets.splice(i, 1); const li = (S.loans || []).findIndex((l) => l.assetId === a.id); const owed = li >= 0 ? S.loans.splice(li, 1)[0].left : 0; const got = Math.round(a.value * 0.85) - owed; return { text: 'Cần tiền gấp nên bạn bán tháo ' + a.name.toLowerCase() + ', bị ép giá còn ' + fmtMoney(Math.round(a.value * 0.85)) + (owed ? ', trừ nợ ngân hàng ' + fmtMoney(owed) : '') + '. Tiếc đứt ruột.', effects: { money: got, happy: -6 }, scene: { loc: 'street', anim: 'sad', fx: 'money' } }; } };
+    }
+    // vay app (tín dụng đen): luôn vay được, nhưng lãi cắt cổ
+    const amt = [10e6, 50e6, 200e6].find((v) => v * 0.8 >= need) || 200e6;
+    return { key: 'app', label: '📲 Vay app online ' + fmtMoney(amt), hint: 'Duyệt 5 phút, nhận ' + fmtMoney(amt * 0.8) + ' · lãi cắt cổ, nợ năm sau thành ' + fmtMoney(amt * TDD_RATE), fn: () => { blackLoan(amt); return { text: 'Không ai cho vay, bạn đành bấm vay app. Tiền về tài khoản sau 5 phút, kèm một hợp đồng chẳng ai đọc nổi.', effects: { happy: -3 }, scene: { loc: 'bedroom', anim: 'phone', fx: 'money' }, tone: 'bad' }; } };
+  }
+  ms({ id: 'ms_no_am', title: 'Tài khoản bị âm', icon: '💸', age: [18, 120], many: true,
+    text: 'Cuối năm kiểm lại sổ sách: bạn đang ÂM tiền. Chủ nhà, điện nước, thẻ tín dụng réo liên tục. Không thể khất thêm được nữa — phải tìm cách lấp khoản âm ngay.',
+    scene: { loc: 'bedroom', time: 'night', anim: 'think', fx: 'sweat', shot: 'close' },
+    choicesFn: () => ['bank', 'fam', 'sell', 'app'].map(debtChoice).filter((c) => c._ok !== false), choiceByKey: debtChoice });
 
   // ------------------------------------------------------------------ TÍN DỤNG ĐEN (vay nóng qua app): giải ngân 5 phút, lãi cắt cổ, đòi nợ khủng bố
   const TDD_RATE = 1.6; // nợ nhân lên mỗi năm (lãi + “phí” ≈ 160%/năm)
@@ -6056,8 +6237,22 @@
       goals: S.goals.map((g) => ({ text: (D.GOALS.find((x) => x.id === g.id) || {}).text || g.id, done: g.done })),
       heirs: S.people.filter((p) => p.alive && p.role === 'child').map((p) => ({ id: p.id, name: p.firstName, age: p.age, gender: p.gender, info: childInfo(p) })),
       generation: S.generation, heirlooms: S.dead.heirlooms || [], allHeirlooms: heirloomsOf(S).map((h) => h.icon + ' ' + h.name),
-      scenario: scenarioView(), rebirth: rebirthPreview(),
+      scenario: scenarioView(), rebirth: rebirthPreview(), afterlife: afterlifeOf(),
     };
+  }
+  // phán xét cuối đời: nhiều đức (nghiệp ≥ 65) lên thiên đàng, ít đức (< 35) xuống địa ngục, ở giữa thì chờ đầu thai
+  function afterlifeOf() {
+    if (!S || !S.dead) return null;
+    const k = Math.round(S.karma);
+    if (k >= 65) return { kind: 'heaven', karma: k, icon: '☁️', title: 'Lên thiên đàng', text: 'Một đời sống tử tế, giúp người nhiều hơn hại người. Cửa thiên đàng mở rộng, ánh sáng vàng ấm áp đón linh hồn bạn.' };
+    if (k < 35) return { kind: 'hell', karma: k, icon: '🔥', title: 'Xuống địa ngục', text: 'Nghiệp ác chất chồng. Quỷ sứ đầu trâu mặt ngựa áp giải linh hồn bạn qua cầu Nại Hà, vạc dầu đang sôi sùng sục chờ sẵn.' };
+    return { kind: 'limbo', karma: k, icon: '🌫️', title: 'Lơ lửng cõi trung ấm', text: 'Công tội ngang nhau, chưa đủ để lên thiên đàng cũng chưa tới mức xuống địa ngục. Linh hồn bạn lang thang trong sương chờ ngày đầu thai.' };
+  }
+  function afterlifeScene() {
+    const a = afterlifeOf(); if (!a) return null;
+    if (a.kind === 'heaven') return sceneFor('heaven', { time: 'day', anim: 'cheer', expr: 'happy', fx: 'sparkle', shot: 'orbit', say: 'Thanh thản quá…' });
+    if (a.kind === 'hell') return sceneFor('hell', { time: 'night', anim: 'scared', expr: 'scared', fx: 'smoke', shot: 'dramatic', say: 'Tha cho tôi!' });
+    return sceneFor('temple', { time: 'night', weather: 'fog', anim: 'pray', expr: 'sad', fx: 'smoke', shot: 'wide', say: 'Mình đang ở đâu thế này…' });
   }
   function deathScene() {
     const mourners = ['spouse', 'child', 'mother', 'father', 'grandchild', 'sibling', 'friend'].flatMap((r) => alive(r)).filter((p) => p.kind === 'human').slice(0, 4);
@@ -6230,7 +6425,7 @@
       orientation: S.flags.lgbt_aware || (S.orientation || 'straight') === 'straight' ? ORIENT_LABEL[S.orientation || 'straight'] : null, lgbtOut: !!S.flags.lgbt_told,
       english: Math.round(S.english || 0), englishText: englishLabel(S.english || 0), abroadText: S.xk ? XK[S.xk.c].name + ' (xuất khẩu lao động)' : S.abroad ? S.abroad.country + (S.abroad.settled ? ' (định cư)' : '') : S.edu.abroad && S.edu.inSchool ? 'du học ' + S.edu.abroad.country : null,
       parenting: Object.assign({}, parentingDef()), disowned: !!S.flags.disowned, parentMajor: S.flags.parentMajor && D.MAJORS[S.flags.parentMajor] ? D.MAJORS[S.flags.parentMajor].name : null,
-      interests: interestProfile().slice(0, 4).map((x) => Object.assign(x, { careers: D.INTERESTS[x.id].careers.slice(0, 4).map((c) => D.CAREERS[c].title) })), route: S.flags.route ? D.INTERESTS[S.flags.route].route : null, youth: youthView(), vocTrade: S.edu.voc ? (D.VOC_TRADES.find((v) => v.id === S.edu.voc) || {}).name : null,
+      interests: interestProfile().slice(0, 4).map((x) => Object.assign(x, { careers: D.INTERESTS[x.id].careers.slice(0, 4).map((c) => D.CAREERS[c].title) })), route: S.flags.route ? D.INTERESTS[S.flags.route].route : null, path: (() => { try { return pathView(); } catch (e) { return null; } })(), youth: youthView(), vocTrade: S.edu.voc ? (D.VOC_TRADES.find((v) => v.id === S.edu.voc) || {}).name : null,
       illnesses: visibleIlls().map((i) => ({ id: i.id, name: illLabel(i), severity: Math.round(illDrain(i)), incurable: !!i.incurable, cancer: !!i.cancer, neglect: neglectOf(i), risk: escNames(i).join(', ') })),
       log: S.log.slice(), goals: S.goals.map((g) => ({ id: g.id, text: (D.GOALS.find((x) => x.id === g.id) || {}).text || g.id, done: g.done })),
       achievements: D.ACHIEVEMENTS.map((a) => ({ id: a.id, name: a.name, icon: a.icon, desc: a.desc, unlocked: !!meta.achievements[a.id], thisLife: S.ach[a.id] != null })),
@@ -6301,7 +6496,7 @@
 
   KN.Game = {
     newLife, ageUp, choose, activities, doActivity, interact, eduAction, jobAction, jobListings, applyJob, shopItems, buy, buyLoan, sell, rentAsset,
-    deathInfo, deathScene, continueAs, demoScene, view, onlineSnapshot, remoteEffect, setMode, peekSave, getMode: () => MODE,
+    deathInfo, deathScene, afterlifeScene, continueAs, demoScene, view, onlineSnapshot, remoteEffect, setMode, peekSave, getMode: () => MODE,
     choiceOdds,
     jobOdds, interactOdds, haggleInfo, miniNeed, companyOptions, foundCompany, eras: () => ERAS.slice(),
     petShop, buyPet, furnitureView, buyFurniture, familyTree, onlineSibling, onlineParentDied, biography,

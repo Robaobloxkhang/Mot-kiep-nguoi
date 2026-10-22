@@ -38,9 +38,9 @@
   window.addEventListener('unhandledrejection', (e) => { const m = 'Unhandled rejection: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason); R.loadErrors.push(m); line('bad', m); });
 
   const STORY_FILES = ['love', 'crime', 'money', 'accident', 'family', 'school', 'work', 'life', 'parenting', 'football', 'society', 'action', 'romance', 'era', 'giangho', 'study', 'twist'].map((n) => '../js/events_story_' + n + '.js')
-    .concat(['sport', 'star', 'office', 'service'].map((n) => '../js/events_career_' + n + '.js'), ['../js/events_global.js']);
+    .concat(['sport', 'star', 'office', 'service'].map((n) => '../js/events_career_' + n + '.js'), ['../js/events_global.js', '../js/events_holiday.js']);
   const SCRIPTS = ['https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js', '../js/kn_boot.js', '../js/data.js', '../js/events_early.js', '../js/events_adult.js', '../js/events_mature.js'].concat(STORY_FILES, [
-    '../js/characters.js', '../js/fx.js', '../js/env_core.js', '../js/env_indoor.js', '../js/env_outdoor.js', '../js/env_sport.js', '../js/env_travel.js', '../js/world.js', '../js/audio.js', '../js/jobs_tasks.js', '../js/game.js']);
+    '../js/characters.js', '../js/fx.js', '../js/env_core.js', '../js/env_indoor.js', '../js/env_outdoor.js', '../js/env_sport.js', '../js/env_travel.js', '../js/env_afterlife.js', '../js/world.js', '../js/audio.js', '../js/jobs_tasks.js', '../js/game.js']);
   function load(i) {
     if (i >= SCRIPTS.length) return run();
     const s = document.createElement('script');
