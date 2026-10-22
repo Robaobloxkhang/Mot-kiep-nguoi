@@ -688,7 +688,7 @@
     body.querySelectorAll('[data-xkhome]').forEach((b) => b.onclick = () => { sfx('click'); confirmIf(true, 'Về nước?', 'Kết thúc những năm làm việc ở nước ngoài.', () => doAction(() => G().xkHome())); });
     body.querySelectorAll('[data-chain]').forEach((b) => b.onclick = () => { sfx('click'); doAction(() => G().chainAction(b.dataset.chain)); });
     body.querySelectorAll('[data-league]').forEach((b) => b.onclick = () => { sfx('click'); doLeague(); });
-    body.querySelectorAll('[data-job]').forEach((b) => b.onclick = () => { sfx('click'); confirmIf(b.dataset.job === 'quit' || b.dataset.job === 'retire', b.dataset.job === 'quit' ? 'Nghỉ việc?' : 'Nghỉ hưu?', 'Quyết định này không thể rút lại ngay.', () => doAction(() => G().jobAction(b.dataset.job))); });
+    body.querySelectorAll('[data-job]').forEach((b) => b.onclick = () => { sfx('click'); if (b.dataset.job === 'mgr') { if (KN.Manager) KN.Manager.open(); return; } confirmIf(b.dataset.job === 'retire', 'Nghỉ hưu?', 'Quyết định này không thể rút lại ngay.', () => doAction(() => G().jobAction(b.dataset.job))); });
     body.querySelectorAll('[data-apply]').forEach((b) => b.onclick = () => { sfx('click'); const id = b.dataset.apply; withMini(KN.Mini && safe(() => KN.Mini.planJob(id)), (x) => G().applyJob(id, x)); });
     body.querySelectorAll('[data-buy]').forEach((b) => b.onclick = () => { sfx('coin'); const id = b.dataset.buy; withMini(KN.Mini && safe(() => KN.Mini.planHaggle(id)), (x) => G().buy(id, x ? { discount: x.mini * 0.15 } : null)); });
     const cf = body.querySelector('[data-cofound]'); if (cf) cf.onclick = () => { sfx('click'); openCompanyFound(); };

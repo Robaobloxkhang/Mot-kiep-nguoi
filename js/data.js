@@ -509,6 +509,7 @@
     ['first_word', 'Tiếng nói đầu đời', '🗣️', 'Nói được từ đầu tiên.'],
     ['legend_job', 'Huyền thoại trong nghề', '🎖️', 'Đạt danh tiếng nghề cao nhất nhờ những ca làm việc xuất sắc.'],
     ['kol_award', 'KOL của năm', '🏆', 'Lên nhận giải Nhà sáng tạo nội dung của năm.'],
+    ['hlv_champ', 'Nhà cầm quân vô địch', '📋', 'Dẫn dắt đội bóng vô địch giải đấu.'],
     ['dating_app', 'Duyên số qua màn hình', '💘', 'Tìm được người yêu qua app hẹn hò.'],
     ['school_start', 'Ngày đầu đến lớp', '🎒', 'Chính thức trở thành học sinh lớp 1.'],
     ['honor', 'Học sinh giỏi', '🏅', 'Đạt thành tích học tập xuất sắc trong một năm.'],
@@ -776,6 +777,12 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.68', date: '22/10/2026', items: [
+      '🧠 PHÒNG HLV kiểu game quản lý bóng đá: làm Huấn luyện viên (vận động viên giải nghệ) sẽ có nút "Phòng HLV" trong mục Công việc.',
+      '👥 Đội hình 22 cầu thủ với chỉ số, tuổi, tiềm năng, tinh thần, giá trị; 📌 ghim đá chính / 💺 cho dự bị. 🧠 Chiến thuật: 5 sơ đồ (4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2), 5 lối chơi khắc chế nhau (Gegenpressing, tiki-taka, phản công, dựng xe buýt…) và cường độ pressing.',
+      '💸 Chuyển nhượng: mua, trả giá, bán cầu thủ trong kỳ chuyển nhượng đầu mùa và giữa mùa, có ngân sách CLB. 🏆 V-League 10 đội 18 vòng: chỉ đạo trực tiếp (bình luận từng phút, nghỉ giữa hiệp đổi lối chơi), đá nhanh hoặc đá hết mùa.',
+      '👔 Ban lãnh đạo đặt mục tiêu mùa giải; cuối năm tổng kết: thưởng, phong độ, cầu thủ già đi / giải nghệ / lò đào tạo đôn lên. Vô địch có thể được bổ nhiệm làm HLV đội tuyển quốc gia — đá AFF Cup và triệu tập cầu thủ thay vì mua.',
+    ] },
     { v: '1.67', date: '22/10/2026', items: [
       '🚪 Tự quyết khi nào nghỉ việc / giải nghệ: bấm "Nghỉ việc" (hoặc "Rời đội / giải nghệ") sẽ hỏi bước tiếp theo — nghỉ ngơi, chuyển sang làm HLV (vận động viên), làm KOL / streamer toàn thời gian (cần từ 10 nghìn người theo dõi), hoặc đổi ý ở lại.',
       '🏁 Tới tuổi giải nghệ không còn bị ép nữa: có thêm lựa chọn "Chưa! Tôi còn đá thêm một mùa" (năm sau được hỏi lại) và "Treo giày làm KOL thể thao".',

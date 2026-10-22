@@ -580,6 +580,7 @@
   function hire(id) {
     const c = D.CAREERS[id]; if (!c) return;
     if (S.job && S.job.club) S.abroad = null;
+    if (S.job && S.job.clubName) S.flags.lastClub = S.job.clubName;
     S.job = { id, level: 0, perf: 55, years: 0, mult: 1 }; S.flags.kolFull = false; S.flags.perfWarn = 0;
     S.retired = false;
     if (!S.flags.had_job) { S.flags.had_job = true; S.flags.firstjob_pending = true; }
@@ -2072,6 +2073,19 @@
       // giải nghệ: thể thao và người mẫu có tuổi nghề
       if (cj && cj.retireAt && pa >= cj.retireAt - (S.illnesses.some((i) => i.id === 'daychang' || i.id === 'thoaihoa') ? 3 : 0) && S.flags.retireAthAsked !== S.year) {
         S.flags.retireAthAsked = S.year; queueMilestone(cj.sport ? 'ms_athlete_retire' : 'ms_model_retire');
+      }
+      // 📋 HLV: tổng kết mùa giải của đội mình dẫn dắt
+      if (S.job && S.job.id === 'hlv' && S.mgr && KN.Manager && S.mgr.season < S.year) {
+        try {
+          const r = KN.Manager.endSeason(S.mgr);
+          if (r) {
+            L(r.text, r.champ ? 'milestone' : r.goalOk ? 'good' : 'bad', r.champ ? '🏆' : '📋');
+            if (r.bonus) { addMoney(r.bonus, deltas); L('Tiền thưởng thành tích mùa giải: ' + fmtMoney(r.bonus) + '.', 'good', '💰'); }
+            S.job.perf = r100(S.job.perf + r.perf); addStat('happy', r.happy, deltas);
+            if (r.champ) { unlockSafe('hlv_champ'); if (S.job.level < 2 && Math.random() < 0.6 && promote()) L('Sau chức vô địch, bạn được bổ nhiệm làm ' + D.CAREERS.hlv.levels[S.job.level].title + '!', 'milestone', '📈'); }
+            if (r.sack) { S.job.perf = Math.min(S.job.perf, 15); L('Ban lãnh đạo mất kiên nhẫn sau mùa giải tệ hại. Ghế HLV của bạn đang rất nóng.', 'bad', '🔥'); }
+          }
+        } catch (e) { U.warnOnce('mgrEnd', 'manager season end', e); }
       }
       if (S.job && !(cj && cj.retireAt) && pa >= 60 && (!S.flags.retireAsked || S.year - S.flags.retireAsked >= 4)) { S.flags.retireAsked = S.year; queueMilestone('ms_retire'); }
     } else if (pa >= 18 && pa < 60 && !S.edu.inSchool && !S.retired && !S.jail) addStat('happy', -2, deltas);
@@ -4543,6 +4557,7 @@
       { id: 'workhard', label: fl ? fl.work : 'Làm việc chăm chỉ', icon: sport ? '🏋️' : '💪', disabled: used('workhard'), reason: used('workhard') ? 'Đã cố gắng năm nay' : null },
       { id: 'raise', label: sport ? 'Tìm nhà tài trợ' : fl && fl.raise ? fl.raise : 'Xin tăng lương', icon: sport ? '🤝' : '💹', disabled: used('raise'), reason: used('raise') ? 'Đã thử năm nay' : null },
       { id: 'quit', label: sport ? 'Rời đội / giải nghệ' : 'Nghỉ việc', icon: '🚪', disabled: false, reason: null });
+    if (S.job.id === 'hlv' && KN.Manager) out.unshift({ id: 'mgr', label: 'Phòng HLV: đội hình, chiến thuật, chuyển nhượng, đá giải', icon: '🧠', hint: 'Quản lý đội bóng như game FC Manager', disabled: false, reason: null });
     if (P().age >= 55) out.push({ id: 'retire', label: 'Nghỉ hưu', icon: '🪴', disabled: false, reason: null });
     const c = D.CAREERS[S.job.id];
     if (!S.abroad && !c.sport && !c.fame && c.id !== 'kinhdoanh') { const why = (S.english || 0) < 55 ? 'Cần tiếng Anh ≥ 55' : !hasDegree() ? 'Cần bằng đại học' : used('abroad') ? 'Đã thử năm nay' : null; out.push({ id: 'abroad', label: 'Xin việc ở nước ngoài', icon: '🌏', disabled: !!why, reason: why }); }
@@ -4554,6 +4569,7 @@
     const a = jobActions().find((x) => x.id === id);
     if (!a) return fail('Không thể làm điều này.');
     if (a.disabled) return fail(a.reason);
+    if (id === 'mgr') { if (KN.Manager) setTimeout(() => KN.Manager.open(), 0); return { ok: true, silent: true, text: '' }; }
     if (id === 'task') {
       const ev = jobTaskEvent(); if (!ev) return fail('Hôm nay không có việc gì nổi bật.');
       S.yearActs.job_task = (S.yearActs.job_task || 0) + 1;
@@ -5810,6 +5826,15 @@
   }
   // tác động từ người chơi khác: chỉ cộng/trừ nhỏ, có giới hạn để không phá game
   // 💒 thiệp cưới online: dữ liệu cô dâu chú rể (ngoại hình đồ cưới) để bạn bè vào dự; khách dự thì thấy chính nhân vật của mình
+  // 📋 PHÒNG HLV (js/manager.js): đội bóng mình dẫn dắt; lên HLV đội tuyển thì chuyển sang dẫn dắt tuyển quốc gia
+  function mgrState() {
+    if (!S || S.dead || !S.job || S.job.id !== 'hlv' || !KN.Manager) return null;
+    const nat = S.job.level >= 2;
+    if (!S.mgr || !!S.mgr.national !== nat) { const old = S.mgr; S.mgr = KN.Manager.init({ level: S.job.level, club: S.flags.lastClub, year: S.year }); if (old) { S.mgr.trophies = old.trophies || 0; S.mgr.history = old.history || []; } }
+    return S.mgr;
+  }
+  function mgrSave() { changed(); }
+  function mgrNews(t) { addLog(t, 'neutral', '📋'); changed(); }
   function weddingCard() {
     if (!S || S.dead) return null; const sp = alive('spouse')[0]; if (!sp) return null;
     return { a: playerOf('wedding', 'love'), b: npcOf(sp, { anim: 'love' }, 'wedding'), year: S.flags.marriedYear || S.year, place: D.cityName(S.city), married: S.flags.marriedYear || null, code: S.flags.wedCode || null };
@@ -6261,7 +6286,7 @@
     petShop, buyPet, furnitureView, buyFurniture, familyTree, onlineSibling, onlineParentDied, biography,
     rebirthPreview, scenarioView, scenarios: () => SCENARIOS.map((s) => ({ id: s.id, name: s.name, icon: s.icon, desc: s.desc, goal: s.goal, born: s.born, done: (meta.scnDone || {})[s.id] || 0 })),
     miniContext: () => (S && S.player ? { jobId: S.job ? S.job.id : null, ys: S.ys ? S.ys.id : null, age: P().age, gender: P().gender, stats: Object.assign({}, S.stats), appearance: P().appearance, name: P().firstName, eduLevel: S.edu.level, major: S.edu.major } : null),
-    weddingCard, weddingSetCode, weddingGuest, onlineMarry, onlineDivorce, onlineSpouse, onlineMoney, worldEvent, worldKinds: () => Object.keys(WORLD), dailyChallenge, setChallenge, challengeResult,
+    mgrState, mgrSave, mgrNews, weddingCard, weddingSetCode, weddingGuest, onlineMarry, onlineDivorce, onlineSpouse, onlineMoney, worldEvent, worldKinds: () => Object.keys(WORLD), dailyChallenge, setChallenge, challengeResult,
     hasLife: () => !!(S && S.player),
     isDead: () => !!(S && S.dead),
     pending: () => (S ? S.pending.slice() : []),
