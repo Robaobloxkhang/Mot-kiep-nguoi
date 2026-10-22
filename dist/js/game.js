@@ -2336,8 +2336,16 @@
     S.flags.transfer = { club, mult, fee: pay(U.rand(3e8, 1.5e9) * mult), bonus: pay(U.rand(5e7, 2.5e8) * mult) };
     queueMilestone('ms_transfer');
   }
+  // sự kiện được tạo lúc còn đá bóng; tới lúc bấm chọn mà đã giải nghệ / thất nghiệp thì lời mời không còn hiệu lực
   function transferChoice(k) {
-    const o = S.flags.transfer || { club: 'một CLB lớn', mult: 1.5, fee: 5e8, bonus: 1e8 }, cur = S.job && myClub();
+    const gone = () => ({ text: 'Khi bạn gọi lại cho người đại diện thì đã muộn: bạn không còn khoác áo cầu thủ chuyên nghiệp nữa, và ' + ((S.flags.transfer && S.flags.transfer.club) || 'CLB kia') + ' đã rút lại lời mời. Bạn thở dài nhìn đôi giày đá bóng treo trên tường.', effects: { happy: -2 }, scene: { loc: 'home', anim: 'sad' }, tone: 'neutral' });
+    if (!S.job || S.job.id !== 'cauthu') return { key: k, label: k === 'di' ? '✍️ Nhận lời mời chuyển nhượng' : k === 'gia' ? '💰 Đòi tăng lương' : '❤️ Ở lại', fn: gone };
+    const c = transferChoice0(k), f = c.fn;
+    c.fn = () => (S.job && S.job.id === 'cauthu' ? f() : gone());
+    return c;
+  }
+  function transferChoice0(k) {
+    const o = S.flags.transfer || { club: 'một CLB lớn', mult: 1.5, fee: 5e8, bonus: 1e8 }, cur = (S.job && S.job.id === 'cauthu' && myClub()) || 'đội bóng cũ';
     if (k === 'di') return { key: k, label: '✍️ Sang ' + o.club + ' (lương ×' + String(o.mult).replace('.', ',') + ', thưởng ký ' + fmtMoney(o.bonus) + ')', fn: () => {
       S.job.clubName = o.club; S.job.contract = o.mult; S.job.perf = r100(Math.max(S.job.perf, 58)); S.league = null;
       if (S.social) S.social.followers += 5000 + Math.round(S.social.followers * 0.05);
