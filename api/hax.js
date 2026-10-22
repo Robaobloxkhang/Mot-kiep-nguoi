@@ -1,6 +1,7 @@
 // Một Kiếp Người — ghép phòng cho "Bóng đá Hax" online, nhiều người (chỉ trao đổi tín hiệu WebRTC; trận đấu chạy trực tiếp giữa các máy)
 // POST /api/hax { op:'create' }                       → { code }            (chủ phòng tạo phòng)
 // POST /api/hax { op:'join', code, offer }            → { id }              (người vào gửi lời mời kết nối)
+// GET  /api/hax?get=server                           → { url } (máy chủ Hax riêng, biến môi trường HAX_SERVER_URL)
 // GET  /api/hax?code=XXXXX&get=queue                  → { reqs:[{id,offer}] } (chủ phòng lấy các lời mời mới)
 // POST /api/hax { op:'answer', code, id, answer }     → { ok }              (chủ phòng trả lời từng người)
 // GET  /api/hax?code=XXXXX&get=answer&id=ID           → { answer | null }   (người vào chờ câu trả lời)
@@ -40,6 +41,7 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const q = req.query || Object.fromEntries(new URL(req.url, 'http://x').searchParams);
+      if (q.get === 'server') return send(res, 200, { url: process.env.HAX_SERVER_URL || null }); // địa chỉ máy chủ riêng (server/)
       const code = String(q.code || '').toUpperCase(); if (!CODE_RE.test(code)) return send(res, 400, { error: 'bad-code' });
       if (q.get === 'queue') {
         const [list] = await pipeline([['LRANGE', K(code, 'q'), '0', '-1'], ['DEL', K(code, 'q')], ['EXPIRE', K(code, 'room'), TTL]]);

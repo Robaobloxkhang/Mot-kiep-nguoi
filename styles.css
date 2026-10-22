@@ -785,6 +785,10 @@ details.more.risk p { margin: 0 0 8px; }
 .hax-lobby { max-width: 520px; margin: 0 auto; text-align: center; display: grid; gap: 10px; }
 .hax-lobby h3 { font-family: var(--f-display); font-size: 28px; margin: 4px 0; }
 .hax-menu { display: grid; gap: 8px; }
+.hax-srv { display: grid; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid rgba(80, 200, 140, .45); background: rgba(40, 160, 100, .1); }
+.hax-srv > b { font-size: 15px; } .hax-srv > small { color: var(--fg-2, #aab); margin-top: -6px; }
+.hax-p2p { border-radius: 10px; border: 1px dashed var(--line-2); padding: 6px 10px; } .hax-p2p summary { cursor: pointer; color: var(--fg-2, #aab); font-size: 13px; } .hax-p2p[open] { display: grid; gap: 8px; } .hax-p2p .p-sub { margin: 0; }
+#hxPing { opacity: .8; white-space: nowrap; }
 .hax-lv, .hax-dur { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; }
 .hax-lv button, .hax-dur button { border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
 .hax-dur button.on { background: var(--lantern, #ffb347); color: #222; }

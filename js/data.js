@@ -778,6 +778,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.70', date: '22/10/2026', items: [
+      '🖥️ Bóng đá Hax online qua MÁY CHỦ RIÊNG: không còn bị mạng trường/công ty chặn, 2 máy khác nhau vào được cùng một trận.',
+      '⚡ Phòng chung luôn mở sẵn: bấm "Vào phòng chung" là tự ghép trận, đủ 2 người tự đếm ngược rồi đá.',
+      '🏟️ Máy chủ tự chạy trận đấu nên ai cũng mượt như nhau, không còn phụ thuộc máy chủ phòng; hiện cả độ trễ 📶.',
+    ] },
     { v: '1.69', date: '22/10/2026', items: [
       '📋 Phòng HLV đá 4 người như Haxball: chỉ 4 cầu thủ đá chính (sơ đồ 1-2-1, 2-1-1, 1-1-2, 2-2, 1-3). "Xem & chỉ đạo trận" mở trận Haxball 4 đấu 4 do máy đá — chỉ số cầu thủ quyết định tốc độ và độ khôn; HLV bấm ⬆️ Dâng cao / ⬇️ Lùi sâu, 🎯 Chuyền ngắn / ⚡ Đánh nhanh, ⏩ tua nhanh hoặc ⏭️ xem luôn kết quả. Hoặc chỉ xem kết quả.',
       '⚽ Trận đấu khi làm cầu thủ chuyên nghiệp cũng là 4 đấu 4 cho giống Phòng HLV.',

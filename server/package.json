@@ -1,0 +1,10 @@
+{
+  "name": "mot-kiep-nguoi-hax-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Máy chủ riêng cho Bóng đá Hax online (WebSocket, chạy vật lý trên máy chủ)",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}

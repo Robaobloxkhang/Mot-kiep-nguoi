@@ -1,0 +1,11 @@
+# Máy chủ riêng cho Bóng đá Hax online — triển khai lên Render (miễn phí, chọn Singapore cho gần Việt Nam)
+services:
+  - type: web
+    name: mot-kiep-nguoi-hax
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: cd server && npm install --omit=dev
+    startCommand: node server/index.js
+    healthCheckPath: /health
+    autoDeploy: true

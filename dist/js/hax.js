@@ -1,5 +1,6 @@
 /* Một Kiếp Người — ⚽ BÓNG ĐÁ HAX (KN.Hax): bóng đá nhìn từ trên xuống kiểu HaxBall.
-   Chế độ: đấu với máy (1v1 · 2v2 · 3v3, có đồng đội máy) · 2 người 1 máy · ONLINE nhiều người (tối đa 8, WebRTC ngang hàng).
+   Chế độ: đấu với máy (1v1 · 2v2 · 3v3, có đồng đội máy) · 2 người 1 máy · ONLINE nhiều người (tối đa 8) qua máy chủ riêng
+   (server/index.js, WebSocket cổng 443 — không bị mạng trường chặn) hoặc WebRTC ngang hàng dự phòng.
    6 bản đồ: Cổ điển · Futsal · Sân lớn · Sân băng (trơn) · Bãi biển (cát nặng) · Sân hẻm.
    Online: chủ phòng mô phỏng vật lý 60 lần/giây và gửi trạng thái 60 lần/giây; người vào phòng tự DỰ ĐOÁN chuyển động
    (chạy vật lý ngay trên máy mình rồi khớp dần với chủ phòng) nên nhân vật của mình phản hồi tức thì, không bị trễ.
@@ -772,22 +773,74 @@
       guest(pc, dc);
     } catch (e) { if (alive) setMsg('⚠️ ' + e.message); }
   }
+  // ---------- MÁY CHỦ RIÊNG (WebSocket qua cổng 443 → mạng trường/công ty không chặn được)
+  const SERVER_DEFAULT = 'wss://mot-kiep-nguoi-hax.onrender.com';
+  let serverUrlP = null;
+  function serverUrl() {
+    const own = (() => { try { return localStorage.getItem('kn_hax_server'); } catch (e) { return null; } })();
+    if (own) return Promise.resolve(own);
+    if (!serverUrlP) serverUrlP = Promise.race([fetch('/api/hax?get=server', { cache: 'no-store' }).then((r) => r.json()).then((j) => j.url || SERVER_DEFAULT), wait(3000).then(() => SERVER_DEFAULT)]).catch(() => SERVER_DEFAULT);
+    return serverUrlP;
+  }
+  const httpOf = (u) => u.replace(/^ws/, 'http');
+  // máy chủ miễn phí có thể đang "ngủ" → gọi dậy sớm ngay khi mở menu Hax
+  function wakeServer() { serverUrl().then((u) => fetch(httpOf(u) + '/health', { cache: 'no-store' }).catch(() => {})).catch(() => {}); }
+  async function serverPlay(op, code) {
+    let alive = true, ws = null, tries = 0;
+    onlineActive = true;
+    stopFn = () => { alive = false; onlineActive = false; try { ws && ws.close(); } catch (e) { /* */ } };
+    const title = op === 'quick' ? '⚡ Phòng chung' : op === 'create' ? '🖥️ Tạo phòng riêng' : '🖥️ Vào phòng ' + esc(code);
+    lobbyScreen('<h3>' + title + '</h3><p class="sub">⏳ Đang nối tới máy chủ…</p><p class="p-sub" id="hxMsg"></p><div class="btnrow"><button type="button" class="btn btn-ghost" id="hxBack">← Menu</button></div>');
+    document.getElementById('hxBack').onclick = () => menu();
+    const url = await serverUrl();
+    const t0 = Date.now();
+    const connect = () => {
+      if (!alive) return;
+      tries++;
+      try { ws = new WebSocket(url); } catch (e) { setMsg('⚠️ Địa chỉ máy chủ không hợp lệ'); return; }
+      const dc = { readyState: 'connecting', server: true, onmessage: null, onclose: null, send: (s) => ws.send(s), close: () => ws.close() };
+      let opened = false;
+      ws.onopen = () => {
+        opened = true; dc.readyState = 'open';
+        ws.send(JSON.stringify(op === 'quick' ? { t: 'quick', name: myName() } : op === 'create' ? { t: 'create', name: myName(), cfg: { map: mapOf(), dur: cfg.dur, bots: cfg.bots, lvl: cfg.lvl } } : { t: 'join', code, name: myName() }));
+      };
+      ws.onmessage = (e) => {
+        let d; try { d = JSON.parse(e.data); } catch (x) { return; }
+        if (d.t === 'err') { alive = false; lobbyScreen('<h3>' + title + '</h3><p class="sub">⚠️ ' + esc(d.msg) + '</p><div class="btnrow"><button type="button" class="btn btn-ghost" id="hxBack">← Menu</button></div>'); document.getElementById('hxBack').onclick = () => menu(); try { ws.close(); } catch (x) { /* */ } return; }
+        if (d.t === 'joined') { if (alive) guest({ close() {} }, dc); return; }
+        if (dc.onmessage) dc.onmessage(e);
+      };
+      ws.onclose = () => {
+        dc.readyState = 'closed';
+        if (opened) { if (dc.onclose) dc.onclose(); return; }
+        if (!alive) return;
+        // chưa mở được: máy chủ đang thức dậy (bản miễn phí ngủ khi vắng người) → thử lại tối đa ~90 giây
+        const secs = Math.round((Date.now() - t0) / 1000);
+        if (secs > 90) { setMsg('⚠️ Không nối được máy chủ. Thử lại sau ít phút, hoặc dùng "Kết nối trực tiếp" ở menu.'); return; }
+        setMsg('☕ Máy chủ đang thức dậy, lần đầu trong ngày có thể mất 30–60 giây… (' + secs + 's)');
+        if (tries === 1) fetch(httpOf(url) + '/health', { cache: 'no-store' }).catch(() => {});
+        setTimeout(connect, 2500);
+      };
+    };
+    connect();
+  }
   function guest(pc, dc) {
     let lastSeen = performance.now(), lost = false, m = null, me = 0, playing = false, snap = null, lastScore = '0-0', lobby = null;
     const send = (o) => sendTo(dc, o);
     send({ t: 'hello', name: myName() });
-    const ping = setInterval(() => send({ t: 'hello', name: myName() }), 1000);
+    const ping = setInterval(() => { send({ t: 'hello', name: myName() }); if (dc.server) send({ t: 'ping', c: performance.now() }); }, 1000);
     const lostCheck = setInterval(() => {
       if (lost || performance.now() - lastSeen < 7000) return;
       lost = true; cancelAnimationFrame(raf); raf = 0; stopTicker();
-      const html = '<b>📡 Mất kết nối</b><span>Chủ phòng đã thoát hoặc mạng chập chờn.</span><div class="btnrow"><button type="button" class="btn btn-primary" id="hxMenu2">Menu</button></div>';
-      if (root && root.querySelector('.hax-field')) overlay(html); else lobbyScreen('<h3>📡 Mất kết nối</h3><p class="sub">Chủ phòng đã thoát hoặc mạng chập chờn.</p><div class="btnrow"><button type="button" class="btn btn-primary" id="hxMenu2">Menu</button></div>');
+      const html = '<b>📡 Mất kết nối</b><span>' + (dc.server ? 'Rớt mạng với máy chủ.' : 'Chủ phòng đã thoát hoặc mạng chập chờn.') + '</span><div class="btnrow"><button type="button" class="btn btn-primary" id="hxMenu2">Menu</button></div>';
+      if (root && root.querySelector('.hax-field')) overlay(html); else lobbyScreen('<h3>📡 Mất kết nối</h3><p class="sub">' + (dc.server ? 'Rớt mạng với máy chủ.' : 'Chủ phòng đã thoát hoặc mạng chập chờn.') + '</p><div class="btnrow"><button type="button" class="btn btn-primary" id="hxMenu2">Menu</button></div>');
       document.getElementById('hxMenu2').onclick = () => menu();
     }, 1000);
     dc.onclose = () => { lastSeen = 0; };
     stopFn = () => { onlineActive = false; clearInterval(ping); clearInterval(lostCheck); try { dc.close(); pc.close(); } catch (e) { /* */ } };
     const showLobby = (d) => {
       lobby = d; playing = false;
+      if (d.server) return serverLobby(d);
       const col = (t) => d.players.filter((x) => x.team === t).map((x) => '<li>' + esc(x.name) + (x.id === d.you ? ' <small>(bạn)</small>' : x.id === 'host' ? ' <small>(chủ phòng)</small>' : '') + '</li>').join('') || '<li class="empty">— trống —</li>';
       const mp = MAPS[d.map] || MAPS.classic;
       lobbyScreen('<h3>🌐 Phòng ' + esc(d.code) + '</h3><p class="sub">Đã vào phòng! Chờ chủ phòng bấm <b>Bắt đầu</b>…</p>' +
@@ -797,12 +850,39 @@
       document.getElementById('hxTeam').onclick = () => { send({ t: 'team' }); sfx('click'); };
       document.getElementById('hxBack').onclick = () => menu();
     };
+    // phòng chờ trên máy chủ riêng: chủ phòng chỉnh luật + bắt đầu; phòng chung tự đếm ngược
+    const serverLobby = (d) => {
+      if (d.admin) { cfg.sport = d.map === 'court' ? 'basket' : 'foot'; if (d.map !== 'court') cfg.map = d.map; cfg.dur = d.dur; cfg.lvl = d.lvl; cfg.bots = d.bots; }
+      const col = (t) => d.players.filter((x) => x.team === t).map((x) => '<li>' + esc(x.name) + (x.id === d.you ? ' <small>(bạn)</small>' : '') + (x.admin ? ' <small>👑</small>' : '') + (d.admin && x.id !== d.you ? ' <button type="button" class="hax-sw" data-sw="' + x.id + '" title="Đổi đội">⇄</button>' : '') + '</li>').join('') || '<li class="empty">— trống —</li>';
+      const mp = MAPS[d.map] || MAPS.classic, n = d.players.length;
+      const status = d.playing ? '⏳ Trận đang diễn ra, bạn sẽ vào ở ván sau…' : d.pub ? (d.auto ? '⚽ Trận bắt đầu sau ' + d.auto + ' giây…' : '⏳ Chờ thêm người vào (đủ 2 người là tự đá)…') : d.admin ? (n < 2 ? '⏳ Chờ bạn bè vào… (có thể bắt đầu luôn để đá với máy)' : '✅ ' + n + ' người trong phòng') : '⏳ Chờ chủ phòng 👑 bấm Bắt đầu…';
+      lobbyScreen('<h3>' + (d.pub ? '⚡ Phòng chung' : '🖥️ Phòng ' + esc(d.code)) + '</h3>' +
+        (d.pub ? '<p class="sub">Ai bấm <b>Phòng chung</b> cũng vào đây, tự ghép trận (tối đa ' + MAX_PLAYERS + ' người).</p>' : '<p class="sub">Gửi mã cho bạn bè, họ bấm <b>Vào phòng</b> rồi nhập mã:</p><div class="hax-code">' + esc(d.code) + '</div><button type="button" class="btn btn-soft btn-sm" id="hxCopy">📋 Chép mã</button>') +
+        '<div class="hax-teams"><div class="red"><b>🔴 Đội Đỏ</b><ul>' + col(0) + '</ul></div><div class="blue"><b>🔵 Đội Xanh</b><ul>' + col(1) + '</ul></div></div>' +
+        (d.admin ? settingsHtml(true) + '<label class="hax-chk"><input type="checkbox" id="hxBots"' + (d.bots ? ' checked' : '') + '> 🤖 Thêm máy cho đủ người khi hai đội lệch</label>' : '<p class="p-sub">Bản đồ: ' + mp.icon + ' ' + mp.name + ' · ' + Math.round(d.dur / 60) + ' phút' + (d.bots ? ' · có máy bù người' : '') + '</p>') +
+        '<p class="p-sub" id="hxMsg">' + status + ' <span id="hxPing"></span></p>' +
+        '<div class="btnrow">' + (d.admin && !d.playing ? '<button type="button" class="btn btn-primary" id="hxStart">▶ Bắt đầu</button>' : '') + '<button type="button" class="btn btn-soft" id="hxTeam">⇄ Đổi đội</button><button type="button" class="btn btn-ghost" id="hxBack">← Rời phòng</button></div>');
+      const sendCfg = () => send({ t: 'cfg', map: mapOf(), dur: cfg.dur, bots: cfg.bots, lvl: cfg.lvl });
+      if (d.admin) {
+        bindSettings(sendCfg);
+        document.getElementById('hxBots').onchange = (e) => { cfg.bots = e.target.checked; saveCfg(); sendCfg(); };
+        root.querySelectorAll('[data-sw]').forEach((b) => (b.onclick = () => send({ t: 'swap', id: b.dataset.sw })));
+        const st = document.getElementById('hxStart'); if (st) st.onclick = () => { send({ t: 'start' }); sfx('click'); };
+      }
+      const cp = document.getElementById('hxCopy'); if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(d.code); } catch (e) { /* */ } };
+      document.getElementById('hxTeam').onclick = () => { send({ t: 'team' }); sfx('click'); };
+      document.getElementById('hxBack').onclick = () => menu();
+      showPing();
+    };
+    let rtt = 0;
+    const showPing = () => { const el = document.getElementById('hxPing'); if (el && rtt) el.textContent = '· 📶 ' + rtt + 'ms'; };
     // ván đấu phía người vào phòng: tự chạy vật lý (dự đoán) rồi khớp dần với trạng thái chủ phòng gửi về
     const startGame = (d) => {
       playing = true; me = d.me; snap = null; lastScore = '0-0';
       m = newMatch({ dur: d.dur, map: d.map, roster: d.roster, client: true });
       const keep = stopFn; stopFn = null; open(pitchHtml('Online · ' + d.roster.length + ' cầu thủ · bạn ở đội ' + NAMES[d.roster[me].team] + ' · ' + MP.icon + ' ' + MP.name)); stopFn = keep;
       document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Bạn là ★';
+      if (dc.server) { const sp = document.createElement('span'); sp.id = 'hxPing'; document.getElementById('hxHint').append(' ', sp); showPing(); }
       cv = document.getElementById('hxCv'); ctx = cv.getContext('2d'); bindKeys();
       document.getElementById('hxQuit').onclick = () => menu();
       let tick = 0, last = performance.now(), acc = 0;
@@ -837,6 +917,7 @@
       lastSeen = performance.now();
       let d; try { d = JSON.parse(e.data); } catch (x) { return; }
       if (d.t === 's') applySnap(d);
+      else if (d.t === 'pong') { if (d.c) { rtt = Math.round(performance.now() - d.c); showPing(); } }
       else if (d.t === 'lobby') showLobby(d);
       else if (d.t === 'start') startGame(d);
       else if (d.t === 'end') { playing = false; stopTicker(); keyHook = null; if (m) { m.score = d.sc; finish(m, { myTeam: m.players[me].team, online: true, againLabel: null }); } }
@@ -866,9 +947,14 @@
       '<div class="hax-menu"><button type="button" class="btn btn-primary" id="hxAI">🤖 Đấu với máy</button>' +
       '<button type="button" class="btn btn-primary" id="hxCup">🏆 Cúp Hax · 8 đội đấu loại trực tiếp</button>' +
       '<button type="button" class="btn btn-soft" id="hxLocal">👥 2 người 1 máy</button>' +
-      '<button type="button" class="btn btn-primary" id="hxHost">🌐 Tạo phòng online (tối đa ' + MAX_PLAYERS + ' người)</button>' +
-      '<div class="ol-join"><input id="hxCode" maxlength="5" placeholder="Mã phòng (5 ký tự)" autocomplete="off" style="text-transform:uppercase"><button type="button" class="btn btn-soft" id="hxJoin">Vào phòng</button></div></div>' +
-      '<p class="p-sub">Online kết nối trực tiếp giữa các máy (WebRTC). Mạng công ty/trường học có thể chặn — khi đó thử 4G. Mỗi người chơi trên một máy riêng (bàn phím chỉ điều khiển cửa sổ đang chọn).</p>' +
+      '<div class="hax-srv"><b>🖥️ Online qua máy chủ riêng</b><small>Không bị mạng trường/công ty chặn · tối đa ' + MAX_PLAYERS + ' người · mỗi người một máy</small>' +
+      '<button type="button" class="btn btn-primary" id="hxQuick">⚡ Vào phòng chung (tự ghép trận)</button>' +
+      '<button type="button" class="btn btn-primary" id="hxSHost">➕ Tạo phòng riêng mời bạn bè</button>' +
+      '<div class="ol-join"><input id="hxSCode" maxlength="5" placeholder="Mã phòng (5 ký tự)" autocomplete="off" style="text-transform:uppercase"><button type="button" class="btn btn-soft" id="hxSJoin">Vào phòng</button></div></div>' +
+      '<details class="hax-p2p"><summary>Kết nối trực tiếp P2P (dự phòng, khi máy chủ bảo trì)</summary>' +
+      '<button type="button" class="btn btn-soft" id="hxHost">🌐 Tạo phòng P2P</button>' +
+      '<div class="ol-join"><input id="hxCode" maxlength="5" placeholder="Mã phòng P2P" autocomplete="off" style="text-transform:uppercase"><button type="button" class="btn btn-soft" id="hxJoin">Vào phòng</button></div>' +
+      '<p class="p-sub">Kết nối thẳng giữa các máy (WebRTC) — mạng trường/công ty hay chặn.</p></details></div>' +
       '<div class="btnrow"><button type="button" class="btn btn-ghost" id="hxClose">✖ Đóng</button></div></div>');
     bindSettings(menu);
     document.getElementById('hxName').oninput = (e) => { cfg.name = e.target.value.replace(/[<>]/g, '').trim().slice(0, 14); saveCfg(); };
@@ -876,9 +962,14 @@
     document.getElementById('hxCup').onclick = cupScreen;
     document.getElementById('hxLocal').onclick = playLocal2;
     document.getElementById('hxHost').onclick = host;
+    document.getElementById('hxQuick').onclick = () => serverPlay('quick');
+    document.getElementById('hxSHost').onclick = () => serverPlay('create');
+    document.getElementById('hxSJoin').onclick = () => { const c = document.getElementById('hxSCode').value.trim(); if (c.length !== 5) { document.getElementById('hxSCode').focus(); return; } serverPlay('join', c.toUpperCase()); };
+    document.getElementById('hxSCode').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('hxSJoin').click(); };
+    wakeServer();
     document.getElementById('hxJoin').onclick = () => { const c = document.getElementById('hxCode').value; if (c.trim().length !== 5) { document.getElementById('hxCode').focus(); return; } join(c); };
     document.getElementById('hxCode').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('hxJoin').click(); };
     document.getElementById('hxClose').onclick = () => close();
   }
-  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _sim: { newMatch, step, aiInput, applyMap, draw } };
+  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _sim: { newMatch, step, aiInput, applyMap, draw, vecOf, snapshot } };
 })();
