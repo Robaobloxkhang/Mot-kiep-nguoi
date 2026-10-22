@@ -462,13 +462,14 @@
     const res = mine > theirs ? 'win' : mine < theirs ? 'lose' : 'draw';
     sfx(res === 'win' ? 'cheer' : res === 'lose' ? 'bad' : 'notify');
     if (opts.broadcastEnd) opts.broadcastEnd(m);
-    if (opts.cupEnd) { opts.cupEnd(mine, theirs, m.goalsBy[opts.me ?? 0] || 0); return; }
+    if (opts.cupEnd) { if (res === 'win') (KN.Weekly && KN.Weekly.track('haxwin')); opts.cupEnd(mine, theirs, m.goalsBy[opts.me ?? 0] || 0); return; }
     if (opts.career) { const f = onEnd; onEnd = null; close(true); const myG = m.goalsBy[opts.me ?? 0] || 0; f && f({ score: Math.max(0, Math.min(1, (mine - theirs + 2) / 4)), text: 'Tỷ số ' + mine + ' – ' + theirs + (res === 'win' ? ': bạn thắng!' : res === 'lose' ? ': bạn thua.' : ': hoà.') + (myG ? ' Bạn ghi ' + myG + ' bàn.' : ''), gf: mine, ga: theirs, myGoals: myG }); return; }
     const title = opts.local2 ? (m.score[0] === m.score[1] ? 'Hoà!' : 'Đội ' + NAMES[m.score[0] > m.score[1] ? 0 : 1] + ' thắng!') : res === 'win' ? '🏆 Đội bạn thắng!' : res === 'lose' ? '😭 Đội bạn thua' : '🤝 Hoà';
     const ov = overlay('<b>' + title + '</b><span>' + m.score[0] + ' – ' + m.score[1] + '</span><div class="btnrow">' + (opts.againLabel === null ? '<small>⏳ Chờ chủ phòng bắt đầu ván mới…</small>' : '<button type="button" class="btn btn-primary" id="hxAgain">' + (opts.againLabel || '↻ Đá lại') + '</button>') + '<button type="button" class="btn btn-ghost" id="hxMenu">' + (opts.online ? 'Rời phòng' : 'Menu') + '</button></div>');
     if (!ov) return;
     const ag = document.getElementById('hxAgain'); if (ag) ag.onclick = () => (opts.again ? opts.again() : menu());
     document.getElementById('hxMenu').onclick = () => menu();
+    if (res === 'win' && !opts.local2) (KN.Weekly && KN.Weekly.track('haxwin'));
     try { if (!opts.local2 && KN.Game && KN.Game.hasLife() && !KN.Game.isDead() && KN.Game.remoteEffect && res === 'win' && opts.online) KN.Game.remoteEffect({ happy: 3 }, '⚽ Bạn thắng một trận Bóng đá Hax online ' + mine + '–' + theirs + '.', '⚽'); } catch (e) { /* */ }
   }
   // ---------------------------------------------------------------- chế độ chơi trên một máy
@@ -511,7 +512,7 @@
     }
     if (!next.some((t) => c.teams[t].me)) c.out = true;
     if (c.round < 2) { c.rounds[c.round + 1] = next; c.round++; } else { c.champ = next[0]; c.round = 3; }
-    if (c.champ != null && c.teams[c.champ].me) c.titles = (c.titles || 0) + 1;
+    if (c.champ != null && c.teams[c.champ].me) { c.titles = (c.titles || 0) + 1; (KN.Weekly && KN.Weekly.track('cup')); }
     // bị loại: đá nốt các vòng còn lại (máy với máy) để biết nhà vô địch
     while (c.out && c.round <= 2) { const l = c.rounds[c.round], s2 = c.scores[c.round], nx = []; for (let k = 0; k < l.length; k += 2) { const g = simMatch(c, l[k], l[k + 1]); s2[k / 2] = g; nx.push(g[0] > g[1] ? l[k] : l[k + 1]); } if (c.round < 2) { c.rounds[c.round + 1] = nx; c.round++; } else { c.champ = nx[0]; c.round = 3; } }
     cupSave(c);
@@ -520,7 +521,7 @@
     const reached = c.champ != null && c.teams[c.champ].me ? 3 : c.rounds[2] && c.rounds[2].some((t) => c.teams[t].me) ? 2 : c.rounds[1] && c.rounds[1].some((t) => c.teams[t].me) ? 1 : 0;
     if (c.rewarded || !reached) return '';
     c.rewarded = true; cupSave(c);
-    try { if (KN.Game && KN.Game.hasLife() && !KN.Game.isDead() && KN.Game.remoteEffect) { KN.Game.remoteEffect({ happy: reached === 3 ? 5 : 2, money: PRIZE[reached] }, reached === 3 ? '🏆 Bạn cùng đồng đội vô địch Cúp Hax mùa ' + c.season + '! Tiền thưởng ' + (PRIZE[3] / 1e6) + ' triệu.' : '⚽ Đội bạn vào tới ' + (reached === 2 ? 'chung kết' : 'bán kết') + ' Cúp Hax, nhận ' + (PRIZE[reached] / 1e6) + ' triệu tiền thưởng.', '🏆'); return ' Đã cộng ' + (PRIZE[reached] / 1e6) + ' triệu vào cuộc đời đang sống.'; } } catch (e) { /* */ }
+    try { if (KN.Game && KN.Game.hasLife() && !KN.Game.isDead() && KN.Game.remoteEffect) { KN.Game.remoteEffect({ happy: reached === 3 ? 5 : 2, money: PRIZE[reached] * (KN.Weekly && KN.Weekly.bonus('hax') ? 2 : 1) }, reached === 3 ? '🏆 Bạn cùng đồng đội vô địch Cúp Hax mùa ' + c.season + '! Tiền thưởng ' + (PRIZE[3] / 1e6) + ' triệu.' : '⚽ Đội bạn vào tới ' + (reached === 2 ? 'chung kết' : 'bán kết') + ' Cúp Hax, nhận ' + (PRIZE[reached] / 1e6) + ' triệu tiền thưởng.', '🏆'); return ' Đã cộng ' + (PRIZE[reached] / 1e6) + ' triệu vào cuộc đời đang sống.'; } } catch (e) { /* */ }
     return '';
   }
   function cupScreen() {

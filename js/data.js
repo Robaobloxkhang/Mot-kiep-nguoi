@@ -776,6 +776,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.66', date: '22/10/2026', items: [
+      '💬 Chat giữa người chơi: nút 💬 góc dưới bên trái. Kênh chung cho cả server, bấm tên ai đó để nhắn riêng, xem ai đang online. Từ thô tục tự bị che, đường link bị xoá.',
+      '🎪 Sự kiện tuần toàn server: mỗi tuần một chủ đề (bóng đá, du lịch, tình yêu, tử tế, minigame) có ưu đãi riêng (vé du lịch giảm 30%, hẹn hò dễ hơn, thưởng Cúp Hax ×2…) và 3 nhiệm vụ. Mỗi nhiệm vụ +3 triệu, xong cả 3 nhận huy hiệu tuần + 10 triệu.',
+      '💒 Đám cưới online: kết hôn xong bấm 💒 → tạo thiệp mời có mã 6 ký tự. Bạn bè nhập mã để vào dự trong cảnh tiệc cưới 3D, viết lời chúc và mừng cưới (200 nghìn – 2 triệu); cô dâu chú rể bấm "Nhận tiền mừng" để cộng vào cuộc đời.',
+    ] },
     { v: '1.65', date: '19/10/2026', items: [
       '✈️ Đi du lịch giờ được TỰ CHỌN điểm đến (trong nước / nước ngoài, giá tiền hiện rõ). 4 cảnh 3D mới: Tokyo (cổng torii, hoa anh đào, núi Phú Sĩ), Seoul (cổng cung điện, tháp Namsan, biển neon), Paris (tháp Eiffel, cà phê vỉa hè), Bangkok (chùa vàng, tuk-tuk, chợ nổi).',
       'Mỗi nước có chuyện riêng: lạc ga Shinjuku, gặp idol K-pop, bị móc túi ở Paris, bị tuk-tuk chặt chém… Đi cùng người yêu thì thân hơn; đi một mình có khi gặp được nửa kia.',

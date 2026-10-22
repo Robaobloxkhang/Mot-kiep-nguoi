@@ -233,6 +233,7 @@
   function finish(score, text, p) {
     return new Promise((res) => {
       const pct = Math.round(score * 100), duel = p.mode === 'duel', buy = p.mode === 'buy', ok = duel || buy ? score >= 0.5 : score >= p.need;
+      if (ok && !duel) (KN.Weekly && KN.Weekly.track('minigame'));
       const line = duel ? '⏳ Đang chờ kết quả của đối thủ…' : buy ? (score > 0.01 ? '✅ Được giảm ' + Math.round(score * 15) + '% giá' : '😅 Không bớt được đồng nào') : ok ? '✅ Đạt yêu cầu (' + Math.round(p.need * 100) + '%)' : '❌ Chưa đạt yêu cầu (' + Math.round(p.need * 100) + '%)';
       const box = open('<div class="mini-result"><div class="mini-pct' + (ok ? ' ok' : ' bad') + '">' + pct + '%</div><p>' + esc(text) + '</p><p class="mini-goal">' + line + '</p><div class="mini-btns"><button type="button" class="btn btn-primary" data-ok>' + (duel ? 'Xong' : buy ? 'Xuống tiền →' : 'Xem kết quả →') + '</button></div></div>');
       sfx(ok ? 'cheer' : 'fail');
@@ -246,6 +247,7 @@
     if (!p) return null;
     if (root) close();
     RNG = p.seed ? seeded(p.seed) : Math.random;
+    if (p.mode !== 'duel' && KN.Weekly && KN.Weekly.bonus('mini')) p.need = Math.max(0.05, p.need - 0.05);
     try {
       let go = await intro(p), practice = null;
       // chơi thử: chạy minigame thật nhưng không tính điểm, xong quay lại màn hướng dẫn

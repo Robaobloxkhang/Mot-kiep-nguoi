@@ -608,7 +608,7 @@
       const p = (ctx && ctx.get(eff.kill) && !ctx.get(eff.kill).temp ? ctx.get(eff.kill) : null) || alive(eff.kill)[0];
       if (p) { p.alive = false; p.deathYear = S.year; addLog(cap(kin(p)) + ' ' + p.firstName + ' đã qua đời.', 'bad', '🕯️'); }
     }
-    if (eff.marry) { const p = alive('partner')[0]; if (p) { p.role = 'spouse'; S.flags.marriedYear = S.year; unlock('married'); } }
+    if (eff.marry) { const p = alive('partner')[0]; if (p) { p.role = 'spouse'; S.flags.marriedYear = S.year; S.flags.wedCode = null; unlock('married'); (KN.Weekly && KN.Weekly.track('marry')); } }
     if (eff.divorce) { const p = alive('spouse')[0]; if (p) { p.role = 'ex'; p.wasSpouse = true; if (S.money > 0) addMoney(-S.money * 0.4, deltas); unlock('divorce'); } }
     if (eff.baby && (eff.baby === 'solo' || has('spouse') || has('partner'))) { const b = makeBaby(); addLog('Bạn đón con ' + b.firstName + ' chào đời!', 'milestone', '👶'); }
     if (eff.perf && S.job) S.job.perf = r100(S.job.perf + eff.perf); // phong độ / hiệu suất công việc
@@ -2679,12 +2679,12 @@
     ],
   };
   function tripChoice(k) {
-    const t = D.TRAVEL.find((x) => (x.id || x.name) === k) || D.TRAVEL[0];
+    const t0 = D.TRAVEL.find((x) => (x.id || x.name) === k) || D.TRAVEL[0], t = Object.assign({}, t0, { cost: KN.Weekly && KN.Weekly.bonus('travel') ? Math.round(t0.cost * 0.7 / 1e5) * 1e5 : t0.cost });
     const pp = alive('spouse')[0] || alive('partner')[0];
     return { key: k, label: (t.abroad ? '✈️ ' : '🚌 ') + t.name + ' · ' + fmtMoney(t.cost) + (pp ? ' (đi cùng ' + pp.firstName + ')' : ''), fn: () => {
       if (S.money < t.cost) return { text: 'Tới lúc thanh toán thì thẻ không đủ tiền. Chuyến đi đành hoãn.', effects: { happy: -2 }, tone: 'bad' };
       if (t.abroad && (S.english || 0) < 30 && Math.random() < 0.3) { return { text: 'Tiếng Anh còn kém (dưới 30), bạn khai sai giấy tờ nhập cảnh và bị giữ lại hỏi chuyện cả tiếng. Chuyến đi vẫn vui, nhưng lần sau nên học thêm tiếng Anh.', effects: { money: -t.cost, happy: 4 }, scene: { loc: 'airport', anim: 'facepalm' }, tone: 'neutral' }; }
-      S.counters.travel = (S.counters.travel || 0) + 1; if (t.abroad) { S.counters.abroad = (S.counters.abroad || 0) + 1; unlock('abroad'); }
+      S.counters.travel = (S.counters.travel || 0) + 1; if (t.abroad) { S.counters.abroad = (S.counters.abroad || 0) + 1; unlock('abroad'); } (KN.Weekly && KN.Weekly.track('travel'));
       const list = TRIP_STORY[t.id], st = list ? U.weighted(list, (x) => x.w) : { text: U.pick(['Bạn xách ba lô lên đường đến ' + t.name + '. Những ngày tuyệt vời, ảnh chụp đầy điện thoại.', t.name + ' đẹp hơn cả trong ảnh. Bạn ước thời gian ngừng trôi.']), eff: { happy: 8 } };
       const eff = Object.assign({}, st.eff, { money: -t.cost + (st.eff.money || 0) });
       let text = st.text;
@@ -3949,7 +3949,7 @@
         break;
       }
       case 'dating': {
-        const p = U.clamp(0.25 + (S.stats.looks - 50) / 90 + (S.stats.happy - 50) / 200 + Math.min(0.15, prestige() * 0.012), 0.08, 0.88);
+        const p = U.clamp(0.25 + (S.stats.looks - 50) / 90 + (S.stats.happy - 50) / 200 + Math.min(0.15, prestige() * 0.012) + (KN.Weekly && KN.Weekly.bonus('love') ? 0.1 : 0), 0.08, 0.88);
         const base = { loc: 'cafe', time: 'dusk', anim: 'talk', npcs: [{ role: 'stranger', gender: loveGender(), age: U.clamp(P().age + U.randi(-4, 3), 18, 99), anim: 'talk' }] };
         const ctx = bind({ id: '_date', scene: base });
         if (Math.random() < p) {
@@ -4023,6 +4023,7 @@
         const amt = Math.max(5e5, Math.round(Math.max(0, S.money) * 0.05 / 1e5) * 1e5);
         if (S.money < amt) { S.yearActs[id]--; return fail('Cần ít nhất ' + fmtMoney(amt)); }
         addMoney(-amt, deltas); rollEff({ karma: [5, 10], happy: [3, 6] }, 1, deltas); S.counters.charity = (S.counters.charity || 0) + 1;
+        if (KN.Weekly) { KN.Weekly.track('charity'); if (KN.Weekly.bonus('kind')) addStat('karma', 6, deltas); }
         text = U.pick(['Bạn quyên góp ' + fmtMoney(amt) + ' cho đồng bào vùng lũ miền Trung.', 'Bạn nấu cơm từ thiện cho bệnh nhân nghèo, tặng kèm ' + fmtMoney(amt) + '.', 'Bạn ủng hộ ' + fmtMoney(amt) + ' xây trường cho trẻ em vùng cao.']);
         scene = actScene({ loc: 'street', anim: 'bow', fx: 'hearts', npcs: [{ role: 'crowd', anim: 'clap' }] });
         break;
@@ -4849,6 +4850,7 @@
     if ((S.yearActs.soc || 0) >= SOC_PER_YEAR) return fail('Năm nay bạn đã đăng đủ rồi.');
     if (s.followers < a.min) return fail('Cần ' + fmtF(a.min) + ' người theo dõi.');
     if (a.niche && !nicheOf()) return fail('Chọn kênh chủ đề trước đã.');
+    if (KN.Weekly) KN.Weekly.track('post');
     if (LIVE_EV[id]) { const ev = liveEvent(LIVE_EV[id]); if (!ev) return fail('Chưa mở được buổi live.'); S.yearActs.soc = (S.yearActs.soc || 0) + 1; s.lastYear = S.year; s.posts++; S.pending.unshift(ev); changed(); return result({ title: a.icon + ' ' + a.label, icon: a.icon, text: 'Bạn bấm “Phát trực tiếp”. Đèn đỏ LIVE sáng lên, người xem bắt đầu vào…', tone: 'neutral', scene: sceneFor('bedroom', { anim: 'talk', fx: 'music' }), event: ev, live: true }); }
     if (id === 'pk') { const ev = instantiate(MS.ms_soc_pk); if (!ev) return fail('Chưa mở được phiên PK.'); S.yearActs.soc = (S.yearActs.soc || 0) + 1; s.lastYear = S.year; s.posts++; S.flags.pkFoe = U.pick(KOL_NAMES); S.pending.unshift(ev); changed(); return result({ title: '⚔️ Livestream PK', icon: '⚔️', text: 'Bạn mời ' + S.flags.pkFoe + ' vào phiên PK. Đếm ngược 3… 2… 1…', tone: 'neutral', scene: sceneFor('bedroom', { anim: 'talk', fx: 'music' }), event: ev, live: true }); }
     S.yearActs.soc = (S.yearActs.soc || 0) + 1; s.lastYear = S.year; s.posts++;
@@ -5210,7 +5212,7 @@
     const d = S.dating; const i = d.deck.findIndex((x) => x.id === id); if (i < 0) return fail('Hồ sơ không còn.');
     const p = d.deck.splice(i, 1)[0]; d.swipes++;
     if (!like) { changed(); return { ok: true, match: false, text: 'Quẹt trái. Người tiếp theo!' }; }
-    const chance = U.clamp(0.35 + (S.stats.looks - p.looks) / 120 + (S.social && S.social.verified ? 0.1 : 0), 0.08, 0.85);
+    const chance = U.clamp(0.35 + (S.stats.looks - p.looks) / 120 + (S.social && S.social.verified ? 0.1 : 0) + (KN.Weekly && KN.Weekly.bonus('love') ? 0.1 : 0), 0.08, 0.85);
     const match = p.catfish || Math.random() < chance; // tài khoản ảo thì “match” với tất cả
     if (match) d.matches.push(p);
     changed();
@@ -5764,6 +5766,13 @@
     };
   }
   // tác động từ người chơi khác: chỉ cộng/trừ nhỏ, có giới hạn để không phá game
+  // 💒 thiệp cưới online: dữ liệu cô dâu chú rể (ngoại hình đồ cưới) để bạn bè vào dự; khách dự thì thấy chính nhân vật của mình
+  function weddingCard() {
+    if (!S || S.dead) return null; const sp = alive('spouse')[0]; if (!sp) return null;
+    return { a: playerOf('wedding', 'love'), b: npcOf(sp, { anim: 'love' }, 'wedding'), year: S.flags.marriedYear || S.year, place: D.cityName(S.city), married: S.flags.marriedYear || null, code: S.flags.wedCode || null };
+  }
+  function weddingSetCode(c) { if (S && !S.dead) { S.flags.wedCode = c; changed(); } }
+  function weddingGuest() { if (!S || S.dead || !S.player) return null; return playerOf('wedding', 'clap'); }
   function remoteEffect(eff, text, icon) {
     if (!S || S.dead || !eff) return false;
     const deltas = {};
@@ -5781,7 +5790,7 @@
     const parts = String(o.name || 'Bạn đời').trim().split(/\s+/);
     const sp = newPerson('spouse', o.gender === 'f' ? 'f' : 'm', U.clamp(Math.round(o.age || P().age), 18, 99), { firstName: parts.pop(), lastName: parts[0] || undefined, middleName: parts.slice(1).join(' '), relation: 88 });
     sp.onlineId = o.pid; sp.onlineNick = o.nick;
-    S.people.push(sp); S.flags.marriedYear = S.year; unlock('married');
+    S.people.push(sp); S.flags.marriedYear = S.year; S.flags.wedCode = null; unlock('married'); (KN.Weekly && KN.Weekly.track('marry'));
     const deltas = {}; addStat('happy', 12, deltas);
     addLog('💍 Bạn kết hôn với ' + fullName(sp) + ' (người chơi ' + (o.nick || '?') + ')! Hai kiếp người giờ chung một mái nhà.', 'milestone', '💍');
     changed(); return { ok: true };
@@ -6208,7 +6217,7 @@
     petShop, buyPet, furnitureView, buyFurniture, familyTree, onlineSibling, onlineParentDied, biography,
     rebirthPreview, scenarioView, scenarios: () => SCENARIOS.map((s) => ({ id: s.id, name: s.name, icon: s.icon, desc: s.desc, goal: s.goal, born: s.born, done: (meta.scnDone || {})[s.id] || 0 })),
     miniContext: () => (S && S.player ? { jobId: S.job ? S.job.id : null, ys: S.ys ? S.ys.id : null, age: P().age, gender: P().gender, stats: Object.assign({}, S.stats), appearance: P().appearance, name: P().firstName, eduLevel: S.edu.level, major: S.edu.major } : null),
-    onlineMarry, onlineDivorce, onlineSpouse, onlineMoney, worldEvent, worldKinds: () => Object.keys(WORLD), dailyChallenge, setChallenge, challengeResult,
+    weddingCard, weddingSetCode, weddingGuest, onlineMarry, onlineDivorce, onlineSpouse, onlineMoney, worldEvent, worldKinds: () => Object.keys(WORLD), dailyChallenge, setChallenge, challengeResult,
     hasLife: () => !!(S && S.player),
     isDead: () => !!(S && S.dead),
     pending: () => (S ? S.pending.slice() : []),
