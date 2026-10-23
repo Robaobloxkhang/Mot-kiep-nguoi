@@ -1566,3 +1566,20 @@ details.more.risk p { margin: 0 0 8px; }
 .cup-pick { justify-content: flex-start; justify-items: start; text-align: left; align-content: start; }
 .cup-names { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; } .cup-names input { border-radius: 10px; border: 1px solid var(--line-2); background: rgba(0, 0, 0, .25); color: var(--fg); padding: 8px 10px; min-width: 0; }
 .cup-now { outline: 2px solid var(--lantern, #ffb347); } .fr-red { color: #ff8a80; } .fr-blue { color: #8ab4ff; }
+
+/* ===== trả về phông chữ cũ (Baloo 2 cho tiêu đề, Be Vietnam Pro cho nội dung) — bỏ chữ condensed viết hoa ===== */
+:root { --f-head: var(--f-display); } .mx { --mx-f: var(--f-display); }
+.ev-title { font: 700 24px/1.15 var(--f-display); text-transform: none; letter-spacing: 0; }
+.id-name { font: 700 19px/1.15 var(--f-display); text-transform: none; letter-spacing: 0; }
+.age-num { font-family: var(--f-display); font-size: 34px; font-weight: 800; }
+.sec-title { font: 700 15px var(--f-display); text-transform: none; letter-spacing: .02em; }
+.tab { font: 600 12px var(--f-body); text-transform: none; letter-spacing: 0; }
+.stat-top { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 500; } .stat-top b { font: 700 18px var(--f-display); }
+.act .an { font: 700 13.5px/1.25 var(--f-body); letter-spacing: 0; }
+.log-age { font: 700 14px var(--f-display); text-transform: none; letter-spacing: .02em; }
+.ev-kicker { font: 700 11.5px var(--f-body); letter-spacing: .12em; }
+.choice .num { font-family: var(--f-display); font-size: 15px; }
+.lg-head b { font: 700 16px var(--f-display); text-transform: none; letter-spacing: 0; } .lg-tab th { font: 600 12px var(--f-body); text-transform: none; letter-spacing: 0; }
+.mx :is(h1, h3, h4, h5, .mx-nav button, .mx-btn.lg, .mx-sty b, .mx-id h1, .mx-dlg-box h3, .mx-dr-h h3, .mx-hero h2, .mx-chips button, .mx-tb th, .mx-grp, .mx-stat small, .mx-kpis small, .mx-row-h) { text-transform: none; letter-spacing: 0; }
+.mx-id h1 { font-size: 22px; } .mx-nav button { font: 600 15px var(--f-display); } .mx-panel h4 { font: 700 17px var(--f-display); } .mx-hero h2 { font-size: 36px; } .mx-stat b { font-size: 26px; } .mx-kpis b { font: 700 17px var(--f-display); }
+.mx-dr-h h3 { font-size: 21px; } .mx-dlg-box h3 { font-size: 20px; } .mx-sty b { font: 700 16px var(--f-display); } .mx-sack h4 { font-size: 22px; } .mx-fm b { font-size: 18px; } .mx-pm-c { font-family: var(--f-display); } .mx-n { font-family: var(--f-body); font-weight: 700; font-size: 13.5px; } .mx-tb th { font: 600 12px var(--f-body); }

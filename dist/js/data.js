@@ -792,6 +792,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🔤 Trả lại phông chữ cũ (Baloo 2 cho tiêu đề, Be Vietnam Pro cho nội dung) ở giao diện trong game và phòng HLV; bỏ kiểu chữ condensed viết hoa.',
       '🏆 Giải đấu online loại trực tiếp cho 2–8 bạn bè: ở menu Hax bấm “Giải đấu online”, gửi mã phòng, chủ phòng bấm bắt đầu. Máy chủ chia nhánh đấu (người lẻ được miễn trận), từng trận hai người đá nhau (có thể kèm máy), người thua ngồi xem bảng đấu, hoà thì bốc thăm người đi tiếp. Cần máy chủ Hax cập nhật bản mới.',
       '🌍 Giải đấu ngoài đời thực: World Cup (32 đội tuyển, 8 bảng), Champions League (32 CLB châu Âu), Euro, Asian Cup và AFF Cup — bạn dẫn dắt Việt Nam (hoặc đội của bạn ở Champions League). Tên đội thật, sức mạnh hư cấu; đối thủ mạnh thì máy chơi khó hơn.',
       '👥 Đá giải với bạn bè: tick “Chơi cùng bạn bè một máy” ở mọi giải để bạn bè điều khiển một đồng đội (↑↓←→ + Enter), hoặc mở “Giải đấu với bạn bè” (2, 4 hoặc 8 người cùng một máy, loại trực tiếp, mỗi trận hai người đấu nhau).',
