@@ -123,7 +123,7 @@
   const NAME = {
     quiz: '📝 Làm bài kiểm tra', penalty: '⚽ Sút phạt đền', keeper: '🧤 Bắt penalty', shoot: '🏀 Ném rổ', sprint: '🏃 Chạy nước rút',
     swim: '🏊 Bơi', chase: '🚓 Rượt đuổi', drive: '🛵 Lái xe', fight: '🥊 Đánh nhau', interview: '💼 Phỏng vấn', cook: '🍜 Bán hàng',
-    stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
+    scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
   };
 
   // ------------------------------------------------------------------ khung chung
@@ -165,6 +165,7 @@
       case 'love': return L + lv(st.looks, 'người ấy đã có cảm tình sẵn', 'khởi đầu bình thường', 'phải cố gắng nhiều') + ', vùng hồi hộp ' + lv(st.looks, 'rộng', 'vừa', 'hẹp');
       case 'haggle': return S + (st.smarts >= 70 ? 'đọc được thái độ người bán' : 'phải tự đoán giá vốn');
       case 'cpr': return S + lv(st.smarts, 'thuộc kỹ thuật, nhịp dễ giữ', 'biết sơ qua', 'lúng túng, khó giữ nhịp');
+      case 'scamchat': return S + (st.smarts >= 65 ? 'nói chuyện khéo, quản lý ít nghi ngờ hơn' : 'dễ để lộ sơ hở') + ' · ' + L + (st.looks >= 65 ? 'nạn nhân dễ có cảm tình' : 'nạn nhân khó tin hơn');
       case 'cards': return S + (st.smarts >= 65 ? 'tính được xác suất quắc khi rút' : 'chơi theo cảm giác');
       case 'hoops': return H + 'vùng lực chuẩn ' + lv(st.health, 'rộng, tay chắc', 'vừa', 'hẹp, tay run') + ', thanh lực chạy ' + lv(st.health, 'chậm', 'vừa', 'nhanh');
       case 'sneak': return H + 'bò ' + lv(st.health, 'nhanh', 'vừa', 'chậm') + ' · ' + S + 'đoán lính gác quay lại ' + lv(st.smarts, 'rất sớm', 'khá sớm', 'muộn');
@@ -192,6 +193,7 @@
     hoops: '6 cú ném: lên rổ, tầm trung, ba điểm, ném phạt, ba điểm có hậu vệ và cú ném quyết định. Giữ Space để thanh lực dâng lên, thả tay khi vạch trắng nằm trong vùng xanh (ném càng xa càng cần nhiều lực). Có hậu vệ thì ném trước khi hắn bật nhảy!',
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
+    scamchat: 'Bạn bị ép nhắn tin cho một người lạ. Gõ tin nhắn tự do (hoặc bấm câu gợi ý) rồi bấm Enter. Làm quen để tăng niềm tin rồi mới nhắc chuyện tiền thì đủ chỉ tiêu. Hoặc lén cảnh báo họ đây là lừa đảo: cứu được người nhưng quản lý sẽ nổi nóng nếu bị phát hiện. 8 lượt, 90 giây.',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
   // màn giới thiệu: giải thích rõ cách chơi (mục tiêu · từng bước · phím) rồi mới cho chơi; có nút chơi thử không tính điểm
@@ -247,6 +249,7 @@
   async function run(p) {
     if (!p) return null;
     if (root) close();
+    if (KN.Mini) KN.Mini.lastOut = null;
     RNG = p.seed ? seeded(p.seed) : Math.random;
     if (p.mode !== 'duel' && KN.Weekly && KN.Weekly.bonus('mini')) p.need = Math.max(0.05, p.need - 0.05);
     try {
@@ -1370,7 +1373,91 @@
   const haxSkills = (p) => { const st = (p.ctx && p.ctx.stats) || {}; return p.mode === 'duel' ? { charge: true, curve: true } : { charge: (st.health || 0) >= 55, curve: (st.smarts || 0) >= 55 || (p.ctx && p.ctx.jobId === 'cauthu') }; };
   function hax(p) { close(); const s = haxSetup(p); return KN.Hax.playCareer({ title: p.title, need: p.need, dur: 60, foe: 'Đối thủ', map: s.map, size: s.size, skills: haxSkills(p) }); }
   // 'shoot' (trò canh thời điểm cũ) đã bỏ — giữ tên làm bí danh của Ném rổ cho các thách đấu cũ
-  const GAMES = { hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
+  // ------------------------------------------------------------------ 12. nhắn tin dụ nạn nhân (trong khu lừa đảo bị ép làm) — gõ tự do hoặc bấm câu gợi ý
+  // Bạn là người bị ép: có thể làm theo để đủ chỉ tiêu, hoặc lén cảnh báo nạn nhân (quản lý giám sát, bị phát hiện là bị đánh).
+  const SC_VICTIMS = [
+    { n: 'Bác Hùng', age: 62, face: '👴', job: 'vừa nghỉ hưu, vợ mất sớm', likes: ['suc khoe', 'chau', 'con', 'ba', 'tuoi', 'huu', 'thuoc', 'tho'], open: 'Alo? Ai đấy nhỉ? Sao lại biết số điện thoại của bác?' },
+    { n: 'Mai', age: 24, face: '👩', job: 'sinh viên mới ra trường, đang tìm việc', likes: ['viec', 'luong', 'phong van', 'cv', 'hoc', 'cong ty', 'thue tro', 'tuyen'], open: 'Dạ em chào anh/chị, mình nhắn em có việc gì vậy ạ?' },
+    { n: 'Anh Tuấn', age: 35, face: '🧔', job: 'nhân viên văn phòng, thích làm giàu nhanh', likes: ['kiem tien', 'giau', 'dau tu', 'xe', 'nha', 'lam them', 'cong viec', 'coin', 'chung khoan'], open: 'Ừ, ai thế? Đang họp, nói nhanh giúp mình nhé.' },
+    { n: 'Cô Lan', age: 48, face: '👩‍🦳', job: 'bán hàng chợ, một mình nuôi con', likes: ['con', 'cho', 'ban hang', 'tiet kiem', 'tien', 'hoc phi', 'suc khoe', 'gia dinh'], open: 'Ai đó? Cô đang bận bán hàng, có gì thì nhắn cô sau nhé.' },
+  ];
+  const SC_WARN = ['lua dao', 'lua dao', 'dung chuyen', 'khong chuyen', 'dung gui', 'canh bao', 'bi ep', 'bi bat', 'nan nhan', 'cong an', 'bao cong an', '113', 'chan so', 'chan toi', 'dung tin', 'khong that', 'tron di', 'bi giam', 'bi lua', 'campuchia', 'cuu toi', 'giup toi', 'dung nghe'];
+  const SC_ASK = ['chuyen khoan', 'chuyen tien', 'nap tien', 'gui tien', 'dau tu', 'von', 'lai suat', 'loi nhuan', 'dang ky', 'so tai khoan', 'stk', 'dat coc', 'phi', 'vi dien tu', 'tien ao', 'coin', 'chot', 'giao dich', 'gap lam', 'ngay hom nay', 'kiem tien', 'thanh toan'];
+  const SC_RAP = ['chao', 'lam quen', 'ban', 'dep', 'de thuong', 'quan tam', 'an com', 'khoe khong', 'suc khoe', 'cong viec', 'co don', 'chia se', 'tam su', 'nho', 'thuong', 'cam on', 'xin loi', 'hom nay', 'vui', 'buon', 'hieu', 'dong cam', 'tin minh', 'gia dinh'];
+  const SC_TIPS = ['Không có công việc nhẹ lương cao nào tự tìm đến bạn: hãy kiểm tra công ty, địa chỉ và hợp đồng thật.', 'Đừng chuyển tiền cho người chưa từng gặp mặt, dù họ nói ngọt hay hối thúc đến đâu.', 'Bị hối thúc “làm ngay hôm nay” là dấu hiệu đáng ngờ. Hãy dừng lại và hỏi người thân.', 'Nghi ngờ bị lừa, hãy báo công an địa phương hoặc gọi 113, đừng ngại mất mặt.'];
+  const hasAny = (t, list) => list.some((w) => t.includes(w));
+  const scKind = (raw) => {
+    const t = ' ' + fold(raw).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ') + ' ';
+    if (t.trim().length < 3) return 'noise';
+    if (hasAny(t, SC_WARN)) return 'warn';
+    if (hasAny(t, SC_ASK)) return 'ask';
+    if (hasAny(t, SC_RAP)) return 'rap';
+    return 'other';
+  };
+  function scamchat(p) {
+    return new Promise((res) => {
+      const st = p.ctx.stats, V = pick(SC_VICTIMS), MAXT = 8, DUR = 90;
+      let trust = 18 + Math.max(0, (st.looks - 50) / 5), boss = 8, turns = 0, t = 0, done = false, warned = false, scammed = false, caught = false, blocked = false, lastRaw = '';
+      const box = open('<div class="mini-head"><b>💬 Nhắn tin dụ nạn nhân</b><small id="scH"></small></div>' +
+        '<div class="sc-meters"><div><span>🤝 Niềm tin của ' + esc(V.n) + '</span><div class="mini-bar"><i id="scT" style="width:0"></i></div></div><div><span>👁️ Quản lý đang xem</span><div class="mini-bar sc-boss"><i id="scB" style="width:0"></i></div></div></div>' +
+        '<div class="sc-chat" id="scC"></div>' +
+        '<div class="sc-chips" id="scK"></div>' +
+        '<form class="sc-in" id="scF"><input id="scI" maxlength="140" autocomplete="off" placeholder="Gõ tin nhắn của bạn rồi bấm Enter…"><button type="submit" class="btn btn-primary" id="scS">Gửi</button></form>' +
+        '<p class="mini-keys">⌨️ Gõ tự do hoặc bấm câu gợi ý · <kbd>Enter</kbd> gửi · Bạn bị ép làm việc này: quản lý theo dõi từng tin nhắn.</p>');
+      const chat = box.querySelector('#scC'), inp = box.querySelector('#scI');
+      const bub = (who, text) => { const d = document.createElement('div'); d.className = 'sc-b ' + who; d.textContent = text; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; };
+      const meters = () => { box.querySelector('#scT').style.width = clamp(trust, 0, 100) + '%'; box.querySelector('#scB').style.width = clamp(boss, 0, 100) + '%'; box.querySelector('#scH').textContent = 'Lượt ' + Math.min(turns + 1, MAXT) + '/' + MAXT + ' · còn ' + Math.max(0, Math.ceil(DUR - t)) + 's'; };
+      const chips = [['👋 Chào bạn, mình làm quen được không?', 'rap'], ['💬 Dạo này bạn khoẻ không, công việc sao rồi?', 'rap'], ['💸 Mình có kèo đầu tư lãi cao, chuyển khoản trước nhé!', 'ask'], ['⚠️ Đây là lừa đảo, đừng chuyển tiền cho ai hết!', 'warn']];
+      box.querySelector('#scK').innerHTML = chips.map((c, i) => '<button type="button" data-i="' + i + '">' + esc(c[0]) + '</button>').join('');
+      bub('them', V.open); bub('sys', V.n + ' · ' + V.age + ' tuổi · ' + V.job);
+      meters();
+      const reply = (kind, raw) => {
+        const liked = hasAny(' ' + fold(raw), V.likes) ? 1 : 0;
+        if (kind === 'warn') {
+          warned = true; boss += 42 + rnd() * 10; blocked = true;
+          return pick(['“Hả? Bị ép á? Trời ơi… cảm ơn bạn đã nói. Tôi sẽ không chuyển đồng nào và báo công an ngay!”', '“Thật hả? Vậy là lừa đảo… may mà bạn nhắn cho tôi. Tôi chặn số này rồi nhé, bạn cố giữ an toàn!”']);
+        }
+        if (kind === 'ask') {
+          boss = Math.max(0, boss - 6);
+          if (trust < 45) { trust -= 12; return pick(['“Sao chưa gì đã nói chuyện tiền bạc? Tôi thấy không ổn…”', '“Không quen không biết mà bảo chuyển khoản, nghe lạ lắm nhé.”']); }
+          if (trust < 72) { trust += 3; return pick(['“Để tôi suy nghĩ đã… có chắc chắn không đấy?”', '“Nghe cũng hấp dẫn, nhưng tôi muốn hỏi người nhà trước.”']); }
+          scammed = true; return pick(['“Thôi được, tôi tin bạn. Gửi số tài khoản đi, tôi chuyển luôn!”', '“Nghe có lý đấy. Tôi chuyển bây giờ nhé!”']);
+        }
+        if (kind === 'rap') { boss = Math.max(0, boss - 4); trust += 11 + liked * 9 + (st.looks - 50) / 25; return liked ? pick(['“Ôi, sao bạn hiểu chuyện thế! Lâu lắm rồi mới có người hỏi thăm như vậy.”', '“Đúng rồi đó! Bạn nói chuyện dễ nghe thật, mình thấy quý ghê.”']) : pick(['“Cảm ơn bạn, nói chuyện với bạn vui ghê.”', '“Ừ, mình cũng thấy thoải mái khi nói với bạn.”', '“Bạn dễ thương thật đấy.”']); }
+        boss += kind === 'noise' ? 14 : 9; trust += liked ? 5 : 1;
+        return kind === 'noise' ? '“…Bạn gửi gì thế? Tôi không hiểu.”' : pick(['“Ừm… bạn nói gì tôi chưa hiểu lắm.”', '“Vậy à? Rồi sao nữa?”', '“Hả? Bạn nói lại được không?”']);
+      };
+      const finish = (text) => {
+        if (done) return; done = true; sfx(scammed ? 'bad' : warned && !caught ? 'cheer' : 'fail');
+        const out = { scammed, warned, caught, victim: V.n, trust: Math.round(trust) };
+        if (KN.Mini) KN.Mini.lastOut = out;
+        const score = scammed ? 1 : clamp(trust / 220, 0, 0.45);
+        box.querySelector('#scF').remove(); box.querySelector('#scK').remove();
+        bub('sys', '🛡️ ' + pick(SC_TIPS));
+        setTimeout(() => res({ score, text }), 1800);
+      };
+      const send = (raw, forcedKind) => {
+        raw = String(raw || '').trim(); if (done || blocked || !raw) return;
+        const kind = forcedKind || scKind(raw);
+        if (raw === lastRaw) { boss += 12; } lastRaw = raw;
+        bub('me', raw); turns++; inp.value = '';
+        setTimeout(() => {
+          if (done) return;
+          bub('them', reply(kind, raw)); meters();
+          if (boss >= 100) { caught = true; bub('sys', '👁️ Quản lý xông tới giật điện thoại: “Mày dám làm trò gì hả?!”'); return finish(warned ? 'Quản lý phát hiện bạn lén cảnh báo nạn nhân. Bạn bị đánh một trận nhừ tử, nhưng nạn nhân đã kịp chặn số.' : 'Bạn bị quản lý phát hiện làm việc lề mề, ăn một trận đòn cảnh cáo.'); }
+          if (scammed) return finish('Nạn nhân ' + V.n + ' đã chuyển tiền. Quản lý vỗ vai bạn, còn bạn thấy buồn nôn. Một người nữa đã bị hại vì bạn bị ép.');
+          if (blocked) return finish('Bạn đã lén cảnh báo ' + V.n + ' và họ chặn số kịp thời. Bạn không đủ chỉ tiêu, nhưng đã cứu được một người.');
+          if (turns >= MAXT) return finish('Hết lượt mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn không đủ chỉ tiêu và bị phạt.');
+        }, 650);
+      };
+      box.querySelector('#scK').addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (!b) return; const c = chips[+b.dataset.i]; send(c[0].replace(/^\S+\s/, ''), c[1]); });
+      box.querySelector('#scF').addEventListener('submit', (e) => { e.preventDefault(); send(inp.value); });
+      setTimeout(() => inp.focus(), 80);
+      onKeys((e) => !(e.target && e.target.tagName === 'INPUT'));
+      every(() => { if (done) return; t += 0.1; boss += blocked ? 0 : 0.045; meters(); if (boss >= 100 && !done) { caught = true; finish('Quản lý thấy bạn chần chừ quá lâu và lao tới đánh bạn.'); } else if (t >= DUR) finish('Hết giờ mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn bị phạt vì không đủ chỉ tiêu.'); }, 100);
+    });
+  }
+  const GAMES = { scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
   KN.Mini = {
     plan, planJob, planPropose, planHaggle, planDuel, run, NAME, DUEL_TYPES,
     // file khác đăng ký thêm minigame (js/showbiz.js): fn(p) → Promise<{score, text}>, tự mở khung riêng

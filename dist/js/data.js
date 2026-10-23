@@ -787,6 +787,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.73', date: '23/10/2026', items: [
+      '💬 Minigame mới trong khu lừa đảo: nhắn tin với nạn nhân, gõ tự do hoặc bấm câu gợi ý. Làm quen tăng niềm tin, nhắc chuyện tiền quá sớm thì họ nghi ngờ. Bạn cũng có thể lén cảnh báo nạn nhân, nhưng quản lý đang xem.',
+      '📝 Nút Góp ý (góc dưới bên trái, biểu tượng 📝): gửi ý tưởng, báo lỗi, kèm tối đa 2 ảnh (tự nén nhỏ, dán Ctrl+V được).',
+    ] },
     { v: '1.72', date: '23/10/2026', items: [
       '🚨 Mới: bị lừa sang Campuchia khi đi du lịch nước ngoài hoặc đang du học — lời mời “việc nhẹ lương cao”, người bạn mới quen, đến lúc nhận ra thì đã muộn. Hỏi kỹ và cảnh giác thì có thể thoát.',
       '💸 Bị bắt là mất sạch tiền, hộ chiếu, điện thoại. Bọn có lương tâm đòi chuộc: chỉ tiền của bố mẹ, người thân mới chuộc được, bạn không được trả bằng tiền mình.',

@@ -15,7 +15,7 @@
   async function api(url, body) {
     const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error({ 'slow-down': 'Gửi nhanh quá, chờ chút nhé', notfound: 'Không tìm thấy (mã sai hoặc đã hết hạn)', already: 'Bạn đã gửi lời chúc rồi', own: 'Đây là đám cưới của chính bạn', 'not-configured': 'Máy chủ chưa sẵn sàng', empty: 'Chưa nhập gì' }[j.error] || 'Lỗi mạng, thử lại sau');
+    if (!r.ok) throw new Error({ 'slow-down': 'Gửi nhanh quá, chờ chút nhé', 'too-short': 'Nội dung hơi ngắn, viết thêm chút nhé', 'bad-img': 'Ảnh không hợp lệ hoặc quá lớn', forbidden: 'Sai mã quản trị', 'admin-off': 'Chưa đặt mã quản trị trên máy chủ', notfound: 'Không tìm thấy (mã sai hoặc đã hết hạn)', already: 'Bạn đã gửi lời chúc rồi', own: 'Đây là đám cưới của chính bạn', 'not-configured': 'Máy chủ chưa sẵn sàng', empty: 'Chưa nhập gì' }[j.error] || 'Lỗi mạng, thử lại sau');
     return j;
   }
 
@@ -64,8 +64,8 @@
   function dock() {
     let d = document.getElementById('cmDock'); if (d) return d;
     d = document.createElement('div'); d.id = 'cmDock'; d.className = 'cm-dock';
-    d.innerHTML = '<button type="button" data-t="chat" title="Chat với người chơi khác">💬<i hidden></i></button><button type="button" data-t="week" title="Sự kiện tuần">' + theme().icon + '</button><button type="button" data-t="wed" title="Đám cưới online">💒</button>';
-    d.querySelectorAll('button').forEach((b) => (b.onclick = () => open(b.dataset.t)));
+    d.innerHTML = '<button type="button" data-t="chat" title="Chat với người chơi khác">💬<i hidden></i></button><button type="button" data-t="week" title="Sự kiện tuần">' + theme().icon + '</button><button type="button" data-t="wed" title="Đám cưới online">💒</button><button type="button" data-fb="1" title="Gửi góp ý, báo lỗi (kèm ảnh)">📝</button>';
+    d.querySelectorAll('button').forEach((b) => (b.onclick = () => (b.dataset.fb ? openFeedback() : open(b.dataset.t))));
     document.body.appendChild(d); return d;
   }
   function refreshDock() { const d = document.getElementById('cmDock'); if (!d) return; const i = d.querySelector('i'); i.hidden = !unread; i.textContent = unread > 9 ? '9+' : unread; }
@@ -185,6 +185,108 @@
     } catch (x) { toast('Đám cưới online', x.message, '⚠️', 'err'); }
   }
 
+
+  // ================================================================== 📝 GÓP Ý (kèm ảnh)
+  const FB_KINDS = [['ytuong', '💡 Ý tưởng mới'], ['loi', '🐞 Báo lỗi'], ['gopy', '💬 Góp ý'], ['khac', '✉️ Khác']];
+  let fbEl = null;
+  // nén ảnh ở trình duyệt: cạnh dài tối đa 1280px, JPEG, giảm dần chất lượng tới khi ≤ ~300KB
+  function fbCompress(file) {
+    return new Promise((resolve, reject) => {
+      if (!file || !/^image\//.test(file.type)) return reject(new Error('Chỉ nhận file ảnh'));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        try {
+          let w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, 1280 / Math.max(w, h)), q = 0.82, out = '';
+          for (let i = 0; i < 8; i++) {
+            const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+            const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+            out = c.toDataURL('image/jpeg', q);
+            if (out.length <= 300000) break;
+            if (q > 0.5) q -= 0.12; else k *= 0.8;
+          }
+          URL.revokeObjectURL(url);
+          if (out.length > 390000) return reject(new Error('Ảnh quá lớn, thử ảnh khác'));
+          resolve(out);
+        } catch (e) { reject(new Error('Không đọc được ảnh')); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Không đọc được ảnh')); };
+      img.src = url;
+    });
+  }
+  function openFeedback() {
+    if (fbEl) { fbEl.remove(); fbEl = null; return; }
+    sfx('click');
+    const ver = (KN.DATA && KN.DATA.CHANGELOG && KN.DATA.CHANGELOG[0] && KN.DATA.CHANGELOG[0].v) || '';
+    let kind = 'ytuong'; const imgs = [];
+    fbEl = document.createElement('div'); fbEl.className = 'fb-overlay';
+    ['keydown', 'keyup'].forEach((ev) => fbEl.addEventListener(ev, (e) => e.stopPropagation()));
+    fbEl.innerHTML = '<div class="fb-box"><div class="fb-head"><b>📝 Gửi góp ý cho người làm game</b><button type="button" class="fb-x" data-x aria-label="Đóng">✖</button></div>' +
+      '<div class="fb-body"><div class="fb-chips" id="fbKinds">' + FB_KINDS.map((k) => '<button type="button" data-k="' + k[0] + '" class="' + (k[0] === kind ? 'on' : '') + '">' + k[1] + '</button>').join('') + '</div>' +
+      '<label class="fb-l" for="fbText">Bạn muốn nói gì? <small id="fbCnt">0/1500</small></label><textarea id="fbText" maxlength="1500" rows="6" placeholder="Mô tả ý tưởng, lỗi gặp phải (xảy ra lúc nào, ở tuổi mấy, bấm gì) hay điều bạn muốn game có thêm…"></textarea>' +
+      '<div class="fb-row"><div><label class="fb-l" for="fbName">Tên (không bắt buộc)</label><input id="fbName" maxlength="30" autocomplete="off" value="' + esc(nick()) + '" placeholder="Ẩn danh"></div><div><label class="fb-l" for="fbContact">Liên hệ lại (không bắt buộc)</label><input id="fbContact" maxlength="80" autocomplete="off" placeholder="Zalo, email…"></div></div>' +
+      '<div class="fb-l">Ảnh minh hoạ (tối đa 2, tự nén nhỏ)</div><div class="fb-imgs" id="fbImgs"></div><input type="file" id="fbFile" accept="image/*" multiple hidden>' +
+      '<p class="fb-msg" id="fbMsg"></p><div class="fb-btns"><button type="button" class="btn btn-soft btn-sm" id="fbAdmin">🔑 Quản trị</button><button type="button" class="btn btn-primary" id="fbSend">📨 Gửi góp ý</button></div>' +
+      '<div class="fb-admin" id="fbAdm" hidden></div></div></div>';
+    document.body.appendChild(fbEl);
+    const $ = (id) => fbEl.querySelector('#' + id), msg = (t, bad) => { $('fbMsg').textContent = t; $('fbMsg').className = 'fb-msg' + (bad ? ' bad' : t ? ' ok' : ''); };
+    const closeFb = () => { if (fbEl) { fbEl.remove(); fbEl = null; } };
+    fbEl.querySelector('[data-x]').onclick = closeFb;
+    fbEl.addEventListener('pointerdown', (e) => { if (e.target === fbEl) closeFb(); });
+    $('fbKinds').onclick = (e) => { const b = e.target.closest('[data-k]'); if (!b) return; kind = b.dataset.k; $('fbKinds').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); sfx('click'); };
+    $('fbText').oninput = () => ($('fbCnt').textContent = $('fbText').value.length + '/1500');
+    const drawImgs = () => {
+      $('fbImgs').innerHTML = imgs.map((d, i) => '<div class="fb-th"><img alt="Ảnh ' + (i + 1) + '" src="' + d + '"><button type="button" data-rm="' + i + '" aria-label="Bỏ ảnh">✖</button></div>').join('') + (imgs.length < 2 ? '<button type="button" class="fb-add" id="fbPick">🖼️<span>Thêm ảnh</span></button>' : '');
+      const pk = $('fbPick'); if (pk) pk.onclick = () => $('fbFile').click();
+      $('fbImgs').querySelectorAll('[data-rm]').forEach((b) => (b.onclick = () => { imgs.splice(+b.dataset.rm, 1); drawImgs(); }));
+    };
+    drawImgs();
+    const addFiles = async (files) => {
+      for (const f of Array.from(files || [])) {
+        if (imgs.length >= 2) break;
+        try { msg('Đang xử lý ảnh…'); imgs.push(await fbCompress(f)); msg(''); } catch (e) { msg(e.message, true); }
+      }
+      drawImgs();
+    };
+    $('fbFile').onchange = (e) => { addFiles(e.target.files); e.target.value = ''; };
+    // dán ảnh bằng Ctrl+V
+    fbEl.addEventListener('paste', (e) => { const fs = Array.from((e.clipboardData && e.clipboardData.files) || []).filter((f) => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); addFiles(fs); } });
+    $('fbSend').onclick = async () => {
+      const text = $('fbText').value.trim();
+      if (text.length < 5) { msg('Hãy viết ít nhất vài chữ nhé.', true); $('fbText').focus(); return; }
+      $('fbSend').disabled = true; msg('Đang gửi…');
+      try {
+        await api('/api/feedback', { op: 'send', pid: pid(), name: $('fbName').value, kind, text, contact: $('fbContact').value, ver, imgs });
+        sfx('cheer'); toast('Đã gửi góp ý', 'Cảm ơn bạn! Người làm game sẽ đọc.', '📝', 'good');
+        if ($('fbName').value) KN.store.set('kn_online_name', $('fbName').value.trim().slice(0, 20));
+        closeFb();
+      } catch (e) { $('fbSend').disabled = false; msg(e.message === 'Lỗi mạng' ? 'Không gửi được (mạng lỗi hoặc máy chủ chưa bật). Thử lại sau nhé.' : e.message, true); }
+    };
+    // ---- khu quản trị: chủ game nhập mã (biến môi trường FEEDBACK_ADMIN_KEY) để đọc góp ý
+    $('fbAdmin').onclick = () => {
+      const a = $('fbAdm'); a.hidden = !a.hidden; if (a.hidden) return;
+      const saved = (() => { try { return sessionStorage.getItem('kn_fb_key') || ''; } catch (e) { return ''; } })();
+      a.innerHTML = '<div class="fb-row"><input id="fbKey" type="password" autocomplete="off" placeholder="Mã quản trị" value="' + esc(saved) + '"><button type="button" class="btn btn-soft btn-sm" id="fbLoad">Xem góp ý</button></div><div id="fbList"></div>';
+      const load = async () => {
+        const key = a.querySelector('#fbKey').value.trim(); if (!key) return;
+        try { sessionStorage.setItem('kn_fb_key', key); } catch (e) { /* */ }
+        const list = a.querySelector('#fbList'); list.textContent = 'Đang tải…';
+        try {
+          const j = await api('/api/feedback?key=' + encodeURIComponent(key) + '&n=40&t=' + Date.now());
+          const KI = { ytuong: '💡', loi: '🐞', gopy: '💬', khac: '✉️' };
+          list.innerHTML = j.items.length ? j.items.map((it) => '<div class="fb-it" data-id="' + esc(it.id) + '"><div class="fb-it-h"><b>' + (KI[it.kind] || '✉️') + ' ' + esc(it.name) + '</b><small>' + new Date(it.t).toLocaleString('vi-VN') + (it.ver ? ' · v' + esc(it.ver) : '') + '</small></div><p>' + esc(it.text) + '</p>' +
+            (it.contact ? '<small>📞 ' + esc(it.contact) + '</small>' : '') + '<div class="fb-it-b">' + (it.imgs ? '<button type="button" class="btn btn-soft btn-sm" data-im="' + esc(it.id) + '" data-n="' + it.imgs + '">🖼️ Xem ' + it.imgs + ' ảnh</button>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-del="' + esc(it.id) + '">🗑️ Xoá</button></div><div class="fb-it-i"></div></div>').join('') : '<p class="p-sub">Chưa có góp ý nào.</p>';
+          list.querySelectorAll('[data-im]').forEach((b) => (b.onclick = async () => {
+            const box = b.closest('.fb-it').querySelector('.fb-it-i'); b.disabled = true; box.innerHTML = '';
+            for (let i = 0; i < +b.dataset.n; i++) { try { const r = await api('/api/feedback?key=' + encodeURIComponent(key) + '&img=' + b.dataset.im + '&i=' + i); const im = document.createElement('img'); im.src = r.img; im.alt = 'Ảnh góp ý'; box.appendChild(im); } catch (e) { /* */ } }
+          }));
+          list.querySelectorAll('[data-del]').forEach((b) => (b.onclick = async () => { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Bấm lần nữa để xoá'; return; } try { await api('/api/feedback', { op: 'del', key, id: b.dataset.del }); b.closest('.fb-it').remove(); } catch (e) { toast('Góp ý', e.message, '⚠️', 'err'); } }));
+        } catch (e) { list.textContent = e.message === 'Lỗi mạng' ? 'Sai mã quản trị, hoặc chưa đặt FEEDBACK_ADMIN_KEY trên máy chủ.' : e.message; }
+      };
+      a.querySelector('#fbLoad').onclick = load; if (saved) load();
+    };
+    setTimeout(() => { const t = $('fbText'); t && t.focus(); }, 60);
+  }
+
   // ================================================================== khởi động
   function boot() {
     dock();
@@ -192,6 +294,6 @@
     bgPoll = setInterval(() => { if (!document.hidden && nick() && !(panel && tab === 'chat')) pull(); }, 45000);
     setTimeout(() => { if (nick()) pull(); }, 4000);
   }
-  KN.Community = { open, close, track };
+  KN.Community = { open, close, track, openFeedback };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
