@@ -795,6 +795,7 @@
       '🏘️ Nhà đất & môi giới: mảnh đất giá hời (sổ đỏ có thể giả), tin đồn quy hoạch, thủ tục sang tên, người thuê không trả tiền. Mới: nghề Môi giới bất động sản (hoa hồng theo giao dịch, đàm phán bằng minigame).',
       '🎮 Game & esport: leo rank xuyên đêm, giải đấu mùa, lời rủ dùng phần mềm hack, stream game. Mới: minigame “Tập ngắm” bấm mục tiêu trước khi biến mất.',
       '🚑 Bệnh viện & bảo hiểm: nhập viện bất ngờ có hoá đơn theo mức bệnh, bảo hiểm y tế/nhân thọ trả một phần (có thể bị từ chối), hoặc xin người thân góp tiền, hoặc chữa tạm đầy rủi ro.',
+      '🎯 Sửa: trận đấu của tuyển thủ eSports giờ dùng minigame Tập ngắm thay vì bài kiểm tra toán.',
       '📜 Về hưu & di chúc: từ 62 tuổi lập di chúc (chia đều, thưởng người con chăm sóc, dành 30% từ thiện hoặc không viết gây tranh chấp). Di chúc ảnh hưởng đến phần thừa kế và tình anh em ở đời sau. Thêm chuyến về thăm chốn cũ.',
     ] },
     { v: '1.74', date: '23/10/2026', items: [

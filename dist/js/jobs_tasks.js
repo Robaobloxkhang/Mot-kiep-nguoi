@@ -335,7 +335,7 @@
   add('esports', ['🎮', 'Thi đấu giải'], [
     { t: 'Ván quyết định chung kết', i: '🎮', loc: 'studio', a: 'gamepad', npc: ['coworker', 'scared', 'Họ đang có lợi thế vàng!'],
       x: 'Chung kết, ván 5. Đội bạn kém 8.000 vàng, nhưng đối thủ đang chủ quan.',
-      c: [['⚡ Gọi giao tranh tổng, đánh cược', 'smarts', 0.4, 'quiz', 'Pha giao tranh tổng lật kèo kinh điển, đội bạn vô địch! Clip được xem hàng triệu lần.', 'Giao tranh vỡ trận, nhà chính đối thủ còn nguyên máu.', 'big'],
+      c: [['⚡ Gọi giao tranh tổng, đánh cược', 'smarts', 0.4, 'aim', 'Pha giao tranh tổng lật kèo kinh điển, đội bạn vô địch! Clip được xem hàng triệu lần.', 'Giao tranh vỡ trận, nhà chính đối thủ còn nguyên máu.', 'big'],
         ['🧠 Câu thời gian, chờ sai lầm', 'smarts', 0.5, null, 'Đối thủ nóng vội lao lên, bạn bắt lẻ từng người rồi lật kèo.', 'Lợi thế vàng quá lớn, đối thủ đẩy thẳng vào nhà.', 'mid']] },
   ]);
   add('boi', ['🏊', 'Thi đấu'], [

@@ -58,7 +58,7 @@
     's_job_bacsi_camo#0': 'cpr',
     's_job_bacsi_hanhhung#2': ['fight', 'gang'], 'c_fight#0': ['fight', 'kid'], 'c_bullied_friend#0': ['fight', 'danAnh'], 's_xhd_danh#0': ['fight', 'gang'],
   };
-  const SPORT_GAME = { cauthu: 'penalty', bongro: 'hoops', bongchuyen: 'sprint', caulong: 'sprint', vdv_vo: 'fight', dienkinh: 'sprint', boi: 'swim', esports: 'quiz' };
+  const SPORT_GAME = { cauthu: 'penalty', bongro: 'hoops', bongchuyen: 'sprint', caulong: 'sprint', vdv_vo: 'fight', dienkinh: 'sprint', boi: 'swim', esports: 'aim' };
   const FIELDS = {
     tech: ['laptrinh', 'thietke', 'kysu', 'kientrucsu', 'khoahoc', 'kysunn'],
     health: ['bacsi', 'dieuduong', 'duocsi'],
@@ -86,6 +86,8 @@
       if (!type && odds.stat === 'health' && SPORT_GAME[ctx.jobId] && /^s_(fb|job_cauthu|boi|dk|bc|job_vdv|job_caulong|job_bongro)/.test(ev.id)) type = SPORT_GAME[ctx.jobId];
       if (!type && odds.stat === 'smarts' && /(bai tap|bai thi|ky thi|di thi|de thi|cau hoi|kiem tra|olympic|on bai|hoc bai|hoc thuoc)/.test(fold(ev.title + ' ' + choice.label))) type = 'quiz';
     }
+    // tuyển thủ eSports: trận đấu là phản xạ/ngắm, không phải bài kiểm tra
+    if (type === 'quiz' && ctx.jobId === 'esports' && /^(s_job_esports|s_es_|s_job_game)/.test(ev.id)) type = 'aim';
     if (!type || !GAMES[type]) return null;
     // trận đấu bóng đá thường (không phải loạt phạt đền) → đá thật kiểu Hax
     if (type === 'penalty' && KN.Hax && !/(penalty|phat den|panenka|luan luu|da phat)/.test(fold(ev.title + ' ' + choice.label))) type = 'hax';
