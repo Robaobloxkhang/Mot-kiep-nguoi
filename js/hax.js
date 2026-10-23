@@ -342,6 +342,17 @@
     const net = MP.dark ? 'rgba(30,40,60,.85)' : 'rgba(255,255,255,.9)';
     if (!MP.basket) [[L - GD, 0], [R, 1]].forEach(([gx]) => { c.fillStyle = MP.dark ? 'rgba(30,40,60,.12)' : 'rgba(255,255,255,.12)'; c.fillRect(gx, CY - GH, GD, GH * 2); c.strokeStyle = net; c.lineWidth = 3; c.strokeRect(gx, CY - GH, GD, GH * 2); c.strokeStyle = MP.dark ? 'rgba(30,40,60,.3)' : 'rgba(255,255,255,.25)'; c.lineWidth = 1; for (let k = 6; k < GD; k += 7) { c.beginPath(); c.moveTo(gx + k, CY - GH); c.lineTo(gx + k, CY + GH); c.stroke(); } });
     POSTS.forEach(([x, y]) => { c.fillStyle = MP.dark ? '#26324a' : '#fff'; c.beginPath(); c.arc(x, y, POST_R, 0, Math.PI * 2); c.fill(); });
+    // đánh dấu rõ gôn nào của bạn, gôn nào của đối thủ (đội Đỏ giữ gôn trái, đội Xanh giữ gôn phải)
+    if (!MP.basket) {
+      const mt = m.myTeam != null ? m.myTeam : (me >= 0 && m.players[me] ? m.players[me].team : 0);
+      [0, 1].forEach((t) => {
+        const own = mt === t, two = mt < 0, col = two ? (t ? '#6fa2ff' : '#ff6b68') : own ? '#57e08f' : '#ff6b68', txt = two ? (t ? 'GÔN XANH' : 'GÔN ĐỎ') : own ? 'GÔN CỦA BẠN' : 'GÔN ĐỐI THỦ', gx = t ? R : L - GD, cx = t ? R - 62 : L + 62;
+        c.fillStyle = col; c.globalAlpha = 0.32; c.fillRect(gx, CY - GH, GD, GH * 2); c.globalAlpha = 1;
+        c.strokeStyle = col; c.lineWidth = 5; c.beginPath(); c.moveTo(t ? R : L, CY - GH); c.lineTo(t ? R : L, CY + GH); c.stroke();
+        c.font = '700 14px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; const w2 = c.measureText(txt).width + 16;
+        c.fillStyle = 'rgba(12,16,28,.78)'; c.fillRect(cx - w2 / 2, T - 24, w2, 20); c.fillStyle = col; c.fillText(txt, cx, T - 14);
+      });
+    }
     if (m.phase !== 'goal') m.cele = null;
     else if (!m.cele && m.lastTouch >= 0 && m.players[m.lastTouch]) m.cele = { who: m.lastTouch, style: CELE[(m.score[0] + m.score[1] + m.lastTouch) % CELE.length].id };
     const cele = m.phase === 'goal' && m.cele ? m.cele : null;
@@ -459,7 +470,7 @@
   const KEYS_HINT = (sk) => (coarse() ? 'Gạt cần để chạy, bấm SÚT khi bóng sát người' : 'WASD / ↑↓←→ chạy · Space / X sút · Shift chạy nước rút · E xoạc bóng') + ((!sk || sk.charge) ? ' · giữ sút trước khi chạm bóng = sút mạnh' : '') + ((!sk || sk.curve) ? ' · chạy ngang khi sút = sút xoáy' : '');
   // ---------------------------------------------------------------- vòng lặp ván đấu do máy này điều khiển (máy / 2 người / chủ phòng online)
   function runLocal(m, getInputs, opts) {
-    opts = opts || {};
+    opts = opts || {}; m.myTeam = opts.local2 ? -1 : opts.myTeam != null ? opts.myTeam : 0;
     cv = document.getElementById('hxCv'); ctx = cv.getContext('2d');
     bindKeys();
     document.getElementById('hxQuit').onclick = () => { if (opts.onQuit) opts.onQuit(); else menu(); };
@@ -660,10 +671,11 @@
   function watch(o) {
     return new Promise((res) => {
       const ros = [], owners = [], meta = [];
-      [o.home, o.away].forEach((t, ti) => t.players.forEach((pl) => { ros.push({ team: ti, name: String(pl.name || '').split(' ').pop().slice(0, 10) }); owners.push(pl.ovr >= 72 ? 2 : pl.ovr >= 56 ? 1 : 0); meta.push(pl); }));
+      [o.home, o.away].forEach((t, ti) => t.players.slice().sort((x, y) => ({ att: 0 }[x.role] ?? (x.role ? 2 : 1)) - ({ att: 0 }[y.role] ?? (y.role ? 2 : 1))).forEach((pl) => { // vị trí xuất phát: tiền đạo lên trên, tiền vệ giữa, hậu vệ lùi sâu
+         ros.push({ team: ti, name: String(pl.name || '').split(' ').pop().slice(0, 10) }); owners.push(pl.ovr >= 72 ? 2 : pl.ovr >= 56 ? 1 : 0); meta.push(pl); }));
       const m = newMatch({ dur: o.dur || 90, map: o.map || 'classic', roster: ros });
-      m.players.forEach((P, i) => { P.slowK = Math.max(0.7, Math.min(1.12, 0.72 + (meta[i].ovr - 45) / 110)); P.role = meta[i].role || null; });
-      const myTeam = o.coachTeam || 0;
+      m.players.forEach((P, i) => { P.slowK = Math.max(0.62, Math.min(1.2, 0.6 + (meta[i].ovr - 40) / 62)); P.role = meta[i].role || null; });
+      const myTeam = o.coachTeam || 0; m.myTeam = myTeam;
       m.coach = { team: myTeam, line: 0, pass: 1 };
       let speed = 1;
       open(pitchHtml('📋 ' + o.home.name + ' – ' + o.away.name + (o.title ? ' · ' + o.title : '')));

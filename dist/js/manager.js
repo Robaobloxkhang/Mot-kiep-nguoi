@@ -22,6 +22,19 @@
   const dAdd = (m) => DIFF[m.diff == null ? 1 : m.diff][1];
   const NATIONS = ['Việt Nam', 'Thái Lan', 'Indonesia', 'Malaysia', 'Philippines', 'Singapore', 'Myanmar', 'Campuchia'];
   const FOREIGN = ['Rafaelson', 'Gustavo', 'Lucão', 'Diogo', 'Pedro Paulo', 'Kim Min-ho', 'Oseni', 'Samson', 'Alexandre', 'Jhon Cley', 'Hoàng Vũ Samson', 'Geovane'];
+  // ngôi sao nổi tiếng có thể xuất hiện trên thị trường (chỉ số và giá là hư cấu trong game, không phản ánh thực tế)
+  // [tên, vị trí, chỉ số, tuổi, tiềm năng, quốc kỳ, giá, biệt danh]
+  const STARS = [
+    ['Cristiano Ronaldo', 'FW', 90, 40, 90, '🇵🇹', 18e9, 'CR7'], ['Lionel Messi', 'FW', 91, 38, 91, '🇦🇷', 16e9, 'Leo, La Pulga'], ['Jude Bellingham', 'MF', 89, 22, 95, '🇬🇧', 70e9, ''],
+    ['Kylian Mbappé', 'FW', 92, 27, 93, '🇫🇷', 90e9, 'KM7'], ['Erling Haaland', 'FW', 92, 25, 94, '🇳🇴', 88e9, ''], ['Vinícius Júnior', 'FW', 90, 25, 93, '🇧🇷', 72e9, 'Vini'],
+    ['Lamine Yamal', 'FW', 88, 18, 96, '🇪🇸', 80e9, ''], ['Neymar Jr', 'FW', 86, 34, 86, '🇧🇷', 12e9, 'Ney'], ['Luka Modrić', 'MF', 86, 40, 86, '🇭🇷', 6e9, ''],
+    ['Kevin De Bruyne', 'MF', 89, 34, 89, '🇧🇪', 20e9, 'KDB'], ['Mohamed Salah', 'FW', 90, 33, 90, '🇪🇬', 26e9, 'Mo Salah'], ['Harry Kane', 'FW', 90, 32, 90, '🇬🇧', 38e9, ''],
+    ['Son Heung-min', 'FW', 87, 33, 87, '🇰🇷', 18e9, 'Sonny'], ['Rodri', 'MF', 91, 29, 91, '🇪🇸', 45e9, ''], ['Pedri', 'MF', 88, 22, 93, '🇪🇸', 55e9, ''],
+    ['Virgil van Dijk', 'DF', 89, 34, 89, '🇳🇱', 16e9, 'VVD'], ['Rúben Dias', 'DF', 88, 28, 88, '🇵🇹', 30e9, ''], ['Achraf Hakimi', 'DF', 87, 27, 87, '🇲🇦', 28e9, ''],
+    ['Quang Hải', 'MF', 74, 28, 74, '🇻🇳', 3.2e9, 'Nguyễn Quang Hải'], ['Công Phượng', 'FW', 72, 30, 72, '🇻🇳', 2.6e9, 'Nguyễn Công Phượng'], ['Nguyễn Tiến Linh', 'FW', 74, 28, 74, '🇻🇳', 3.4e9, 'Tiến Linh'],
+    ['Đoàn Văn Hậu', 'DF', 73, 26, 76, '🇻🇳', 3e9, 'Văn Hậu'], ['Nguyễn Hoàng Đức', 'MF', 73, 28, 73, '🇻🇳', 2.8e9, 'Hoàng Đức'], ['Chanathip Songkrasin', 'MF', 76, 31, 76, '🇹🇭', 5e9, 'Messi Thái'],
+  ];
+  const starPlayer = (x) => ({ id: pid(), name: x[0], pos: x[1], ovr: x[2], age: x[3], pot: x[4], nat: x[5], val: x[6], alias: x[7], star: true, foreign: x[5] !== '🇻🇳', morale: RI(70, 85), goals: 0, apps: 0 });
   const POS = ['GK', 'DF', 'MF', 'FW'], POS_VN = { GK: 'Thủ môn', DF: 'Hậu vệ', MF: 'Tiền vệ', FW: 'Tiền đạo' }, POS_IC = { GK: '🧤', DF: '🛡️', MF: '⚙️', FW: '⚡' };
   // đá 4 người (giống Haxball): số hậu vệ – tiền vệ – tiền đạo; thủ môn không ra sân (ai lùi sâu nhất sẽ bắt bóng)
   const FORMS = {
@@ -59,6 +72,7 @@
   function nationalPool(year) {
     // cầu thủ Việt Nam giỏi nhất hiện tại để triệu tập
     const out = []; ['DF', 'MF', 'FW'].forEach((pos) => { for (let i = 0; i < 8; i++) out.push(makePlayer(pos, 62 + R(-6, 14), RI(19, 32))); });
+    STARS.filter((x) => x[5] === '🇻🇳').forEach((x) => out.push(starPlayer(x)));
     return out.sort((a, b) => b.ovr - a.ovr);
   }
   function makeTeams(m) {
@@ -91,6 +105,9 @@
     if (m.national) return nationalPool(m.season).slice(0, 18);
     const lv = 52 + tierOf(m) * 5, out = [];
     for (let i = 0; i < 12; i++) out.push(makePlayer(pick(['DF', 'DF', 'MF', 'MF', 'FW', 'FW']), lv + R(-10, 16), RI(17, 34), Math.random() < 0.25));
+    // vài ngôi sao nổi tiếng được rao bán (CLB lớn thấy nhiều sao hơn); mỗi sao chỉ có một bản trong đội bạn
+    const have = new Set((m.squad || []).map((q) => q.name)), pool = STARS.filter((x) => !have.has(x[0])).sort(() => Math.random() - 0.5);
+    pool.slice(0, tierOf(m) + 1).forEach((x) => out.push(starPlayer(x)));
     return out.sort((a, b) => b.ovr - a.ovr);
   }
   function init(info) {
@@ -159,7 +176,7 @@
   }
   // cầu thủ đá chính → cầu thủ máy trong Haxball (chỉ số quyết định tốc độ & độ khôn, vị trí quyết định chỗ đứng)
   const haxTeam = (name, xi) => ({ name, players: xi.map((p) => ({ id: p.id, name: p.name, ovr: p.ovr * (0.9 + p.morale / 500), role: ROLE[p.pos] })) });
-  function oppXI(opp) { return ['DF', 'MF', 'MF', 'FW'].map((pos, i) => ({ id: 'o' + i, name: vnName(), ovr: opp.str + R(-6, 6), role: ROLE[pos] })); }
+  function oppXI(opp) { return ['DF', 'MF', 'MF', 'FW'].map((pos, i) => ({ id: 'o' + i, name: vnName(), ovr: opp.str + 4 + R(-5, 5), role: ROLE[pos] })); } // 4 người đá chính của đối thủ thường nhỉnh hơn mức trung bình cả đội
   const LINES = {
     goal: ['VÀOOO! {who} dứt điểm tung lưới!', 'BÀN THẮNG! {who} đánh đầu cận thành!', '{who} sút xa căng như kẻ chỉ — vào!', 'Phối hợp đẹp mắt, {who} đệm bóng cận thành!'],
     goalOp: ['Bàn thua… {opp} tận dụng sai lầm của hàng thủ.', '{opp} phản công nhanh và ghi bàn.', 'Thủ môn bó tay trước cú sút của {opp}.'],
@@ -185,8 +202,8 @@
     m.history.push({ season: m.season, pos, goal: m.goal, ok: goalOk, champ });
     const top = m.squad.slice().sort((a, b) => b.goals - a.goals)[0];
     // phát triển cầu thủ + giải nghệ + đôn lên từ đội trẻ
-    m.squad.forEach((p) => { p.age++; p.ovr = Math.round(U.clamp(p.ovr + (p.age <= 23 ? R(1, 5) * (p.pot > p.ovr ? 1 : 0.3) : p.age <= 29 ? R(-1, 2) : R(-5, 0)), 35, 94)); p.val = Math.max(1.5e8, valueOf(p)); p.inj = 0; p.lock = p.lock === 'start' ? 'start' : null; });
-    const retired = m.squad.filter((p) => p.age >= 35 || (p.age >= 33 && Math.random() < 0.4));
+    m.squad.forEach((p) => { p.age++; p.ovr = Math.round(U.clamp(p.ovr + (p.age <= 23 ? R(1, 5) * (p.pot > p.ovr ? 1 : 0.3) : p.age <= 29 ? R(-1, 2) : R(-5, 0)), 35, 94)); p.val = p.star ? Math.round(p.val * (p.age <= 28 ? 1.04 : p.age >= 34 ? 0.78 : 0.95) / 1e8) * 1e8 : Math.max(1.5e8, valueOf(p)); p.inj = 0; p.lock = p.lock === 'start' ? 'start' : null; });
+    const retired = m.squad.filter((p) => p.star ? p.age >= 43 : p.age >= 35 || (p.age >= 33 && Math.random() < 0.4));
     m.squad = m.squad.filter((p) => !retired.includes(p));
     if (!m.national) for (let i = 0; i < 2; i++) m.squad.push(makePlayer(pick(POS.slice(1)), 44 + tierOf(m) * 3 + R(-4, 8), 17));
     const bonus = Math.round((champ ? 5e8 : goalOk ? 1.5e8 : 0) * (1 + m.level * 0.6) / 1e7) * 1e7;
@@ -252,6 +269,7 @@
   const ovrCls = (v) => (v >= 75 ? 'o-top' : v >= 65 ? 'o-good' : v >= 55 ? 'o-mid' : 'o-low');
   const moodTxt = (v) => (v >= 75 ? 'Rất tốt' : v >= 55 ? 'Ổn định' : 'Thấp');
   const bar = (v, cls) => '<span class="mx-bar ' + (cls || '') + '"><i style="width:' + Math.max(0, Math.min(100, v)) + '%"></i></span>';
+  const nameHtml = (p) => (p.nat ? p.nat + ' ' : '') + esc(p.name) + (p.star ? ' <span class="mx-star" title="Ngôi sao">★</span>' : '');
   const findP = (m, id) => m.squad.find((x) => x.id === id) || m.market.find((x) => x.id === id);
   const myFix = (m, r) => { const rd = m.fixtures[r]; const f = rd && rd.find(([a, b]) => a === 0 || b === 0); if (!f) return null; const home = f[0] === 0; return { home, opp: m.teams[(home ? f[1] : f[0]) - 1] }; };
   const resOf = (m) => (m.results || []).slice();
@@ -281,25 +299,25 @@
     const slots = []; rows.forEach((ri, k) => { for (let j = 0; j < f.n[ri]; j++) slots.push({ pos: POS[ri], x: 22 + (rows.length === 1 ? 28 : (k * 56) / (rows.length - 1)), y: ((j + 1) * 100) / (f.n[ri] + 1) }); });
     const marks = sorted2.slice(0, slots.length).map((p, i) => { const s = slots[i], off = p.pos !== s.pos && p.pos !== 'GK';
       return '<button type="button" class="mx-pm' + (off ? ' off' : '') + (ui.sel === p.id ? ' sel' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-act="sel" data-id="' + p.id + '" data-slot="' + i + '" data-ctx="squad" title="' + esc(p.name) + ' · ' + POS_VN[p.pos] + (off ? ' (đang đá lệch vị trí)' : '') + '">' + '<span class="mx-pm-c ' + ovrCls(p.ovr) + '">' + p.ovr + '</span><span class="mx-pm-n">' + esc(p.name.split(' ').slice(-1)[0]) + '</span><span class="mx-pm-p">' + p.pos + '</span></button>'; }).join('');
-    return '<div class="mx-pitch' + (opts.mini ? ' mini' : '') + '"><svg viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="194" height="94" rx="4" class="pl"/><path d="M100 3v94" class="pl"/><circle cx="100" cy="50" r="13" class="pl"/><path d="M3 30h14v40H3M197 30h-14v40h14" class="pl"/><rect x="0" y="40" width="3" height="20" class="gl"/><rect x="197" y="40" width="3" height="20" class="gl"/></svg><span class="mx-pitch-g">Thủ môn tự động: người lùi sâu nhất</span>' + marks + '<span class="mx-pitch-d">Tấn công →</span></div>';
+    return '<div class="mx-pitch' + (opts.mini ? ' mini' : '') + '"><svg viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="194" height="94" rx="4" class="pl"/><path d="M100 3v94" class="pl"/><circle cx="100" cy="50" r="13" class="pl"/><path d="M3 30h14v40H3M197 30h-14v40h14" class="pl"/><rect x="0" y="40" width="3" height="20" class="gl own"/><rect x="197" y="40" width="3" height="20" class="gl opp"/></svg><span class="mx-gl own">Gôn của bạn</span><span class="mx-gl opp">Gôn đối thủ</span><span class="mx-pitch-g">Thủ môn tự động: người lùi sâu nhất</span>' + marks + '<span class="mx-pitch-d">Tấn công →</span></div>';
   }
-  const rowHtml = (m, p, xi, ctx) => '<button type="button" class="mx-row' + (xi && xi.includes(p) ? ' xi' : '') + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="' + ctx + '">' + avatar(p, 30) + '<span class="mx-rn"><b>' + esc(p.name) + '</b><small>' + POS_VN[p.pos] + (p.foreign ? ' · ngoại binh' : '') + (xi ? (xi.includes(p) ? ' · <u>Đá chính</u>' : ' · Dự bị') : '') + (p.inj ? ' · chấn thương ' + p.inj + ' vòng' : '') + '</small></span><span class="mx-n ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span><span class="mx-n" title="Tuổi">' + p.age + '</span><span class="mx-n" title="Tiềm năng">' + (p.pot > p.ovr + 3 ? '<em>' + p.pot + '</em>' : p.pot) + '</span><span class="mx-n" title="Tinh thần: ' + p.morale + '">' + bar(p.morale, p.morale >= 75 ? 'g' : p.morale >= 55 ? '' : 'r') + '</span><span class="mx-n val" title="Giá trị">' + money(p.val) + '</span></button>';
+  const rowHtml = (m, p, xi, ctx) => '<button type="button" class="mx-row' + (xi && xi.includes(p) ? ' xi' : '') + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="' + ctx + '">' + avatar(p, 30) + '<span class="mx-rn"><b>' + nameHtml(p) + '</b><small>' + POS_VN[p.pos] + (p.alias ? ' · ' + esc(p.alias.split(',')[0]) : '') + (p.foreign && !p.star ? ' · ngoại binh' : '') + (xi ? (xi.includes(p) ? ' · <u>Đá chính</u>' : ' · Dự bị') : '') + (p.inj ? ' · chấn thương ' + p.inj + ' vòng' : '') + '</small></span><span class="mx-n ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span><span class="mx-n" title="Tuổi">' + p.age + '</span><span class="mx-n" title="Tiềm năng">' + (p.pot > p.ovr + 3 ? '<em>' + p.pot + '</em>' : p.pot) + '</span><span class="mx-n" title="Tinh thần: ' + p.morale + '">' + bar(p.morale, p.morale >= 75 ? 'g' : p.morale >= 55 ? '' : 'r') + '</span><span class="mx-n val" title="Giá trị">' + money(p.val) + '</span></button>';
   const rowHead = '<div class="mx-row-h"><span></span><span class="mx-rn">Cầu thủ</span><span title="Chỉ số tổng">CS</span><span>Tuổi</span><span title="Tiềm năng">TN</span><span title="Tinh thần">TT</span><span>Giá trị</span></div>';
   function sortBy(a, b) { const k = ui.sort; return k === 'age' ? a.age - b.age : k === 'val' ? b.val - a.val : k === 'pot' ? b.pot - a.pot : b.ovr - a.ovr; }
   function squadListHtml(m) {
     const xi = lineup(m), q = ui.q.trim().toLowerCase();
-    const arr = m.squad.filter((p) => (ui.pos === 'all' || p.pos === ui.pos) && (!q || p.name.toLowerCase().includes(q))).sort(sortBy);
+    const arr = m.squad.filter((p) => (ui.pos === 'all' || p.pos === ui.pos) && (!q || (p.name + ' ' + (p.alias || '')).toLowerCase().includes(q))).sort(sortBy);
     if (!arr.length) return '<p class="mx-empty">Không có cầu thủ phù hợp bộ lọc.</p>';
     return rowHead + POS.filter((pos) => arr.some((p) => p.pos === pos)).map((pos) => '<div class="mx-grp">' + POS_VN[pos] + '</div>' + arr.filter((p) => p.pos === pos).map((p) => rowHtml(m, p, xi, 'squad')).join('')).join('');
   }
   function marketRows(m) {
     const q = ui.mq.trim().toLowerCase();
-    return m.market.filter((p) => (ui.mpos === 'all' || p.pos === ui.mpos) && p.age <= ui.mage && p.ovr >= ui.mmin && (!ui.mmax || p.val <= ui.mmax) && (!q || p.name.toLowerCase().includes(q)) && !(m.national && m.squad.some((x) => x.name === p.name))).sort(sortBy);
+    return m.market.filter((p) => (ui.mpos === 'all' || p.pos === ui.mpos) && p.age <= ui.mage && p.ovr >= ui.mmin && (!ui.mmax || p.val <= ui.mmax) && (!q || (p.name + ' ' + (p.alias || '')).toLowerCase().includes(q)) && !(m.national && m.squad.some((x) => x.name === p.name))).sort(sortBy);
   }
   function marketListHtml(m) {
     const arr = marketRows(m);
     if (!arr.length) return '<p class="mx-empty">Không có cầu thủ nào khớp bộ lọc.</p>';
-    return arr.map((p) => '<div class="mx-card' + (ui.sel === p.id ? ' sel' : '') + '">' + '<button type="button" class="mx-card-main" data-act="sel" data-id="' + p.id + '" data-ctx="market">' + avatar(p, 44) + '<span class="mx-rn"><b>' + esc(p.name) + '</b><small>' + POS_VN[p.pos] + ' · ' + p.age + ' tuổi' + (p.foreign ? ' · ngoại binh' : '') + '</small></span><span class="mx-n big ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span></button>' +
+    return arr.map((p) => '<div class="mx-card' + (ui.sel === p.id ? ' sel' : '') + '">' + '<button type="button" class="mx-card-main" data-act="sel" data-id="' + p.id + '" data-ctx="market">' + avatar(p, 44) + '<span class="mx-rn"><b>' + nameHtml(p) + '</b><small>' + POS_VN[p.pos] + ' · ' + p.age + ' tuổi' + (p.alias ? ' · ' + esc(p.alias.split(',')[0]) : '') + (p.foreign && !p.star ? ' · ngoại binh' : '') + '</small></span><span class="mx-n big ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span></button>' +
       '<div class="mx-card-m"><span title="Tiềm năng">TN <b>' + p.pot + '</b></span><span title="Tinh thần">TT <b>' + moodTxt(p.morale) + '</b></span><span class="val">' + (m.national ? 'Triệu tập' : money(p.val)) + '</span></div>' +
       '<div class="mx-card-a">' + (m.national ? '<button type="button" class="mx-btn pri sm" data-act="call" data-id="' + p.id + '">Triệu tập</button>' : m.window ? '<button type="button" class="mx-btn pri sm" data-act="buy" data-id="' + p.id + '">Mua</button><button type="button" class="mx-btn sm" data-act="bid" data-id="' + p.id + '" title="Trả giá thấp hơn 20%, có thể bị từ chối">Trả giá −20%</button>' : '<span class="mx-closed">Kỳ chuyển nhượng đóng</span>') + '</div></div>').join('');
   }
@@ -311,7 +329,7 @@
     const dev = p.age <= 23 && p.pot > p.ovr + 2 ? 'Đang phát triển — còn khoảng +' + (p.pot - p.ovr) + ' chỉ số' : p.age >= 31 ? 'Đang xuống sức theo tuổi, giá trị giảm dần' : 'Ở độ chín, ít thay đổi';
     const act = inSq ? '<button type="button" class="mx-btn' + (p.lock === 'start' ? ' pri' : '') + '" data-act="lock" data-id="' + p.id + '" data-v="start">' + (p.lock === 'start' ? 'Đang ghim đá chính' : 'Ghim đá chính') + '</button><button type="button" class="mx-btn' + (p.lock === 'bench' ? ' pri' : '') + '" data-act="lock" data-id="' + p.id + '" data-v="bench">' + (p.lock === 'bench' ? 'Đang cho dự bị' : 'Cho dự bị') + '</button>' + (m.national ? '<button type="button" class="mx-btn danger" data-act="drop" data-id="' + p.id + '">Loại khỏi đội</button>' : '<button type="button" class="mx-btn danger" data-act="sell" data-id="' + p.id + '">Rao bán</button>')
       : m.national ? '<button type="button" class="mx-btn pri" data-act="call" data-id="' + p.id + '">Triệu tập</button>' : m.window ? '<button type="button" class="mx-btn pri" data-act="buy" data-id="' + p.id + '">Mua ' + money(p.val) + '</button><button type="button" class="mx-btn" data-act="bid" data-id="' + p.id + '">Trả giá −20%</button>' : '<span class="mx-closed">Kỳ chuyển nhượng đang đóng</span>';
-    return '<div class="mx-dr-h">' + avatar(p, 56) + '<div><h3>' + esc(p.name) + '</h3><small>' + POS_VN[p.pos] + ' · ' + p.age + ' tuổi' + (p.foreign ? ' · ngoại binh' : '') + '</small></div><button type="button" class="mx-x" data-act="drx" aria-label="Đóng hồ sơ">' + ic('close', 18) + '</button></div>' +
+    return '<div class="mx-dr-h">' + avatar(p, 56) + '<div><h3>' + nameHtml(p) + '</h3><small>' + POS_VN[p.pos] + ' · ' + p.age + ' tuổi' + (p.nat ? ' · ' + p.nat : '') + (p.alias ? ' · ' + esc(p.alias) : '') + (p.star ? ' · Ngôi sao' : p.foreign ? ' · ngoại binh' : '') + '</small></div><button type="button" class="mx-x" data-act="drx" aria-label="Đóng hồ sơ">' + ic('close', 18) + '</button></div>' +
       '<div class="mx-dr-ovr"><div><small>Chỉ số tổng</small><b class="' + ovrCls(p.ovr) + '">' + p.ovr + '</b></div><div><small>Tiềm năng</small><b>' + p.pot + '</b></div></div>' +
       '<dl class="mx-dl"><dt title="Tinh thần ảnh hưởng sức mạnh thi đấu">Tinh thần</dt><dd>' + bar(p.morale, p.morale >= 75 ? 'g' : p.morale >= 55 ? '' : 'r') + ' ' + moodTxt(p.morale) + ' (' + p.morale + ')</dd><dt>Thể trạng</dt><dd>' + (p.inj ? '<span class="bad">Chấn thương, nghỉ ' + p.inj + ' vòng</span>' : 'Sẵn sàng thi đấu') + '</dd><dt>Giá trị</dt><dd>' + money(p.val) + '</dd><dt>Mùa này</dt><dd>' + (p.goals || 0) + ' bàn · ' + (p.apps || 0) + ' trận</dd>' + (p.rts && p.rts.length ? '<dt title="Điểm trung bình các trận gần nhất (thang 10)">Điểm gần đây</dt><dd><b>' + (p.rts.reduce((a, b) => a + b, 0) / p.rts.length).toFixed(1) + '</b> · trận gần nhất ' + p.rts[p.rts.length - 1].toFixed(1) + (p.mvps ? ' · ⭐ MVP ×' + p.mvps : '') + '</dd>' : '') + '<dt>Phát triển</dt><dd>' + dev + '</dd>' + (inSq ? '<dt>Vai trò</dt><dd>' + (on ? 'Đá chính' : 'Dự bị') + (p.lock ? ' (do bạn chọn)' : ' (tự chọn theo chỉ số)') + '</dd>' : '') + '</dl><div class="mx-dr-act">' + act + '</div>';
   }
@@ -613,6 +631,11 @@
     const xi = lineup(m), me = haxTeam(m.club, xi), them = { name: opp.name, players: oppXI(opp) };
     // lời dặn trước trận + buổi tập chiến thuật tác động trực tiếp lên chỉ số thi đấu
     const tk = m.talk || { all: 0, att: 0, def: 0 }, tb = m.train === 'tact' ? 1 : 0;
+    // sơ đồ + lối chơi của HAI đội tác động lên chỉ số theo vai trò; lối chơi khắc chế đối phương +3; sân nhà +2; phong độ trong ngày ±3
+    const mods = (pls, style, form) => { const st0 = STYLES[style] || STYLES.balanced, f0 = FORMS[form] || FORMS['1-2-1'], a = (st0.att + f0.att) * 0.6, d = (st0.def + f0.def) * 0.6; pls.forEach((pl) => { pl.ovr += pl.role === 'att' ? a : pl.role === 'def' ? d : (a + d) / 2; }); };
+    mods(me.players, m.tactic.style, m.tactic.form); mods(them.players, opp.style, pick(Object.keys(FORMS)));
+    const edge = BEATS[m.tactic.style] === opp.style ? 3 : BEATS[opp.style] === m.tactic.style ? -3 : 0, hb = home ? 2 : -2;
+    me.players.forEach((pl) => { pl.ovr += edge + hb + R(-3, 3); }); them.players.forEach((pl) => { pl.ovr += -edge - hb + R(-3, 3); });
     me.players.forEach((pl) => { pl.ovr += tk.all + tb + (pl.role === 'att' ? tk.att : 0) + (pl.role === 'def' ? tk.def : 0); });
     delete m.talk;
     const prevStyle = m.tactic.style;
@@ -631,5 +654,5 @@
     if (r.gf > r.ga && KN.Weekly) KN.Weekly.track('haxwin');
     save(); open('league');
   }
-  KN.Manager = { init, open, close, endSeason, power, STYLES, FORMS, _sim: { quickRound, myPos, lineup } };
+  KN.Manager = { init, open, close, endSeason, power, STYLES, FORMS, _sim: { market: marketList, quickRound, myPos, lineup } };
 })();

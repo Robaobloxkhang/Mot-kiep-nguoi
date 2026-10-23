@@ -792,6 +792,9 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '⭐ Ngôi sao nổi tiếng xuất hiện trên thị trường chuyển nhượng HLV (Ronaldo, Messi, Bellingham, Mbappé, Haaland, Yamal, De Bruyne, Salah, Quang Hải, Công Phượng, Tiến Linh, Chanathip…). Chỉ số và giá là hư cấu trong game; tìm theo biệt danh như “cr7”. CLB lớn thấy nhiều sao hơn; đội tuyển triệu tập được các ngôi sao Việt Nam.',
+      '⚽ Sửa lỗi xếp ngược trong trận HLV: hậu vệ đứng lùi sâu, tiền đạo đứng trên (trước đây bị đảo). Gôn được tô màu và gắn nhãn “GÔN CỦA BẠN” / “GÔN ĐỐI THỦ” trong trận và trên sơ đồ đội hình.',
+      '⚽ Trận HLV khó và nhiều biến số hơn: chỉ số cầu thủ ảnh hưởng tốc độ rõ rệt, sơ đồ và lối chơi của cả hai đội đổi chỉ số theo vai trò, lối chơi khắc chế +3, sân nhà +2, phong độ trong ngày ±3, đối thủ ra sân bốn người giỏi nhất.',
       '📋 Khi bắt đầu làm HLV bạn được CHỌN CLB để dẫn dắt (12 CLB; CLB tầm trung cần uy tín ≥ 18, CLB lớn cần ≥ 40). Người đang dẫn một CLB có thể từ chức ở tab Quản lý CLB để sang CLB khác.',
       '📋 HLV chuyên sâu hơn: CLB chia 3 tầng (nhỏ, tầm trung, lớn) với quỹ, doanh thu và kỳ vọng khác nhau; đối thủ mạnh theo tầng, mạnh dần theo năm và có 3 độ khó (Dễ, Thường, Khó).',
       '📋 Giá cầu thủ cao gấp ~3 lần, mỗi mùa trừ quỹ lương (mua sao lớn thì lương phình); ngân sách âm làm ban lãnh đạo nổi giận.',

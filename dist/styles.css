@@ -1558,3 +1558,7 @@ details.more.risk p { margin: 0 0 8px; }
 .mx-sack { border-color: rgba(239, 106, 98, .55); background: linear-gradient(135deg, rgba(239, 106, 98, .12), var(--mx-s1) 55%); } .mx-sack h4 { color: #ff9a93; font-size: 24px; }
 .mx-talks { display: grid; gap: 8px; margin-bottom: 12px; } .mx-talks .mx-sty b { font-size: 17px; }
 .mx-card.locked { opacity: .55; } .mx-card.locked .mx-hint { color: #ffb36b; } .mx-btn:disabled { cursor: not-allowed; }
+.mx-star { color: var(--mx-amber, #ffb547); text-shadow: 0 0 8px rgba(255, 181, 71, .6); }
+
+.mx-pitch .gl.own { fill: #57e08f; } .mx-pitch .gl.opp { fill: #ff6b68; }
+.mx-gl { position: absolute; top: 50%; writing-mode: vertical-rl; padding: 8px 3px; border-radius: 4px; font: 700 10.5px var(--mx-f, inherit); letter-spacing: .08em; text-transform: uppercase; background: rgba(10, 14, 24, .78); } .mx-gl.own { left: 4px; color: #57e08f; transform: translateY(-50%) rotate(180deg); } .mx-gl.opp { right: 4px; color: #ff6b68; transform: translateY(-50%); }
