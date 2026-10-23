@@ -1354,3 +1354,7 @@ details.more.risk p { margin: 0 0 8px; }
 .am-arena { position: relative; height: 320px; margin: 8px 0; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #202849, #0d1020); border: 1px solid var(--line-2); overflow: hidden; touch-action: manipulation; cursor: crosshair; }
 .am-t { position: absolute; border-radius: 50%; border: 3px solid #fff; background: radial-gradient(circle, #ff5d5d 0 30%, #fff 31% 45%, #ff5d5d 46% 100%); box-shadow: 0 0 14px rgba(255, 90, 90, .8); transform: translate(-50%, -50%); padding: 0; cursor: crosshair; }
 .am-t.hit { transform: translate(-50%, -50%) scale(1.5); opacity: 0; transition: transform .12s, opacity .12s; }
+/* clutch */
+.cl-top { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0; font-size: 12px; } .cl-hp span { display: block; margin-bottom: 3px; color: var(--fg-2, #aab); } #clHp { background: linear-gradient(90deg, #ff5d5d, #ffb347); }
+.cl-card { padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, .06); margin: 6px 0 10px; } .cl-card b { font-size: 16px; } .cl-card p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; } .cl-note { color: #ffc65c; } .cl-res.ok { color: #5ee0a0; font-weight: 700; } .cl-res.bad { color: #ff6b6b; font-weight: 700; }
+.cl-arena { height: 260px; } .cl-e { display: grid; place-items: center; font-size: 22px; line-height: 1; }

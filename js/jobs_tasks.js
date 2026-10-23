@@ -333,9 +333,13 @@
         ['🪶 Bỏ nhỏ, kéo dài pha cầu', 'smarts', 0.55, null, 'Những pha bỏ nhỏ khéo léo khiến đối thủ mất kiên nhẫn và đánh hỏng.', 'Đối thủ đọc được ý đồ, chụp cầu ghi điểm.', 'mid']] },
   ]);
   add('esports', ['🎮', 'Thi đấu giải'], [
+    { t: 'Clutch 1v3 hiệp quyết định', i: '⚡', loc: 'studio', a: 'gamepad', npc: ['coworker', 'scared', 'Chỉ còn mình bạn thôi!'],
+      x: 'Hiệp quyết định của giải đấu: đồng đội gục hết, bom đã cài, bạn một mình đối đầu ba người. Cả nhà thi đấu nín thở.',
+      c: [['⚡ Bình tĩnh xử lý clutch', 'smarts', 0.4, 'clutch', 'Bạn hạ gục từng người một, nhà thi đấu nổ tung. Clip clutch được xem hàng triệu lần, nhà tài trợ gửi lời mời.', 'Bạn chậm một nhịp, bom nổ trước khi kịp gỡ. Cả đội thở dài, nhưng khán giả vẫn vỗ tay cho nỗ lực.', 'big'],
+        ['🏃 Rút lui, bảo toàn mạng', 'smarts', 0.6, null, 'Bạn lùi an toàn, cả đội thua hiệp nhưng giữ được vũ khí cho hiệp sau.', 'Bạn rút lui nhưng vẫn bị săn, mất luôn trang bị.', 'mid']] },
     { t: 'Ván quyết định chung kết', i: '🎮', loc: 'studio', a: 'gamepad', npc: ['coworker', 'scared', 'Họ đang có lợi thế vàng!'],
       x: 'Chung kết, ván 5. Đội bạn kém 8.000 vàng, nhưng đối thủ đang chủ quan.',
-      c: [['⚡ Gọi giao tranh tổng, đánh cược', 'smarts', 0.4, 'aim', 'Pha giao tranh tổng lật kèo kinh điển, đội bạn vô địch! Clip được xem hàng triệu lần.', 'Giao tranh vỡ trận, nhà chính đối thủ còn nguyên máu.', 'big'],
+      c: [['⚡ Gọi giao tranh tổng, đánh cược', 'smarts', 0.4, 'clutch', 'Pha giao tranh tổng lật kèo kinh điển, đội bạn vô địch! Clip được xem hàng triệu lần.', 'Giao tranh vỡ trận, nhà chính đối thủ còn nguyên máu.', 'big'],
         ['🧠 Câu thời gian, chờ sai lầm', 'smarts', 0.5, null, 'Đối thủ nóng vội lao lên, bạn bắt lẻ từng người rồi lật kèo.', 'Lợi thế vàng quá lớn, đối thủ đẩy thẳng vào nhà.', 'mid']] },
   ]);
   add('boi', ['🏊', 'Thi đấu'], [

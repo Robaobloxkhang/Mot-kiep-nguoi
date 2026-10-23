@@ -791,6 +791,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.76', date: '23/10/2026', items: [
+      '⚡ Minigame mới “Xử lý clutch” cho tuyển thủ eSports: 3 tình huống kẹt (1v3 bom đã cài, đồng đội gục hết, hết đạn súng chính, giành rồng, vòng bo cuối, lật kèo ván 5). Chọn hướng xử lý đúng ngữ cảnh rồi hạ từng địch dưới áp lực thời gian.',
+      '🏆 Thêm ca “Clutch 1v3 hiệp quyết định” cho nghề tuyển thủ; chung kết, giải đấu mùa và leo rank cũng dùng minigame này.',
+    ] },
     { v: '1.75', date: '23/10/2026', items: [
       '🏘️ Nhà đất & môi giới: mảnh đất giá hời (sổ đỏ có thể giả), tin đồn quy hoạch, thủ tục sang tên, người thuê không trả tiền. Mới: nghề Môi giới bất động sản (hoa hồng theo giao dịch, đàm phán bằng minigame).',
       '🎮 Game & esport: leo rank xuyên đêm, giải đấu mùa, lời rủ dùng phần mềm hack, stream game. Mới: minigame “Tập ngắm” bấm mục tiêu trước khi biến mất.',

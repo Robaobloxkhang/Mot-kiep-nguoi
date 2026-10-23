@@ -1007,7 +1007,7 @@
       text: 'Bạn đang kẹt ở nấc rank cuối trước khi lên hạng cao nhất mùa này. Đã gần hai giờ sáng, đồng đội chat “thêm một trận cuối” đến lần thứ năm. Chuột đã nóng tay.',
       scene: { loc: 'bedroom', time: 'night', anim: 'gamepad', expr: 'angry', npcs: [{ role: 'stranger', anim: 'gamepad', say: 'Một trận nữa thôi!' }], fx: 'sweat', shot: 'close' },
       choices: [
-        { label: 'Tập trung vào, đánh nốt trận quyết định', mini: 'aim', success: { stat: 'smarts', base: 0.35, scale: 0.4 },
+        { label: 'Tập trung vào, đánh nốt trận quyết định', mini: 'clutch', success: { stat: 'smarts', base: 0.35, scale: 0.4 },
           outcomes: [
             { text: 'Bạn chơi cực tập trung và bứt tốc cuối trận, lên hạng cao nhất mùa! Lũ bạn ném cả loạt biểu tượng cảm xúc chúc mừng.', effects: { happy: 7, smarts: 1, flag: 'game_rank_top' }, scene: { anim: 'cheer', fx: 'stars' } },
             { text: 'Bạn mất tập trung vì thiếu ngủ, thua sát nút và tụt hẳn mấy bậc. Cả đêm công cốc, sáng mắt thâm như gấu trúc.', effects: { happy: -5, health: -3 }, scene: { anim: 'cry', fx: 'tears' }, tone: 'bad' }
@@ -1020,7 +1020,7 @@
       text: 'Giải đấu quốc gia mở cửa, đội bạn lọt vào vòng chung kết. Sân khấu rực đèn, khán giả hò reo, màn hình lớn chiếu thẳng mặt từng tuyển thủ. Tay bạn hơi run.',
       scene: { loc: 'studio', time: 'night', anim: 'gamepad', expr: 'surprised', npcs: [{ role: 'crowd', anim: 'cheer' }, { role: 'stranger', anim: 'gamepad', say: 'Bình tĩnh nhé!' }], fx: 'stars', shot: 'dramatic' },
       choices: [
-        { label: 'Thi đấu hết mình', mini: 'aim', success: { stat: 'smarts', base: 0.3, scale: 0.5 },
+        { label: 'Thi đấu hết mình', mini: 'clutch', success: { stat: 'smarts', base: 0.3, scale: 0.5 },
           outcomes: [
             { text: 'Bạn chơi xuất thần, đội thắng chung kết! Chiếc cúp được nâng lên giữa tràng pháo tay, tiền thưởng và hợp đồng tài trợ đổ về.', effects: { money: 80000000, perf: 18, happy: 8, flag: 'es_champion' }, scene: { anim: 'cheer', fx: 'confetti' } },
             { text: 'Đội thua trận cuối sát nút. Bạn ôm đầu ngồi lặng trên sân khấu, nhưng khán giả vẫn vỗ tay động viên.', effects: { money: 10000000, perf: -3, happy: -4 }, scene: { anim: 'sad', fx: 'tears' } }

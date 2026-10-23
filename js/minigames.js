@@ -125,7 +125,7 @@
   const NAME = {
     quiz: '📝 Làm bài kiểm tra', penalty: '⚽ Sút phạt đền', keeper: '🧤 Bắt penalty', shoot: '🏀 Ném rổ', sprint: '🏃 Chạy nước rút',
     swim: '🏊 Bơi', chase: '🚓 Rượt đuổi', drive: '🛵 Lái xe', fight: '🥊 Đánh nhau', interview: '💼 Phỏng vấn', cook: '🍜 Bán hàng',
-    aim: '🎯 Tập ngắm', scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
+    clutch: '⚡ Xử lý clutch', aim: '🎯 Tập ngắm', scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
   };
 
   // ------------------------------------------------------------------ khung chung
@@ -168,6 +168,7 @@
       case 'haggle': return S + (st.smarts >= 70 ? 'đọc được thái độ người bán' : 'phải tự đoán giá vốn');
       case 'cpr': return S + lv(st.smarts, 'thuộc kỹ thuật, nhịp dễ giữ', 'biết sơ qua', 'lúng túng, khó giữ nhịp');
       case 'scamchat': return S + (st.smarts >= 65 ? 'nói chuyện khéo, quản lý ít nghi ngờ hơn' : 'dễ để lộ sơ hở') + ' · ' + L + (st.looks >= 65 ? 'nạn nhân dễ có cảm tình' : 'nạn nhân khó tin hơn');
+      case 'clutch': return S + (st.smarts >= 70 ? 'linh cảm được cách xử lý quá liều lĩnh' : 'phải tự đọc tình huống') + ' · ' + H + 'thời gian ra tay ' + lv(st.health, 'dư dả', 'vừa đủ', 'eo hẹp');
       case 'aim': return H + 'mục tiêu tồn tại ' + lv(st.health, 'lâu hơn, dễ bắt', 'vừa phải', 'ngắn, khó bắt') + ' · ' + S + (st.smarts >= 70 ? 'đọc được nhịp xuất hiện' : 'phản xạ thuần tuý');
       case 'cards': return S + (st.smarts >= 65 ? 'tính được xác suất quắc khi rút' : 'chơi theo cảm giác');
       case 'hoops': return H + 'vùng lực chuẩn ' + lv(st.health, 'rộng, tay chắc', 'vừa', 'hẹp, tay run') + ', thanh lực chạy ' + lv(st.health, 'chậm', 'vừa', 'nhanh');
@@ -197,6 +198,7 @@
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
     scamchat: 'Một ca làm việc trong khu lừa đảo: KPI năm nay là lừa đủ số người, không đạt sẽ bị đánh đập. Mỗi nạn nhân đi theo một kịch bản 3 bước (làm quen, giới thiệu lợi ích, xin thông tin thẻ nhận tiền). Chọn câu gợi ý đúng ngữ cảnh hoặc tự gõ. Khi nạn nhân đọc số thẻ, gõ đúng 16 số vào cửa sổ Hồ sơ rồi xác nhận. Quản lý luôn nhìn Camera: bấm nút 📞 ở cửa sổ Chỉ tiêu để họ bớt nghi ngờ. Bạn cũng có thể lén cảnh báo nạn nhân để cứu họ, nhưng bị bắt gặp là bị đánh.',
+    clutch: '3 tình huống clutch liên tiếp (1v3, đồng đội gục hết, hết đạn, giành rồng…). Mỗi ca: đọc tình huống, chọn hướng xử lý đúng ngữ cảnh (phím 1–3), rồi bấm hạ từng địch trước khi chúng tránh đi hoặc hết giờ. Quyết định đúng thì mục tiêu to và nhiều thời gian hơn; bấm trượt hoặc để địch thoát sẽ mất máu.',
     aim: 'Các mục tiêu tròn xuất hiện rồi mờ dần trong 25 giây. Bấm chuột (hoặc chạm) vào từng mục tiêu trước khi nó biến mất. Bấm trượt hoặc để mục tiêu biến mất sẽ mất combo.',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
@@ -1585,7 +1587,75 @@
       }, 50);
     });
   }
-  const GAMES = { aim, scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
+  // ------------------------------------------------------------------ 14. xử lý tình huống clutch (eSports): chọn hướng xử lý đúng ngữ cảnh rồi ra tay dưới áp lực thời gian
+  const CL_SCEN = [
+    { t: '1v3 · bom đã cài', d: 'Hiệp quyết định, đồng đội gục hết. Bạn còn 70 máu, ba địch đang canh khu đặt bom và bom chỉ còn 25 giây.', n: 3, secs: 25, o: [['Đi vòng đánh lén từng người, hạ đứa lẻ trước', 2], ['Ném khói rồi lao vào gỡ bom', 1], ['Rush thẳng vào chỗ bom, bắn liên tục', 0]] },
+    { t: 'Đồng đội gục hết · nhà chính nguy', d: 'Bạn chỉ còn 20% máu. Địch còn ba người đang đẩy nhà chính, bạn là hy vọng cuối cùng của đội.', n: 3, secs: 22, o: [['Nấp bụi cỏ câu giờ, bắt từng kẻ tách đàn', 2], ['Về nhà hồi đầy máu rồi giữ cổng', 1], ['Lao vào giao tranh tổng cho đỡ tiếc', 0]] },
+    { t: '1v2 · hết đạn súng chính', d: 'Chỉ còn hai địch nhưng băng đạn súng chính đã cạn. Địch đang tiến vào, nghe rõ tiếng bước chân.', n: 2, secs: 18, o: [['Đổi sang súng phụ, nép góc tường đánh cự ly gần', 2], ['Đứng im chờ chúng bước vào rồi hạ gục', 1], ['Quay lưng bỏ chạy ra ngoài bản đồ', 0]] },
+    { t: 'Giành rồng cuối trận', d: 'Địch vừa bắt rồng, đội bạn thiếu hai người. Bạn đang ở bụi bên cạnh, hồi chiêu kỹ năng chỉ còn vài giây.', n: 3, secs: 20, o: [['Chờ hồi chiêu rồi bất ngờ nhảy vào cướp rồng', 2], ['Nhử địch bỏ rồng chạy theo bạn', 1], ['Xông vào ngay khi kỹ năng chưa hồi', 0]] },
+    { t: 'Vòng bo cuối · còn 3 đội', d: 'Vòng an toàn thu nhỏ còn vài chục mét. Bạn chỉ có một mình, bao quanh là hai đội địch đang bắn nhau.', n: 2, secs: 20, o: [['Nằm chờ hai đội kiệt sức rồi nhặt hạ', 2], ['Ném lựu đạn vào giữa để chúng đánh nhau thêm', 1], ['Xông ra bắn cả hai đội cùng lúc', 0]] },
+    { t: 'Lật kèo ở ván 5', d: 'Đội bạn kém 8.000 vàng, địch đang chủ quan đứng chắn trụ. Bạn có thể tận dụng sơ hở trong vài giây.', n: 3, secs: 22, o: [['Đợi địch tách lẻ rồi bắt từng người', 2], ['Câu địch đuổi theo vào bụi rồi quay lại đánh', 1], ['Đánh trực diện vào cả đội đang chủ quan', 0]] },
+  ];
+  function clutch(p) {
+    return new Promise((res) => {
+      const st = p.ctx.stats, ROUNDS = 3, seq = shuffle(CL_SCEN.slice()).slice(0, ROUNDS), hint = st.smarts >= 70;
+      let ri = 0, wins = 0, partial = 0, hp = 100, done = false, balls = [], hitsR = 0, nR = 0, timeLeft = 0, secs = 0, q = 0, spawnT = 0, queue = 0, uid = 0, phase = 'pick', log = [];
+      const box = open('<div class="mini-head"><b>⚡ Clutch</b><small id="clH"></small></div>' +
+        '<div class="cl-top"><div class="cl-hp"><span>❤️ Máu</span><div class="mini-bar"><i id="clHp" style="width:100%"></i></div></div><div class="cl-hp"><span>⏳ Thời gian</span><div class="mini-bar"><i id="clT" style="width:100%"></i></div></div></div>' +
+        '<div class="cl-card" id="clC"></div><div class="mini-ans one" id="clO"></div><div class="am-arena cl-arena" id="clA" hidden></div><p class="mini-keys" id="clK"></p>');
+      const arena = box.querySelector('#clA');
+      const hud = () => { box.querySelector('#clH').textContent = 'Ca ' + Math.min(ri + 1, ROUNDS) + '/' + ROUNDS + ' · thắng ' + wins; box.querySelector('#clHp').style.width = clamp(hp, 0, 100) + '%'; box.querySelector('#clT').style.width = phase === 'act' ? clamp((timeLeft / secs) * 100, 0, 100) + '%' : '100%'; };
+      const showPick = () => {
+        phase = 'pick'; arena.hidden = true; arena.innerHTML = ''; balls = [];
+        const sc = seq[ri], opts = shuffle(sc.o.map((o) => ({ text: o[0], q: o[1] })));
+        box.querySelector('#clC').innerHTML = '<b>' + esc(sc.t) + '</b><p>' + esc(sc.d) + '</p>'; box.querySelector('#clO').hidden = false;
+        box.querySelector('#clO').innerHTML = opts.map((o, i) => '<button type="button" class="mini-opt" data-q="' + o.q + '"' + (hint && o.q === 0 ? ' style="opacity:.5" title="Linh cảm: cách này rất nguy hiểm"' : '') + '><span>' + (i + 1) + '</span>' + esc(o.text) + '</button>').join('');
+        box.querySelector('#clK').textContent = 'Chọn hướng xử lý (phím 1–3). Cách đúng ngữ cảnh sẽ cho bạn mục tiêu to và nhiều thời gian hơn.';
+        box.querySelectorAll('.mini-opt').forEach((b) => (b.onclick = () => startAct(+b.dataset.q)));
+        onKeysOnce((e) => { const n = +e.key; if (n >= 1 && n <= 3) { const b = box.querySelectorAll('.mini-opt')[n - 1]; if (b) b.click(); return true; } return false; });
+        hud();
+      };
+      const startAct = (qq) => {
+        if (phase !== 'pick') return; q = qq; phase = 'act'; sfx(q === 2 ? 'good' : q === 1 ? 'click' : 'bad');
+        const sc = seq[ri]; nR = sc.n; hitsR = 0; queue = nR; spawnT = 0.3; secs = sc.secs * (q === 2 ? 0.62 : q === 1 ? 0.5 : 0.4) + st.health / 60 - p.need * 2; timeLeft = secs;
+        box.querySelector('#clO').hidden = true; arena.hidden = false; arena.innerHTML = '';
+        box.querySelector('#clC').innerHTML += '<p class="cl-note">' + (q === 2 ? '✅ Quyết định hợp lý: địch lộ sơ hở.' : q === 1 ? '⚠️ Cách này tạm được, địch khó bắt hơn.' : '❌ Quyết định liều lĩnh: địch đã sẵn sàng!') + ' Hạ ' + nR + ' mục tiêu trước khi hết giờ.</p>';
+        box.querySelector('#clK').textContent = '🖱️ Bấm vào từng địch trước khi nó tránh đi. Bấm trượt hoặc để địch thoát thì mất máu.';
+        onKeys(() => true); hud();
+      };
+      const endRound = (ok) => {
+        phase = 'result'; arena.innerHTML = ''; balls = [];
+        if (ok) { wins++; sfx('coin'); } else { partial += hitsR / nR * 0.4; sfx('fail'); }
+        box.querySelector('#clC').innerHTML += '<p class="cl-res ' + (ok ? 'ok' : 'bad') + '">' + (ok ? '🔥 CLUTCH THÀNH CÔNG! Bạn hạ gục cả ' + nR + ' người.' : '💥 Thất bại: chỉ hạ được ' + hitsR + '/' + nR + ' người.') + '</p>';
+        log.push(ok); ri++; hud();
+        setTimeout(() => { if (done) return; if (ri >= ROUNDS || hp <= 0) finishAll(); else showPick(); }, 1400);
+      };
+      const finishAll = () => { if (done) return; done = true; const score = clamp((wins + partial) / ROUNDS, 0, 1); res({ score, text: 'Bạn xử lý thành công ' + wins + '/' + ROUNDS + ' tình huống clutch' + (wins === ROUNDS ? ' — xứng đáng MVP trận!' : wins ? '.' : ', cần bình tĩnh hơn.') }); };
+      const spawn = () => {
+        const el = document.createElement('button'); el.type = 'button'; el.className = 'am-t cl-e'; el.dataset.id = ++uid;
+        const r = (q === 2 ? 28 : q === 1 ? 23 : 18) + rnd() * 10; el.style.width = el.style.height = r * 2 + 'px'; el.style.left = (6 + rnd() * 86) + '%'; el.style.top = (8 + rnd() * 78) + '%'; el.textContent = '👤';
+        arena.appendChild(el); balls.push({ el, id: uid, left: (q === 2 ? 1.9 : q === 1 ? 1.5 : 1.15) + st.health / 300 });
+      };
+      arena.addEventListener('pointerdown', (e) => {
+        if (done || phase !== 'act') return; e.preventDefault();
+        const b = e.target.closest('.cl-e'); const o = b && balls.find((x) => x.id === +b.dataset.id);
+        if (o) { hitsR++; o.el.classList.add('hit'); setTimeout(() => o.el.remove(), 120); balls = balls.filter((x) => x !== o); sfx('click'); if (hitsR >= nR) return endRound(true); }
+        else { hp -= 12; sfx('bad'); if (hp <= 0) return endRound(false); }
+        hud();
+      });
+      showPick();
+      every(() => {
+        if (done || phase !== 'act') return; timeLeft -= 0.05; spawnT -= 0.05;
+        if (queue > 0 && balls.length < 2 && spawnT <= 0) { spawn(); queue--; spawnT = rand(0.5, 0.9); }
+        balls.forEach((o) => { o.left -= 0.05; o.el.style.opacity = Math.min(1, o.left / 0.35); });
+        const gone = balls.filter((o) => o.left <= 0);
+        if (gone.length) { gone.forEach((o) => o.el.remove()); balls = balls.filter((o) => o.left > 0); hp -= 15 * gone.length; queue += gone.length; sfx('bad'); if (hp <= 0) return endRound(false); }
+        hud();
+        if (timeLeft <= 0) endRound(false);
+      }, 50);
+    });
+  }
+  const GAMES = { clutch, aim, scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
   KN.Mini = {
     plan, planJob, planPropose, planHaggle, planDuel, run, NAME, DUEL_TYPES,
     // file khác đăng ký thêm minigame (js/showbiz.js): fn(p) → Promise<{score, text}>, tự mở khung riêng
