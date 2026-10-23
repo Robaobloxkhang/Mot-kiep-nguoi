@@ -319,6 +319,33 @@
     },
 
     // ======================= THỦ MÔN & BƠI =======================
+    // ======================= ĐỘI BÓNG PHONG TRÀO (người lớn đá futsal / đá phủi) =======================
+    {
+      id: 's_act_futsal_join', title: 'Đội futsal phong trào', icon: '⚽', age: [18, 50], weight: 1.6, once: false, cooldown: 6,
+      req: { notFlag: 'futsal' },
+      text: 'Đám bạn trong khu / đồng nghiệp lập đội futsal đá tối thứ Ba và thứ Năm ở sân mini gần nhà, còn thiếu một người. “Vào đá cho vui, thắng thua gì cũng có bia.”',
+      scene: { loc: 'stadium', time: 'dusk', anim: 'talk', npcs: [{ role: 'stranger', anim: 'point', say: 'Vào đá với tụi tao!' }], fx: 'exclaim' },
+      choices: [
+        { label: 'Vào đội, tối nào cũng ra sân', text: 'Bạn nhận áo số 10 mượn tạm. Mỗi tuần hai buổi đổ mồ hôi, cười thả ga, người nhẹ hẳn đi.', effects: { happy: 5, health: 2, money: -500000, flag: 'futsal' }, scene: { anim: 'kick', fx: 'sparkle' } },
+        { label: 'Để lúc khác', text: 'Bạn hẹn “lúc nào rảnh”. Họ gật đầu, vẫn chừa chỗ cho bạn.', effects: {}, scene: { anim: 'shrug' } }
+      ]
+    },
+    {
+      id: 's_act_futsal_game', title: 'Trận futsal tối thứ Năm', icon: '🏟️', age: [18, 50], weight: 2.6, once: false, cooldown: 2,
+      req: { flag: 'futsal' },
+      text: 'Đội futsal phong trào hôm nay gặp đội phường bên cạnh, cược một thùng nước ngọt. Hiệp hai hoà 2–2, đội trưởng gọi bạn vào thay: “Cầm bóng đi, mày chạy nhiều nhất đội mà!”',
+      scene: { loc: 'stadium', time: 'night', anim: 'kick', npcs: [{ role: 'stranger', anim: 'cheer', say: 'Sút đi!' }, { role: 'crowd', anim: 'cheer' }], fx: 'exclaim' },
+      choices: [
+        { label: 'Ra sân thi đấu hết mình', mini: 'hax',
+          success: { stat: 'health', base: 0.3, scale: 0.5 },
+          outcomes: [
+            { text: 'Bạn ghi bàn quyết định ở phút cuối. Cả đội ôm nhau, thùng nước ngọt về tay bạn.', effects: { happy: 8, health: 1 }, scene: { anim: 'cheer', fx: 'confetti' } },
+            { text: 'Đội thua sát nút 2–3, bạn đá hỏng một cơ hội rõ ràng. Cả bọn vẫn rủ nhau đi ăn mì cay.', effects: { happy: -2 }, scene: { anim: 'sad' } }
+          ] },
+        { label: 'Nhường chỗ, ngồi ngoài cổ vũ', text: 'Bạn ngồi ngoài đường biên hò hét. Đội thắng hay thua thì cũng có bạn bè bên cạnh.', effects: { happy: 1 }, scene: { anim: 'cheer' } },
+        { label: 'Xin nghỉ đội, đi làm bận quá', text: 'Bạn gửi lời xin lỗi vào nhóm chat và rút khỏi đội. Tối thứ Năm bỗng yên ắng lạ.', effects: { happy: -2, unflag: 'futsal' }, scene: { anim: 'sad' } }
+      ]
+    },
     {
       id: 's_act_da_phui', title: 'Chung kết đá phủi', icon: '🧤', age: [12, 45], weight: 1.2,
       text: 'Chung kết giải bóng đá phủi của phường hòa 1–1. Thủ môn đội bạn bị chuột rút, cả đội nhìn về phía bạn: “Mày bắt luân lưu đi!”',

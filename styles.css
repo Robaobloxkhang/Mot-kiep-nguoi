@@ -989,6 +989,7 @@ details.more.risk p { margin: 0 0 8px; }
 .dc-item b { display: block; font-size: 14px; } .dc-item small { opacity: .75; font-size: 11.5px; }
 .dc-ic { font-size: 26px; }
 @media (max-width: 760px) { .decor .hax-box { height: 100%; } .dc-main { grid-template-columns: 1fr; grid-template-rows: 1fr 210px; } }
+[hidden] { display: none !important; }
 /* ---------- màn hình chính gọn: 3 ô nhóm + hàng tiện ích nhỏ ---------- */
 .title-card { max-height: calc(100vh - 48px); overflow-y: auto; scrollbar-width: none; }
 .title-card::-webkit-scrollbar { display: none; }
@@ -1457,3 +1458,20 @@ details.more.risk p { margin: 0 0 8px; }
 }
 @media (max-width: 560px) { .mx-id h1 { font-size: 20px; } .mx-next { flex-direction: column; align-items: flex-start; } .mx-pm-c { width: 34px; height: 34px; font-size: 14px; } .mx-pm-n { font-size: 10.5px; max-width: 58px; } .mx-nav button span { display: none; } .mx-nav button { padding: 10px 14px; } .mx-nav button.on span { display: inline; } }
 @media (prefers-reduced-motion: reduce) { .mx *, .mx-drawer { transition: none !important; animation: none !important; } }
+
+/* ===== màn hình chính: thẻ kiếp đang sống, thử thách hôm nay, 6 khu vực ===== */
+.world-strip { list-style: none; margin: 14px 0 12px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; position: relative; }
+.world-strip li { position: relative; padding: 8px 10px 0 0; display: grid; gap: 2px; border-top: 2px solid rgba(255, 179, 71, .55); } .world-strip li::before { content: ''; position: absolute; top: -5px; left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--lantern, #ffb347); box-shadow: 0 0 10px rgba(255, 179, 71, .8); }
+.world-strip b { font-family: var(--f-display); font-size: 15px; color: #fff; } .world-strip small { font-size: 11.5px; line-height: 1.3; color: rgba(255, 255, 255, .72); }
+.life-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 18px; border: 1px solid rgba(255, 179, 71, .55); cursor: pointer; text-align: left; color: #fff; background: linear-gradient(135deg, rgba(255, 179, 71, .28), rgba(20, 24, 44, .78)); backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); transition: transform .18s var(--ease), box-shadow .18s; }
+.life-card:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(255, 179, 71, .22); }
+.lc-av { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; background: rgba(0, 0, 0, .35); flex: none; } .lc-tx { display: grid; gap: 1px; min-width: 0; flex: 1; } .lc-tx small { color: var(--lantern, #ffb347); font-weight: 700; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; } .lc-tx b { font-family: var(--f-display); font-size: 20px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lc-tx em { font-style: normal; font-size: 13px; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lc-go { font-size: 28px; opacity: .7; }
+.today-card { display: grid; gap: 2px; width: 100%; padding: 9px 14px; border-radius: 14px; border: 1px dashed rgba(255, 255, 255, .28); background: rgba(12, 15, 28, .55); color: #fff; cursor: pointer; text-align: left; backdrop-filter: blur(8px); } .today-card small { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--lantern, #ffb347); font-weight: 700; } .today-card b { font-size: 13.5px; font-weight: 600; line-height: 1.4; } .today-card:hover { border-color: rgba(255, 179, 71, .6); }
+.hub-tile[data-go] { position: relative; } .hub-tile[data-hub]::after { content: '⌄'; position: absolute; top: 4px; right: 10px; font-size: 13px; opacity: .55; } .hub-tile[data-hub].on::after { content: '⌃'; }
+.hub-tile { position: relative; }
+@media (max-width: 560px) { .world-strip small { display: none; } .world-strip b { font-size: 14px; } }
+@media (max-width: 420px) { .hub-tile small { display: block; font-size: 10px; } .hub-tile { padding: 10px 4px 8px; } }
+/* HUD gọn trên điện thoại: nút nhỏ lại để tên nhân vật không bị cắt */
+@media (max-width: 560px) { .hud-btns { gap: 5px; } .hud-btns .icon-btn { width: 34px; height: 34px; font-size: 15px; } }
+.log-filter { display: flex; gap: 6px; margin: 4px 0 10px; } .log-filter button { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--fg-2, #aab); font-size: 12.5px; cursor: pointer; } .log-filter button.on { background: rgba(255, 179, 71, .16); color: var(--lantern, #ffb347); border-color: rgba(255, 179, 71, .5); }
+@media (max-height: 860px) { .world-strip small { display: none; } .world-strip { margin: 10px 0 8px; } }

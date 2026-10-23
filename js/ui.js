@@ -111,7 +111,7 @@
     $('#viewCreate').hidden = m !== 'create';
     $('#viewDeath').hidden = m !== 'death';
     $('#hud').hidden = !(m === 'play' || m === 'death');
-    $('#btnAge').hidden = m !== 'play';
+    $('#btnAge').hidden = m !== 'play'; { const ff = $('#btnFF'); if (ff && m !== 'play') ff.hidden = true; }
     if (m !== 'play') hideSheet();
     if (m !== 'title') stopDemo();
     if (m !== 'play') $('#locTag').hidden = true;
@@ -130,13 +130,18 @@
     if (G().setMode) G().setMode('offline');
     const btn = $('#btnContinue');
     const v = G().hasLife() ? G().view() : null;
-    if (v && v.alive) { btn.hidden = false; btn.textContent = 'Tiếp tục: ' + v.name + ', ' + v.age + ' tuổi'; }
-    else if (v && !v.alive) { btn.hidden = false; btn.textContent = 'Xem lại: ' + v.name + ' (đã khuất)'; }
+    const lc = (head, v2) => '<span class="lc-av" aria-hidden="true">' + (v2.alive ? '🌱' : '🕯️') + '</span><span class="lc-tx"><small>' + head + '</small><b>' + esc(v2.fullName || v2.name) + '</b><em>' + v2.age + ' tuổi · ' + esc(v2.occupation || v2.stageLabel || '') + (v2.alive ? ' · ' + esc(v2.moneyText) : '') + '</em></span><span class="lc-go" aria-hidden="true">›</span>';
+    if (v && v.alive) { btn.hidden = false; btn.innerHTML = lc('Tiếp tục kiếp đang sống', v); }
+    else if (v && !v.alive) { btn.hidden = false; btn.innerHTML = lc('Xem lại kiếp vừa khép lại', v); }
     else btn.hidden = true;
+    $('#btnNew').textContent = v ? 'Bắt đầu một kiếp mới' : 'Bắt đầu kiếp đầu tiên';
+    $('#btnNew').classList.toggle('btn-primary', !v || !v.alive); $('#btnNew').classList.toggle('btn-soft', !!(v && v.alive));
+    safe(() => { const c = G().dailyChallenge(), tc = $('#todayCard'); tc.hidden = false; tc.innerHTML = '<small>Hôm nay</small><b>' + c.icon + ' ' + esc(c.text) + '</b>'; tc.onclick = () => { sfx('click'); const d = $('#btnDaily'); if (d) d.click(); }; const td = $('#tileDaily'); if (td) td.textContent = 'Đề hôm nay: ' + c.icon; });
     updateOnlineTitle();
     const m = G().meta();
     $('#btnGrave').textContent = '🕯️ Nghĩa trang' + (m.lives.length ? ' (' + m.lives.length + ')' : '');
     $('#btnAch').textContent = '🏆 Thành tựu ' + Object.keys(m.achievements).length + '/' + D.ACHIEVEMENTS.length;
+    { const ta = $('#tileAch'); if (ta) ta.textContent = Object.keys(m.achievements).length + '/' + D.ACHIEVEMENTS.length + ' đã mở'; }
     const latest = (D.CHANGELOG || [])[0];
     if (latest) { $('#newsLabel').textContent = '✨ Có gì mới · v' + latest.v; $('#newsDot').hidden = prefs.seenVer === latest.v; }
     else $('#btnNews').hidden = true;
@@ -384,12 +389,13 @@
       (i.risk && !i.incurable ? '<div class="p-sub">Bỏ mặc lâu có thể thành: ' + esc(i.risk) + '</div>' : '') + '</div>').join('') +
       '<div class="p-sub">Tab Hoạt động → <b>Đi khám bệnh</b> để điều trị. <b>Khám tổng quát</b> mỗi năm giúp phát hiện sớm ung thư âm thầm.</div></div>';
     h += '<button type="button" class="btn btn-soft btn-sm" id="btnRisk" style="margin-bottom:12px">📊 Rủi ro đời sống của bạn (theo số liệu thực)</button>';
-    const log = v.log;
+    const logAll = v.log, log = S.logOnly ? logAll.filter((e) => e.tone === 'milestone' || e.tone === 'good' || e.tone === 'bad') : logAll;
+    h += '<div class="log-filter" role="group" aria-label="Lọc nhật ký"><button type="button" data-logf="all" class="' + (S.logOnly ? '' : 'on') + '">Tất cả</button><button type="button" data-logf="key" class="' + (S.logOnly ? 'on' : '') + '">Dấu ấn quan trọng</button></div>';
     const groups = [];
     for (let i = log.length - 1; i >= 0; i--) { const e = log[i]; let g = groups[groups.length - 1]; if (!g || g.age !== e.age) { g = { age: e.age, year: e.year, items: [] }; groups.push(g); } g.items.push({ e, i }); }
     const seen = S.seenLog;
     h += groups.slice(0, 60).map((g) => '<div class="log-age">' + g.age + ' tuổi <small>Năm ' + g.year + '</small></div>' + g.items.map(({ e, i }) => '<div class="log-item ' + esc(e.tone) + (i >= seen ? ' new' : '') + '"><span class="li">' + esc(e.icon || '•') + '</span><span>' + esc(e.text) + '</span></div>').join('')).join('');
-    S.seenLog = log.length;
+    S.seenLog = logAll.length;
     return h;
   }
   function tabAct(v) {
@@ -716,6 +722,7 @@
   }
   function bindTab(body, v) {
     body.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => { sfx('click'); if (b.dataset.input === 'parttime') openPartTime(b.dataset.act); else if (b.dataset.input) openPlayPicker(b.dataset.act); else doAction(() => G().doActivity(b.dataset.act)); });
+    body.querySelectorAll('[data-logf]').forEach((b) => (b.onclick = () => { sfx('click'); S.logOnly = b.dataset.logf === 'key'; render(); }));
     const rk = body.querySelector('#btnRisk'); if (rk) rk.onclick = () => { sfx('click'); openRisks(); };
     body.querySelectorAll('[data-person]').forEach((b) => b.onclick = () => { sfx('click'); openPerson(b.dataset.person); });
     body.querySelectorAll('[data-edu]').forEach((b) => b.onclick = () => { sfx('click'); confirmIf(b.dataset.edu === 'dropout', 'Bỏ học?', 'Bố mẹ sẽ buồn lắm đấy. Bạn chắc chứ?', () => doAction(() => G().eduAction(b.dataset.edu))); });

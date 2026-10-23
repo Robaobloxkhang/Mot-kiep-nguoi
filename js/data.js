@@ -799,6 +799,8 @@
       '⏩ Nút “Tua tuổi thơ” (0–9 tuổi): tự lớn tối đa 5 tuổi, gặp chuyện cần quyết định thì dừng cho bạn chọn rồi lớn tiếp.',
       '🌍 Lời mời CLB nước ngoài có thể là bẫy lừa sang Campuchia; bấm “Kiểm tra” để dò (trí tuệ và tiếng Anh càng cao càng dễ phát hiện).',
       '🖐️ Kéo thẻ Tinder không còn bôi đen văn bản.',
+      '⚽ Người lớn (từ 18 tuổi) được rủ vào đội futsal phong trào: đá tối thứ Ba, thứ Năm, có trận đấu Hax thật; xin nghỉ đội bất cứ lúc nào.',
+      '🏠 Màn hình chính mới: thẻ kiếp đang sống, thử thách hôm nay, 6 khu vực (Cuộc đời, Thử thách, Kịch bản, Minigame, Cộng đồng, Thành tựu). Nhật ký có bộ lọc “Dấu ấn quan trọng”.',
     ] },
     { v: '1.80', date: '23/10/2026', items: [
       '📋 Huấn luyện viên thể thao: vận động viên đã giải nghệ có thể xin làm HLV từ 20 tuổi (trước phải đủ 28), và sự kiện học bằng HLV cũng mở từ 20 tuổi. (Từ 1.81: ai cũng xin được.)',

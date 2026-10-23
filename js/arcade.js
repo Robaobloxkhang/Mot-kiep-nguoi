@@ -10,7 +10,8 @@
   const set = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* */ } };
   // ---------------------------------------------------------------- 3 ô nhóm ở màn hình chính
   function bindHub() {
-    const tiles = document.querySelectorAll('.hub-tile'); if (!tiles.length) return;
+    const tiles = document.querySelectorAll('.hub-tile[data-hub]'); if (!tiles.length) return;
+    document.querySelectorAll('.hub-tile[data-go]').forEach((t) => (t.onclick = () => { sfx('click'); const b = document.getElementById(t.dataset.go); if (b) b.click(); }));
     const show = (id) => {
       document.querySelectorAll('.hub-panel').forEach((p) => (p.hidden = p.dataset.panel !== id));
       tiles.forEach((t) => { const on = t.dataset.hub === id; t.classList.toggle('on', on); t.setAttribute('aria-expanded', on ? 'true' : 'false'); });

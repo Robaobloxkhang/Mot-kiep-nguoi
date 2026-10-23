@@ -55,20 +55,35 @@
       <div class="title-kicker">Trò chơi mô phỏng cuộc đời · 3D</div>
       <h1 class="logo"><span>Một</span> <span>Kiếp</span> <span>Người</span></h1>
       <p class="tagline">Một trong tám tỷ cuộc đời — của riêng bạn.</p>
+      <ol class="world-strip" aria-label="Thế giới của game">
+        <li><b>Sinh ra</b><small>Gia đình, quê quán, số phận</small></li>
+        <li><b>Lớn lên</b><small>Học hành, tình yêu, nghề nghiệp</small></li>
+        <li><b>Để lại</b><small>Gia phả, di sản, người nối dõi</small></li>
+      </ol>
       <button id="btnNews" class="news-pill" type="button"><span id="newsLabel">✨ Có gì mới</span><span id="newsDot" class="news-dot" hidden></span></button>
       <div class="title-actions">
-        <button id="btnNew" class="btn btn-primary btn-lg" type="button">Bắt đầu kiếp mới</button>
-        <button id="btnContinue" class="btn btn-ghost btn-lg" type="button" hidden></button>
+        <button id="btnContinue" class="life-card" type="button" hidden></button>
         <button id="btnOnlineCont" class="btn btn-primary btn-lg" type="button" hidden></button>
-        <!-- 3 nhóm chính: bấm một ô để mở nhóm đó (mỗi lúc chỉ mở một nhóm) -->
+        <button id="btnNew" class="btn btn-primary btn-lg" type="button">Bắt đầu kiếp mới</button>
+        <button id="todayCard" class="today-card" type="button" hidden></button>
+        <!-- 6 khu vực: bấm ô có mũi tên để mở nhóm, ô còn lại mở thẳng tính năng -->
         <div class="hub-tiles">
-          <button type="button" class="hub-tile" data-hub="play" aria-expanded="false"><span class="hub-ic">🎯</span><b>Chế độ chơi</b><small>Thử thách · Kịch bản</small></button>
+          <button type="button" class="hub-tile" data-hub="life" aria-expanded="false"><span class="hub-ic">🌳</span><b>Cuộc đời</b><small>Lưu · Gia phả · Nghĩa trang</small></button>
+          <button type="button" class="hub-tile" data-go="btnDaily"><span class="hub-ic">🎯</span><b>Thử thách</b><small id="tileDaily">Mỗi ngày một đề</small></button>
+          <button type="button" class="hub-tile" data-go="btnScenario"><span class="hub-ic">🎬</span><b>Kịch bản</b><small>Những kiếp đặc biệt</small></button>
           <button type="button" class="hub-tile" data-hub="mini" aria-expanded="false"><span class="hub-ic">🎮</span><b>Minigame</b><small>Hax · Đua xe · chơi thử</small></button>
-          <button type="button" class="hub-tile" data-hub="online" aria-expanded="false"><span class="hub-ic">🌐</span><b>Online</b><small>Solo · Dòng họ · Bảng tin</small></button>
+          <button type="button" class="hub-tile" data-hub="online" aria-expanded="false"><span class="hub-ic">🌐</span><b>Cộng đồng</b><small>Solo · Dòng họ · Bảng tin</small></button>
+          <button type="button" class="hub-tile" data-go="btnAch"><span class="hub-ic">🏆</span><b>Thành tựu</b><small id="tileAch">Huy hiệu & mốc đời</small></button>
         </div>
-        <div class="hub-panel" data-panel="play" hidden>
-          <button id="btnDaily" class="btn btn-soft" type="button">🎯 Thử thách hôm nay</button>
-          <button id="btnScenario" class="btn btn-soft" type="button">🎬 Kịch bản đặc biệt</button>
+        <div hidden aria-hidden="true">
+          <button id="btnDaily" type="button">🎯 Thử thách hôm nay</button>
+          <button id="btnScenario" type="button">🎬 Kịch bản đặc biệt</button>
+          <button id="btnAch" type="button">🏆 Thành tựu</button>
+        </div>
+        <div class="hub-panel" data-panel="life" hidden>
+          <button id="btnSaves" class="btn btn-soft" type="button">💾 Lưu & tải</button>
+          <button id="btnTree" class="btn btn-soft" type="button">🌳 Gia phả</button>
+          <button id="btnGrave" class="btn btn-soft" type="button">🕯️ Nghĩa trang</button>
         </div>
         <div class="hub-panel" data-panel="mini" hidden>
           <button id="btnArcade" class="btn btn-soft" type="button">🕹️ Chơi thử mọi minigame</button>
@@ -83,10 +98,6 @@
           <button id="btnBoard" class="btn btn-soft" type="button">🏆 Bảng xếp hạng</button>
         </div>
         <div class="title-icons">
-          <button id="btnGrave" class="btn btn-ghost btn-sm" type="button">🕯️ Nghĩa trang</button>
-          <button id="btnTree" class="btn btn-ghost btn-sm" type="button">🌳 Gia phả</button>
-          <button id="btnAch" class="btn btn-ghost btn-sm" type="button">🏆 Thành tựu</button>
-          <button id="btnSaves" class="btn btn-ghost btn-sm" type="button">💾 Lưu & tải</button>
           <button id="btnInstall" class="btn btn-ghost btn-sm" type="button" hidden>📲 Cài app</button>
           <button id="btnSettings2" class="btn btn-ghost btn-sm" type="button" aria-label="Cài đặt">⚙️ Cài đặt</button>
         </div>
