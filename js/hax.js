@@ -32,6 +32,7 @@
     const m = { map: MAPS[o.map] ? o.map : 'classic', players: [], ball: { x: W / 2, y: CY, vx: 0, vy: 0, spin: 0 }, score: [0, 0], time: 0, dur: o.dur || 180, phase: 'kickoff', phaseT: 0, kickoff: 0, golden: false, noGolden: !!o.noGolden, events: [], client: !!o.client, lastTouch: -1, goalsBy: {} };
     (o.roster || [{ team: 0 }, { team: 1 }]).forEach((r) => m.players.push({ team: r.team, x: 0, y: 0, vx: 0, vy: 0, cool: 0, kicking: false, flash: 0, charge: 0, name: r.name || '', num: 0, hx: 0, hy: 0, sk: r.sk || { charge: true, curve: true } }));
     [0, 1].forEach((t) => m.players.filter((p) => p.team === t).forEach((p, i) => (p.num = i + 1)));
+    m.st = m.players.map(() => ({ g: 0, a: 0, k: 0, sh: 0, t: 0, og: 0 })); m.prevTouch = -1;
     resetPositions(m); return m;
   }
   const FORM = { 1: [[0.35, 0]], 2: [[0.45, -0.3], [0.3, 0.3]], 3: [[0.5, 0], [0.25, -0.45], [0.25, 0.45]], 4: [[0.5, -0.28], [0.5, 0.28], [0.22, -0.5], [0.22, 0.5]] };
@@ -64,6 +65,23 @@
     let ax = inp.jx != null ? inp.jx : (inp.r ? 1 : 0) - (inp.l ? 1 : 0), ay = inp.jy != null ? inp.jy : (inp.d ? 1 : 0) - (inp.u ? 1 : 0);
     const len = Math.hypot(ax, ay); if (len > 1) { ax /= len; ay /= len; }
     return { jx: ax, jy: ay, k: !!inp.k, pw: inp.pw > 0 && inp.pw < 1 ? inp.pw : 1, s: !!inp.s, t: !!inp.t };
+  }
+  // thống kê từng cầu thủ để chấm điểm: chạm bóng, sút, bàn thắng, kiến tạo, phản lưới
+  function touchBy(m, i) { if (m.lastTouch !== i) { m.prevTouch = m.lastTouch; const q = m.st && m.st[i]; if (q && !m.client) q.t++; } m.lastTouch = i; }
+  function ratingsOf(m) {
+    const bk = !!(MP && MP.basket), f = bk ? 0.25 : 1, d0 = m.score[0] - m.score[1];
+    const list = m.players.map((p, i) => {
+      const q = (m.st && m.st[i]) || {}, res = p.team === 0 ? d0 : -d0, opp = m.score[1 - p.team];
+      const r = 6 + 1.3 * f * (q.g || 0) + 0.8 * f * (q.a || 0) + 0.15 * Math.min(q.sh || 0, 4) + 0.03 * Math.min(q.k || 0, 14) + 0.015 * Math.min(q.t || 0, 30) + (res > 0 ? 0.5 : res < 0 ? -0.3 : 0.1) + (bk ? 0 : opp === 0 ? 0.5 : -0.12 * Math.min(opp, 5)) - (q.og || 0);
+      return { i, team: p.team, num: p.num, name: p.name || 'Cầu thủ ' + p.num, r: Math.round(Math.max(3, Math.min(10, r)) * 10) / 10, g: q.g || 0, a: q.a || 0 };
+    });
+    const mvp = list.slice().sort((x, y) => y.r - x.r || y.g - x.g || y.a - x.a)[0];
+    return { list, mvp };
+  }
+  function ratingHtml(m, myTeam) {
+    if (m.client || !m.st || !m.players.length) return '';
+    const R2 = ratingsOf(m), col = (t) => '<div class="hx-rc"><small>' + (t === myTeam ? 'Đội bạn' : 'Đối thủ') + ' · ' + m.score[t] + '</small>' + R2.list.filter((x) => x.team === t).sort((x, y) => y.r - x.r).map((x) => '<div class="hx-rr' + (x === R2.mvp ? ' mvp' : '') + '"><span>' + (x === R2.mvp ? '⭐ ' : '') + esc(x.name) + (x.g ? ' ⚽' + x.g : '') + (x.a ? ' 🅰' + x.a : '') + '</span><b class="' + (x.r >= 8 ? 'top' : x.r >= 6.5 ? 'good' : x.r < 5.5 ? 'low' : '') + '">' + x.r.toFixed(1) + '</b></div>').join('') + '</div>';
+    return '<div class="hx-mvp">⭐ Cầu thủ xuất sắc nhất: <b>' + esc(R2.mvp.name) + '</b> (' + R2.mvp.r.toFixed(1) + ' điểm)</div><div class="hx-rate">' + col(myTeam) + col(1 - myTeam) + '</div>';
   }
   function step(m, inputs) {
     m.phaseT++;
@@ -105,7 +123,7 @@
           m.ball.vx += ux * pow; m.ball.vy += uy * pow;
           if (p.sk.curve) { const side = ux * p.vy - uy * p.vx; m.ball.spin = Math.max(-0.035, Math.min(0.035, side * 0.014)); }
           if (p.charge > 25) m.events.push({ t: 'power' });
-          p.cool = 12; p.flash = 8; p.charge = 0; p.kbuf = 0; m.lastTouch = i; m.shot = [p.x, p.y]; m.shotT = m.phaseT; m.events.push({ t: 'kick' }); if ((m.phase === 'kickoff' || m.phase === 'setpiece') && !m.client) m.phase = 'play';
+          p.cool = 12; p.flash = 8; p.charge = 0; p.kbuf = 0; touchBy(m, i); if (!m.client && m.st[i]) { m.st[i].k++; if (p.team === 0 ? p.x > L + (R - L) * 0.62 : p.x < L + (R - L) * 0.38) m.st[i].sh++; } m.shot = [p.x, p.y]; m.shotT = m.phaseT; m.events.push({ t: 'kick' }); if ((m.phase === 'kickoff' || m.phase === 'setpiece') && !m.client) m.phase = 'play';
         } else if (p.sk.charge && d >= KICK_RANGE) p.charge = Math.min(45, p.charge + 1);
       }
     });
@@ -121,7 +139,7 @@
         });
       }
     }
-    ps.forEach((p, i) => { if (p.out) return; const hit = collideCircles(p, m.ball, PR, BR, 0.5, 1, 0.5); if (hit) { p.ballT = m.phaseT; if (!(m.lastTouch === i && m.phaseT - (m.shotT || 0) < 15)) m.shot = null; m.lastTouch = i; } if (hit && (m.phase === 'kickoff' || m.phase === 'setpiece') && p.team === m.kickoff && !m.client) m.phase = 'play'; POSTS.forEach((po) => staticPost(p, PR, po, 0.4)); });
+    ps.forEach((p, i) => { if (p.out) return; const hit = collideCircles(p, m.ball, PR, BR, 0.5, 1, 0.5); if (hit) { p.ballT = m.phaseT; if (!(m.lastTouch === i && m.phaseT - (m.shotT || 0) < 15)) m.shot = null; touchBy(m, i); } if (hit && (m.phase === 'kickoff' || m.phase === 'setpiece') && p.team === m.kickoff && !m.client) m.phase = 'play'; POSTS.forEach((po) => staticPost(p, PR, po, 0.4)); });
     if ((m.phase === 'kickoff' || m.phase === 'setpiece') && m.phaseT > 300 && !m.client) m.phase = 'play'; // 5 giây không ai giao thì tự chạy
     moveBall(m);
   }
@@ -199,6 +217,7 @@
     const who = m.players[m.lastTouch] && m.players[m.lastTouch].team === team ? m.lastTouch : m.players.findIndex((q) => q.team === team);
     if (who >= 0) m.cele = { who, style: CELE[(m.score[0] + m.score[1] + who) % CELE.length].id }; // cùng công thức trên máy người vào phòng online
     const sc = m.players[m.lastTouch]; if (sc && sc.team === team) m.goalsBy[m.lastTouch] = (m.goalsBy[m.lastTouch] || 0) + 1;
+    if (!m.client && m.st && sc) { const q = m.st[m.lastTouch]; if (sc.team === team) { q.g++; const pi = m.prevTouch, pp = m.players[pi]; if (pp && pi !== m.lastTouch && pp.team === team && m.st[pi]) m.st[pi].a++; } else q.og++; }
     m.scorerName = sc ? (sc.team === team ? sc.name || '' : 'phản lưới nhà!') : '';
     m.events.push({ t: 'goal', team, scorer: m.lastTouch });
     if (m.golden) { m.phase = 'end'; m.events.push({ t: 'end' }); }
@@ -366,7 +385,7 @@
   const coarse = () => window.matchMedia && matchMedia('(pointer: coarse)').matches;
   // cài đặt nhớ giữa các lần chơi
   const CFG_KEY = 'kn_hax_cfg';
-  const mapOf = () => (cfg.sport === 'basket' ? 'court' : cfg.map === 'court' ? 'classic' : cfg.map);
+  const mapOf = () => (cfg.sport === 'basket' ? 'court' : !cfg.mapUser && cfg.size >= 4 ? 'big' : cfg.map === 'court' ? 'classic' : cfg.map);
   const cfg = Object.assign({ map: 'classic', sport: 'foot', dur: 180, size: 3, lvl: 1, bots: true }, (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) { return {}; } })());
   if (!cfg.v3) { cfg.v3 = 1; if (cfg.size === 1) cfg.size = 3; } // từ bản 1.60: mặc định đá 3v3 tiki-taka
   const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) { /* */ } };
@@ -468,10 +487,16 @@
     const res = mine > theirs ? 'win' : mine < theirs ? 'lose' : 'draw';
     sfx(res === 'win' ? 'cheer' : res === 'lose' ? 'bad' : 'notify');
     if (opts.broadcastEnd) opts.broadcastEnd(m);
-    if (opts.cupEnd) { if (res === 'win') (KN.Weekly && KN.Weekly.track('haxwin')); opts.cupEnd(mine, theirs, m.goalsBy[opts.me ?? 0] || 0); return; }
+    if (opts.cupEnd) {
+      if (res === 'win') (KN.Weekly && KN.Weekly.track('haxwin'));
+      const go = () => opts.cupEnd(mine, theirs, m.goalsBy[opts.me ?? 0] || 0), rh = ratingHtml(m, myTeam);
+      const ov = rh && !(opts.speed && opts.speed() > 4) ? overlay('<b>' + (res === 'win' ? '🏆 Thắng' : res === 'lose' ? '😭 Thua' : '🤝 Hoà') + '</b><span>' + m.score[0] + ' – ' + m.score[1] + '</span>' + rh + '<div class="btnrow"><button type="button" class="btn btn-primary" id="hxNext">Tiếp tục</button></div>') : null;
+      if (ov) document.getElementById('hxNext').onclick = go; else go();
+      return;
+    }
     if (opts.career) { const f = onEnd; onEnd = null; close(true); const myG = m.goalsBy[opts.me ?? 0] || 0; f && f({ score: Math.max(0, Math.min(1, (mine - theirs + 2) / 4)), text: 'Tỷ số ' + mine + ' – ' + theirs + (res === 'win' ? ': bạn thắng!' : res === 'lose' ? ': bạn thua.' : ': hoà.') + (myG ? ' Bạn ghi ' + myG + ' bàn.' : ''), gf: mine, ga: theirs, myGoals: myG }); return; }
     const title = opts.local2 ? (m.score[0] === m.score[1] ? 'Hoà!' : 'Đội ' + NAMES[m.score[0] > m.score[1] ? 0 : 1] + ' thắng!') : res === 'win' ? '🏆 Đội bạn thắng!' : res === 'lose' ? '😭 Đội bạn thua' : '🤝 Hoà';
-    const ov = overlay('<b>' + title + '</b><span>' + m.score[0] + ' – ' + m.score[1] + '</span><div class="btnrow">' + (opts.againLabel === null ? '<small>⏳ Chờ chủ phòng bắt đầu ván mới…</small>' : '<button type="button" class="btn btn-primary" id="hxAgain">' + (opts.againLabel || '↻ Đá lại') + '</button>') + '<button type="button" class="btn btn-ghost" id="hxMenu">' + (opts.online ? 'Rời phòng' : 'Menu') + '</button></div>');
+    const ov = overlay('<b>' + title + '</b><span>' + m.score[0] + ' – ' + m.score[1] + '</span>' + ratingHtml(m, myTeam) + '<div class="btnrow">' + (opts.againLabel === null ? '<small>⏳ Chờ chủ phòng bắt đầu ván mới…</small>' : '<button type="button" class="btn btn-primary" id="hxAgain">' + (opts.againLabel || '↻ Đá lại') + '</button>') + '<button type="button" class="btn btn-ghost" id="hxMenu">' + (opts.online ? 'Rời phòng' : 'Menu') + '</button></div>');
     if (!ov) return;
     const ag = document.getElementById('hxAgain'); if (ag) ag.onclick = () => (opts.again ? opts.again() : menu());
     document.getElementById('hxMenu').onclick = () => menu();
@@ -624,8 +649,8 @@
       const l = c.rounds[c.round], k = l.findIndex((t) => c.teams[t].me); foe = c.teams[l[k % 2 ? k - 1 : k + 1]]; label = RN(c)[c.round]; lvl = lvlOf(c, c.round);
     }
     const n = c.size || 3, roster = [{ team: 0, name: myName() }], owners = ['me'];
-    for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội' }); owners.push(1); }
-    for (let i = 0; i < n; i++) { roster.push({ team: 1, name: foe.name.split(' ').pop() }); owners.push(lvl); }
+    for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội ' + i }); owners.push(1); }
+    for (let i = 0; i < n; i++) { roster.push({ team: 1, name: foe.name.split(' ').pop() + ' ' + (i + 1) }); owners.push(lvl); }
     const m = newMatch({ dur: 120, map: c.map || 'classic', roster, noGolden }); m.players[0].human = true;
     open(pitchHtml(CUPS[c.type].icon + ' ' + label + ' · ' + foe.name + ' · ' + MP.icon + ' ' + MP.name));
     document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Esc: menu';
@@ -655,7 +680,7 @@
       }));
       runLocal(m, (mm) => owners.map((lv, i) => aiInput(mm, i, lv)), {
         me: -1, myTeam, speed: () => speed,
-        cupEnd: (gf, ga) => { const sc = []; Object.keys(m.goalsBy).forEach((i) => { const pl = meta[+i]; if (pl && m.players[+i].team === myTeam) sc.push({ id: pl.id, name: pl.name, n: m.goalsBy[i] }); }); setTimeout(() => { close(true); res({ gf, ga, scorers: sc }); }, speed > 4 ? 50 : 1800); },
+        cupEnd: (gf, ga) => { const sc = []; Object.keys(m.goalsBy).forEach((i) => { const pl = meta[+i]; if (pl && m.players[+i].team === myTeam) sc.push({ id: pl.id, name: pl.name, n: m.goalsBy[i] }); }); const R2 = ratingsOf(m), mine2 = R2.list.filter((x) => x.team === myTeam && meta[x.i]).map((x) => ({ id: meta[x.i].id, name: meta[x.i].name || x.name, r: x.r, g: x.g, a: x.a })), mv = R2.mvp; setTimeout(() => { close(true); res({ gf, ga, scorers: sc, ratings: mine2, mvp: { name: (meta[mv.i] && meta[mv.i].name) || mv.name, r: mv.r, id: meta[mv.i] && meta[mv.i].id, mine: mv.team === myTeam } }); }, speed > 4 ? 50 : 150); },
         onQuit: () => { speed = 400; },
       });
     });
@@ -1003,7 +1028,7 @@
   }
   // ---------------------------------------------------------------- cài đặt + menu
   function settingsHtml(online) {
-    const chips = (key, list) => list.map(([v, l]) => '<button type="button" data-set="' + key + '" data-v="' + v + '" class="' + (cfg[key] === v ? 'on' : '') + '">' + l + '</button>').join('');
+    const chips = (key, list) => list.map(([v, l]) => '<button type="button" data-set="' + key + '" data-v="' + v + '" class="' + ((key === 'map' ? mapOf() : cfg[key]) === v ? 'on' : '') + '">' + l + '</button>').join('');
     return '<div class="hax-set"><span>Môn</span><div>' + chips('sport', [['foot', '⚽ Bóng đá'], ['basket', '🏀 Bóng rổ']]) + '</div>' + (cfg.sport === 'basket' ? '' : '<span>Bản đồ</span><div>' + chips('map', Object.keys(MAPS).filter((k) => !MAPS[k].basket).map((k) => [k, MAPS[k].icon + ' ' + MAPS[k].name])) + '</div>') +
       '<span>Thời lượng</span><div>' + chips('dur', [[120, '2 phút'], [180, '3 phút'], [300, '5 phút']]) + '</div>' +
       (online ? '' : '<span>Số người</span><div>' + chips('size', [[1, '1v1'], [2, '2v2'], [3, '3v3'], [4, '4v4']]) + '</div>') +
@@ -1011,7 +1036,7 @@
       '<p class="p-sub hax-mapdesc">' + (cfg.sport === 'basket' ? 'Bóng rổ: dẫn bóng bằng cách chạy đẩy bóng, bấm sút để NÉM. Bóng lọt vòng rổ cam = 2 điểm, ném từ ngoài vạch cong 3 điểm = 3 điểm. Dẫn bóng chạm rổ không tính!' : ({ classic: 'Sân tiêu chuẩn.', futsal: 'Sân nhỏ trong nhà, bóng nảy nhanh, hợp 1v1–2v2.', big: 'Sân rộng cho 3v3, 4v4.', ice: 'Mặt băng trơn trượt: khó phanh, bóng lăn rất xa!', beach: 'Cát lún: chạy nặng, bóng mau dừng.', street: 'Sân hẻm hẹp, khung thành nhỏ, va chạm liên tục.' }[cfg.map] || '')) + '</p>';
   }
   function bindSettings(redraw) {
-    root.querySelectorAll('[data-set]').forEach((b) => (b.onclick = () => { const k = b.dataset.set, v = b.dataset.v; cfg[k] = k === 'map' || k === 'sport' ? v : +v; saveCfg(); sfx('click'); redraw(); }));
+    root.querySelectorAll('[data-set]').forEach((b) => (b.onclick = () => { const k = b.dataset.set, v = b.dataset.v; cfg[k] = k === 'map' || k === 'sport' ? v : +v; if (k === 'map') cfg.mapUser = 1; saveCfg(); sfx('click'); redraw(); }));
   }
   function menu() {
     onlineActive = false;
@@ -1045,5 +1070,5 @@
     document.getElementById('hxCode').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('hxJoin').click(); };
     document.getElementById('hxClose').onclick = () => close();
   }
-  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _cup: { load: cupLoad, advance: cupAdvance, screen: cupScreen }, _sim: { newMatch, step, aiInput, applyMap, draw, vecOf, snapshot } };
+  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _cup: { load: cupLoad, advance: cupAdvance, screen: cupScreen }, _sim: { ratingsOf, ratingHtml, newMatch, step, aiInput, applyMap, draw, vecOf, snapshot } };
 })();

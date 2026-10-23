@@ -1486,3 +1486,11 @@ details.more.risk p { margin: 0 0 8px; }
 .mx-pitch:has(.mx-pm.drop) { box-shadow: 0 0 0 2px rgba(69, 196, 134, .5); }
 .hax-lobby:has(.cup-br) { max-width: min(940px, 100%); }
 .cup-br .cup-col > b { position: sticky; top: 0; z-index: 1; background: #1c2240; padding: 2px 0; text-align: center; }
+
+/* chấm điểm cầu thủ & MVP trận */
+.hax-over .hx-mvp { font-size: 15px; background: rgba(255, 196, 80, .18); border: 1px solid rgba(255, 196, 80, .5); padding: 6px 12px; border-radius: 10px; color: #ffe29a; } .hx-rate { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(560px, 92%); text-align: left; } .hx-rc { background: rgba(0, 0, 0, .35); border-radius: 10px; padding: 8px 10px; display: grid; gap: 3px; } .hx-rc small { opacity: .75; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.hx-rr { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; padding: 2px 4px; border-radius: 6px; } .hx-rr b { font-variant-numeric: tabular-nums; } .hx-rr b.top { color: #ffd23f; } .hx-rr b.good { color: #7dffb0; } .hx-rr b.low { color: #ff8a80; } .hx-rr.mvp { background: rgba(255, 196, 80, .2); font-weight: 700; }
+@media (max-width: 520px) { .hx-rate { grid-template-columns: 1fr; } }
+.mx-rate { display: grid; gap: 3px; margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; background: var(--mx-bg); } .mx-rate small { color: var(--mx-dim); font: 600 11px var(--mx-f); text-transform: uppercase; letter-spacing: .7px; } .mx-rate > div { display: flex; justify-content: space-between; font-size: 13.5px; padding: 2px 6px; border-radius: 6px; } .mx-rate > div.mvp { background: rgba(255, 181, 71, .15); font-weight: 700; } .mx-rate b { font: 700 16px var(--mx-f); }
+.hax-over:has(.hx-rate) { background: rgba(8, 12, 24, .9); align-content: center; gap: 6px; overflow-y: auto; }
+.hax-over .hx-rr b { font-size: 17px; font-family: var(--f-display); } .hax-over .hx-rr span { font-size: 13.5px; } .hax-over .hx-mvp b { font-size: 16px; } .hax-over:has(.hx-rate) > b { font-size: 26px; } .hax-over:has(.hx-rate) > span { font-size: 18px; }

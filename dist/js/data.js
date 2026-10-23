@@ -792,6 +792,8 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '⭐ Chấm điểm cầu thủ sau mỗi trận Hax (thang 10, theo bàn thắng, kiến tạo, cú sút, số lần chạm bóng, kết quả) và chọn MVP của trận. Trong Phòng HLV điểm ảnh hưởng tinh thần, lưu điểm gần đây và số lần được chọn MVP.',
+      '🏟️ Đá 4v4 mặc định dùng Sân lớn (không còn chật); bạn vẫn tự chọn bản đồ khác được.',
       '🏅 Thêm giải đấu nhiều đội: Cúp Quốc Gia (16 đội, 4 vòng) và Siêu Cúp 32 đội (5 vòng, thưởng lớn). Có thêm hơn 30 tên đội mới, bảng đấu cuộn ngang được.',
       '🖱️ Phòng HLV: kéo thả cầu thủ để sắp đội hình (dự bị lên sân, đổi chỗ hai cầu thủ, kéo người xuống dự bị). Chạy cả chuột và cảm ứng; đội hình bạn kéo có hiệu lực trong cả trận Haxball.',
       '🏆 Giải Hax mở rộng: 4 giải (Cúp Hax, Cúp Mùa Đông trên sân băng, Cúp Biển Xanh trên bãi cát, Giải Vô Địch 16 đội có VÒNG BẢNG: 4 bảng đá vòng tròn, hoà 1 điểm, nhất nhì vào tứ kết). Mỗi giải lưu tiến độ và tiền thưởng riêng.',
