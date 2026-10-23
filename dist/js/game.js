@@ -2181,6 +2181,7 @@
         S.flags.retireAthAsked = S.year; queueMilestone(cj.sport ? 'ms_athlete_retire' : 'ms_model_retire');
       }
       // 📋 HLV: tổng kết mùa giải của đội mình dẫn dắt
+      if (S.job && S.job.id === 'hlv' && S.mgr && S.mgr.sacked) { L('Bạn bị sa thải khỏi ' + S.mgr.club + ' và không nhận lời CLB nào, nên thất nghiệp.', 'bad', '📦'); addStat('happy', -8, deltas); S.flags.ex_hlv = S.year; S.job = null; S.mgr = null; }
       if (S.job && S.job.id === 'hlv' && S.mgr && KN.Manager && S.mgr.season < S.year) {
         try {
           const r = KN.Manager.endSeason(S.mgr);
@@ -6290,10 +6291,28 @@
   function mgrState() {
     if (!S || S.dead || !S.job || S.job.id !== 'hlv' || !KN.Manager) return null;
     const nat = S.job.level >= 2;
-    if (!S.mgr || !!S.mgr.national !== nat) { const old = S.mgr; S.mgr = KN.Manager.init({ level: S.job.level, club: S.flags.lastClub, year: S.year }); if (old) { S.mgr.trophies = old.trophies || 0; S.mgr.history = old.history || []; } }
+    if (!S.mgr || !!S.mgr.national !== nat) {
+      const old = S.mgr; S.mgr = KN.Manager.init({ level: S.job.level, club: S.flags.lastClub, year: S.year });
+      if (old) { // đổi CLB / lên đội tuyển: mang theo danh hiệu, lịch sử, uy tín và cài đặt của HLV
+        const m = S.mgr; m.trophies = old.trophies || 0; m.history = old.history || []; m.rep = old.rep != null ? old.rep : m.rep; m.diff = old.diff != null ? old.diff : 1; m.train = old.train || 'tact'; m.first = old.first || m.first;
+        m.career = (old.career || []).concat(old.club && old.club !== m.club ? [{ club: old.club, from: old.joined || old.season, to: old.season }] : []);
+      }
+    }
     return S.mgr;
   }
   function mgrSave() { changed(); }
+  // đổi CLB (nhận lời mời / sau khi bị sa thải): tạo lại đội, ngân sách, bảng đấu cho CLB mới
+  function mgrClub(name, o) {
+    if (!S || S.dead || !S.job || S.job.id !== 'hlv' || !KN.Manager) return null;
+    S.flags.lastClub = name; if (o && o.demote) S.job.level = Math.min(S.job.level, 1);
+    const old = S.mgr; S.mgr = null; const m = mgrState();
+    if (m) { delete m.pick; if (old) { m.rep = old.rep != null ? old.rep : m.rep; m.board = 60; } }
+    addLog('Bạn nhận lời dẫn dắt ' + name + '.', 'milestone', '📋'); changed(); return m;
+  }
+  function mgrQuit() {
+    if (!S || S.dead || !S.job || S.job.id !== 'hlv') return;
+    addLog('Bạn rời ghế huấn luyện viên.', 'neutral', '🚪'); S.flags.ex_hlv = S.year; S.job = null; S.mgr = null; changed();
+  }
   function mgrNews(t) { addLog(t, 'neutral', '📋'); changed(); }
   function weddingCard() {
     if (!S || S.dead) return null; const sp = alive('spouse')[0]; if (!sp) return null;
@@ -6771,7 +6790,7 @@
     petShop, buyPet, furnitureView, buyFurniture, familyTree, onlineSibling, onlineParentDied, biography,
     rebirthPreview, scenarioView, scenarios: () => SCENARIOS.map((s) => ({ id: s.id, name: s.name, icon: s.icon, desc: s.desc, goal: s.goal, born: s.born, done: (meta.scnDone || {})[s.id] || 0 })),
     miniContext: () => (S && S.player ? { jobId: S.job ? S.job.id : null, ys: S.ys ? S.ys.id : null, age: P().age, gender: P().gender, stats: Object.assign({}, S.stats), appearance: P().appearance, name: P().firstName, eduLevel: S.edu.level, major: S.edu.major } : null),
-    mgrState, mgrSave, mgrNews, weddingCard, weddingSetCode, weddingGuest, onlineMarry, onlineDivorce, onlineSpouse, onlineMoney, worldEvent, worldKinds: () => Object.keys(WORLD), dailyChallenge, setChallenge, challengeResult,
+    mgrState, mgrSave, mgrNews, mgrClub, mgrQuit, weddingCard, weddingSetCode, weddingGuest, onlineMarry, onlineDivorce, onlineSpouse, onlineMoney, worldEvent, worldKinds: () => Object.keys(WORLD), dailyChallenge, setChallenge, challengeResult,
     hasLife: () => !!(S && S.player),
     isDead: () => !!(S && S.dead),
     pending: () => (S ? S.pending.slice() : []),

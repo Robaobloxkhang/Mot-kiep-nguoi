@@ -792,6 +792,11 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '📋 Khi bắt đầu làm HLV bạn được CHỌN CLB để dẫn dắt (12 CLB; CLB tầm trung cần uy tín ≥ 18, CLB lớn cần ≥ 40). Người đang dẫn một CLB có thể từ chức ở tab Quản lý CLB để sang CLB khác.',
+      '📋 HLV chuyên sâu hơn: CLB chia 3 tầng (nhỏ, tầm trung, lớn) với quỹ, doanh thu và kỳ vọng khác nhau; đối thủ mạnh theo tầng, mạnh dần theo năm và có 3 độ khó (Dễ, Thường, Khó).',
+      '📋 Giá cầu thủ cao gấp ~3 lần, mỗi mùa trừ quỹ lương (mua sao lớn thì lương phình); ngân sách âm làm ban lãnh đạo nổi giận.',
+      '📋 Thua nhiều bị sa thải: thua liền mạch hoặc thua đội yếu hơn bị trừ nặng, độ tin tưởng xuống dưới 12% là mất việc ngay giữa mùa. Sau đó nhận lời mời CLB khác (uy tín càng cao càng có CLB lớn mời) hoặc nghỉ làm HLV; không chọn thì sang năm thất nghiệp.',
+      '📋 Có thể từ chức để dẫn dắt CLB khác; danh hiệu và uy tín đi theo bạn. Thêm buổi tập (chiến thuật, kỹ thuật, thể lực, hồi phục) và lời dặn trước trận (động viên, giữ bình tĩnh, gây áp lực) tác động thật lên trận Hax.',
       '⚽ Cầu thủ bóng đá: mọi cấp (kể cả đội trẻ, dự bị) đều có mùa giải và bảng xếp hạng mỗi năm; không còn kẹt mãi ở “học viên lò đào tạo” — đá đều và giữ phong độ là được đôn lên.',
       '🎨 Giao diện trong game đổi theo phong cách Phòng HLV: ô chỉ số có icon, thanh tab icon nét mảnh, tiêu đề condensed, thẻ hoạt động, tình huống và nhật ký đồng nhất màu navy – hổ phách. Sửa thanh quan hệ ở tab Quan hệ bị phình to.',
       '⭐ Chấm điểm cầu thủ sau mỗi trận Hax (thang 10, theo bàn thắng, kiến tạo, cú sút, số lần chạm bóng, kết quả) và chọn MVP của trận. Trong Phòng HLV điểm ảnh hưởng tinh thần, lưu điểm gần đây và số lần được chọn MVP.',

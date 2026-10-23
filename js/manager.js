@@ -13,6 +13,13 @@
   const R = (a, b) => a + Math.random() * (b - a), RI = (a, b) => Math.floor(R(a, b + 1)), pick = (a) => a[Math.floor(Math.random() * a.length)];
 
   const CLUBS = ['Thủ Đô FC', 'Sông Hàn FC', 'Phố Núi FC', 'Cảng Biển FC', 'Sài Gòn Xanh', 'Xứ Nghệ FC', 'Thành Nam FC', 'Đất Võ FC', 'Miền Tây United', 'Hoa Ban FC', 'Núi Ngự FC', 'Biển Xanh FC'];
+  // mỗi CLB thuộc một tầng: tầng càng cao thì quỹ chuyển nhượng, doanh thu và kỳ vọng càng lớn, đối thủ cũng mạnh hơn
+  const CLUB_TIER = { 'Thủ Đô FC': 3, 'Sông Hàn FC': 3, 'Sài Gòn Xanh': 3, 'Phố Núi FC': 2, 'Cảng Biển FC': 2, 'Xứ Nghệ FC': 2, 'Thành Nam FC': 2, 'Đất Võ FC': 2, 'Miền Tây United': 1, 'Hoa Ban FC': 1, 'Núi Ngự FC': 1, 'Biển Xanh FC': 1 };
+  const TIERS = { 1: { name: 'CLB nhỏ', budget: 6e9, rev: 4.5e9, str: 54, hint: 'Quỹ ít, kỳ vọng thấp: giữ trụ hạng là thành công' }, 2: { name: 'CLB tầm trung', budget: 16e9, rev: 10e9, str: 60, hint: 'Cần vào top 4, áp lực vừa phải' }, 3: { name: 'CLB lớn', budget: 38e9, rev: 22e9, str: 67, hint: 'Quỹ lớn nhưng chỉ chấp nhận vô địch; thua vài trận là bị réo tên' } };
+  const DIFF = [['Dễ', 0], ['Thường', 2], ['Khó', 6]];
+  const TRAIN = { tact: ['Chiến thuật', 'Cả đội phối hợp ăn ý hơn: +1 tấn công và phòng ngự'], tech: ['Kỹ thuật', 'Cầu thủ trẻ có cơ hội tăng chỉ số sau mỗi trận'], fit: ['Thể lực', 'Giảm gần một nửa nguy cơ chấn thương'], rest: ['Hồi phục', 'Tinh thần cả đội tăng, người chấn thương mau lành'] };
+  const tierOf = (m) => (m.national ? 4 : m.tier || CLUB_TIER[m.club] || Math.min(3, (m.level || 0) + 1));
+  const dAdd = (m) => DIFF[m.diff == null ? 1 : m.diff][1];
   const NATIONS = ['Việt Nam', 'Thái Lan', 'Indonesia', 'Malaysia', 'Philippines', 'Singapore', 'Myanmar', 'Campuchia'];
   const FOREIGN = ['Rafaelson', 'Gustavo', 'Lucão', 'Diogo', 'Pedro Paulo', 'Kim Min-ho', 'Oseni', 'Samson', 'Alexandre', 'Jhon Cley', 'Hoàng Vũ Samson', 'Geovane'];
   const POS = ['GK', 'DF', 'MF', 'FW'], POS_VN = { GK: 'Thủ môn', DF: 'Hậu vệ', MF: 'Tiền vệ', FW: 'Tiền đạo' }, POS_IC = { GK: '🧤', DF: '🛡️', MF: '⚙️', FW: '⚡' };
@@ -39,13 +46,13 @@
   let uid = 0;
   const pid = () => 'p' + Date.now().toString(36) + (uid++).toString(36);
   function vnName() { const n = D().randomName('m'); return n.lastName + ' ' + n.middleName + ' ' + n.firstName; }
-  function valueOf(p) { const age = p.age <= 23 ? 1.4 : p.age <= 28 ? 1.15 : p.age <= 31 ? 0.8 : 0.45; return Math.round(Math.pow(Math.max(30, p.ovr) - 30, 2.25) * 1.6e5 * age / 1e6) * 1e6; }
+  function valueOf(p) { const age = p.age <= 23 ? 1.4 : p.age <= 28 ? 1.15 : p.age <= 31 ? 0.8 : 0.45; return Math.round(Math.pow(Math.max(30, p.ovr) - 30, 2.25) * 4.8e5 * age / 1e7) * 1e7; }
   function makePlayer(pos, ovr, age, foreign) {
     const p = { id: pid(), name: foreign ? pick(FOREIGN) : vnName(), pos, ovr: Math.round(U.clamp(ovr, 35, 92)), age, pot: Math.round(U.clamp(ovr + (age < 23 ? R(3, 16) : age < 27 ? R(0, 5) : 0), 35, 94)), morale: RI(60, 80), goals: 0, apps: 0, foreign: !!foreign };
-    p.val = Math.max(5e7, valueOf(p)); return p;
+    p.val = Math.max(1.5e8, valueOf(p)); return p;
   }
-  function makeSquad(level) {
-    const base = 52 + level * 7, out = [], per = { DF: 4, MF: 5, FW: 3 };
+  function makeSquad(tier) {
+    const base = 50 + tier * 3, out = [], per = { DF: 4, MF: 5, FW: 3 };
     Object.keys(per).forEach((pos) => { for (let i = 0; i < per[pos]; i++) out.push(makePlayer(pos, base + R(-8, 9) - (i > 3 ? 3 : 0), RI(18, 33), pos === 'FW' && i === 0 && Math.random() < 0.7)); });
     return out;
   }
@@ -57,7 +64,8 @@
   function makeTeams(m) {
     const names = m.national ? NATIONS.filter((n) => n !== 'Việt Nam') : U.shuffle(CLUBS.filter((c) => c !== m.club)).slice(0, 9);
     const strong = { 'Thái Lan': 76, Indonesia: 70, Malaysia: 67, Philippines: 60, Singapore: 58, Myanmar: 55, Campuchia: 50 };
-    return names.map((n) => ({ name: n, str: m.national ? strong[n] + R(-3, 3) : 52 + m.level * 6 + R(-7, 10), style: pick(Object.keys(STYLES)) }));
+    const creep = Math.min(8, Math.max(0, (m.season || 0) - (m.first || m.season || 0)) * 0.8); // đối thủ mạnh dần theo năm
+    return names.map((n) => ({ name: n, tier: m.national ? 0 : CLUB_TIER[n] || 2, str: m.national ? strong[n] + R(-3, 3) + dAdd(m) : TIERS[CLUB_TIER[n] || 2].str + R(-5, 6) + dAdd(m) + creep, style: pick(Object.keys(STYLES)) }));
   }
   function fixturesFor(n, double) {
     // vòng tròn (thuật toán xếp lịch Berger); đội 0 là đội mình
@@ -73,19 +81,23 @@
     const all = [m.club].concat(m.teams.map((t) => t.name));
     m.table = all.map((name) => ({ name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }));
     m.fixtures = fixturesFor(all.length, !m.national); m.log = []; m.results = []; m.news = []; m.lastMatch = null; m.done = false;
-    m.goal = m.national ? (m.level >= 2 ? 'title' : 'top4') : m.board < 40 ? 'avoid' : m.squadStr > 66 ? 'title' : m.squadStr > 58 ? 'top4' : 'mid';
+    const mine = squadStr(m), stronger = m.teams.filter((t) => t.str > mine).length; // kỳ vọng của ban lãnh đạo tuỳ vị thế CLB và sức mạnh đội so với các đối thủ
+    m.goal = m.national ? (m.level >= 2 ? 'title' : 'top4') : tierOf(m) === 3 ? (stronger <= 1 ? 'title' : 'top4') : stronger <= 1 ? 'top4' : stronger <= 4 ? 'mid' : 'avoid';
+    m.streak = 0;
     m.market = marketList(m); m.window = true;
     m.squad.forEach((p) => { p.goals = 0; p.apps = 0; });
   }
   function marketList(m) {
     if (m.national) return nationalPool(m.season).slice(0, 18);
-    const lv = 54 + m.level * 6, out = [];
+    const lv = 52 + tierOf(m) * 5, out = [];
     for (let i = 0; i < 12; i++) out.push(makePlayer(pick(['DF', 'DF', 'MF', 'MF', 'FW', 'FW']), lv + R(-10, 16), RI(17, 34), Math.random() < 0.25));
     return out.sort((a, b) => b.ovr - a.ovr);
   }
   function init(info) {
     const level = Math.min(2, info.level || 0), national = level >= 2;
-    const m = { v: 1, club: national ? 'Đội tuyển Việt Nam' : info.club || pick(CLUBS), national, level, board: 60, budget: national ? 0 : Math.round((8e9 + level * 1.2e10) / 1e8) * 1e8, squad: national ? nationalPool().slice(0, 12) : makeSquad(level), tactic: { form: '1-2-1', style: 'balanced', press: 50 }, history: [], trophies: 0 };
+    const club = national ? 'Đội tuyển Việt Nam' : info.club || pick(CLUBS.filter((c) => (CLUB_TIER[c] || 2) <= (level === 0 ? 1 : 2)));
+    const tier = national ? 4 : CLUB_TIER[club] || 2;
+    const m = { v: 2, club, tier, national, level, board: 60, budget: national ? 0 : TIERS[tier].budget, squad: national ? nationalPool().slice(0, 12) : makeSquad(tier), tactic: { form: '1-2-1', style: 'balanced', press: 50 }, history: [], trophies: 0, rep: 8 + level * 14, pick: !national, diff: info.diff == null ? 1 : info.diff, train: 'tact', first: info.year, joined: info.year, career: [], results: [], news: [] };
     m.squadStr = squadStr(m); newSeason(m, info.year); return m;
   }
 
@@ -112,8 +124,8 @@
   function power(m) {
     const xi = lineup(m), by = (pos) => xi.filter((p) => p.pos === pos), f = FORMS[m.tactic.form], st = STYLES[m.tactic.style];
     const miss = 4 - xi.length; // thiếu người (chấn thương)
-    const all4 = avg(xi), att = (by('FW').length ? avg(by('FW')) : all4) * 0.5 + (by('MF').length ? avg(by('MF')) : all4) * 0.35 + all4 * 0.15 + f.att + st.att + (m.tactic.press - 50) / 12 - miss * 4;
-    const def = (by('DF').concat(by('GK')).length ? avg(by('DF').concat(by('GK'))) : all4) * 0.6 + all4 * 0.4 + f.def + st.def - (m.tactic.press - 50) / 20 - miss * 4;
+    const all4 = avg(xi), att = (by('FW').length ? avg(by('FW')) : all4) * 0.5 + (by('MF').length ? avg(by('MF')) : all4) * 0.35 + all4 * 0.15 + f.att + st.att + (m.tactic.press - 50) / 12 - miss * 4 + (m.train === 'tact' ? 1 : 0);
+    const def = (by('DF').concat(by('GK')).length ? avg(by('DF').concat(by('GK'))) : all4) * 0.6 + all4 * 0.4 + f.def + st.def - (m.tactic.press - 50) / 20 - miss * 4 + (m.train === 'tact' ? 1 : 0);
     return { att, def, xi };
   }
   const teamPow = (t) => ({ att: t.str + (STYLES[t.style].att) + R(-2, 2), def: t.str + STYLES[t.style].def + R(-2, 2) });
@@ -142,7 +154,7 @@
     for (let i = 0; i < gOp; i++) ev.push({ min: h * 45 + RI(1, 45), t: 'goal', me: false });
     for (let i = 0; i < RI(2, 5); i++) { const mine = Math.random() < 0.5 + (me.att - op.def) / 80; const s = mine ? U.weighted(shooters, w) : null; ev.push({ min: h * 45 + RI(1, 45), t: 'chance', me: mine, who: s ? s.name : opp.name }); }
     if (Math.random() < 0.25 + (m.tactic.style === 'press' ? 0.15 : 0)) { const p = pick(me.xi); ev.push({ min: h * 45 + RI(5, 45), t: 'card', me: true, who: p.name }); }
-    if (Math.random() < (m.tactic.style === 'press' ? 0.12 : 0.05) + (m.tactic.press > 70 ? 0.06 : 0)) { const p = pick(me.xi.filter((x) => x.pos !== 'GK')); if (p) { p.inj = RI(1, 4); ev.push({ min: h * 45 + RI(5, 45), t: 'inj', me: true, who: p.name }); } }
+    if (Math.random() < ((m.tactic.style === 'press' ? 0.12 : 0.05) + (m.tactic.press > 70 ? 0.06 : 0)) * (m.train === 'fit' ? 0.55 : 1)) { const p = pick(me.xi.filter((x) => x.pos !== 'GK')); if (p) { p.inj = RI(1, 4); ev.push({ min: h * 45 + RI(5, 45), t: 'inj', me: true, who: p.name }); } }
     return ev.sort((a, b) => a.min - b.min);
   }
   // cầu thủ đá chính → cầu thủ máy trong Haxball (chỉ số quyết định tốc độ & độ khôn, vị trí quyết định chỗ đứng)
@@ -165,19 +177,23 @@
     const goalOk = { title: pos === 1, top4: pos <= 4, mid: pos <= 6, avoid: pos <= n - 2 }[m.goal];
     m.board = U.clamp(m.board + (goalOk ? 15 : -20) + (champ ? 10 : 0), 0, 100);
     const prize = m.national ? (champ ? 3e9 : pos <= 2 ? 1e9 : 0) : [6e9, 3e9, 1.5e9, 8e8][pos - 1] || 0;
-    if (!m.national) m.budget += Math.round((prize + 3e9 + m.level * 3e9) / 1e8) * 1e8;
+    // tài chính cả mùa: doanh thu (vé, tài trợ, giải thưởng) trừ quỹ lương; chi quá tay thì ngân sách âm và ban lãnh đạo nổi giận
+    const tr = tierOf(m), wages = m.national ? 0 : Math.round(m.squad.reduce((a, q) => a + q.val * 0.18, 0) / 1e8) * 1e8, rev = m.national ? 0 : Math.round((TIERS[tr].rev * (0.85 + (1 - (pos - 1) / n) * 0.3) + prize) / 1e8) * 1e8;
+    m.fin = { rev, wages, net: rev - wages, season: m.season }; if (!m.national) { m.budget += rev - wages; if (m.budget < 0) m.board = U.clamp(m.board - 8, 0, 100); }
+    m.rep = U.clamp((m.rep || 0) + (champ ? 12 : goalOk ? 5 : -4), 0, 100);
     if (champ) m.trophies++;
     m.history.push({ season: m.season, pos, goal: m.goal, ok: goalOk, champ });
     const top = m.squad.slice().sort((a, b) => b.goals - a.goals)[0];
     // phát triển cầu thủ + giải nghệ + đôn lên từ đội trẻ
-    m.squad.forEach((p) => { p.age++; p.ovr = Math.round(U.clamp(p.ovr + (p.age <= 23 ? R(1, 5) * (p.pot > p.ovr ? 1 : 0.3) : p.age <= 29 ? R(-1, 2) : R(-5, 0)), 35, 94)); p.val = Math.max(5e7, valueOf(p)); p.inj = 0; p.lock = p.lock === 'start' ? 'start' : null; });
+    m.squad.forEach((p) => { p.age++; p.ovr = Math.round(U.clamp(p.ovr + (p.age <= 23 ? R(1, 5) * (p.pot > p.ovr ? 1 : 0.3) : p.age <= 29 ? R(-1, 2) : R(-5, 0)), 35, 94)); p.val = Math.max(1.5e8, valueOf(p)); p.inj = 0; p.lock = p.lock === 'start' ? 'start' : null; });
     const retired = m.squad.filter((p) => p.age >= 35 || (p.age >= 33 && Math.random() < 0.4));
     m.squad = m.squad.filter((p) => !retired.includes(p));
-    if (!m.national) for (let i = 0; i < 2; i++) m.squad.push(makePlayer(pick(POS.slice(1)), 48 + m.level * 5 + R(-4, 8), 17));
+    if (!m.national) for (let i = 0; i < 2; i++) m.squad.push(makePlayer(pick(POS.slice(1)), 44 + tierOf(m) * 3 + R(-4, 8), 17));
     const bonus = Math.round((champ ? 5e8 : goalOk ? 1.5e8 : 0) * (1 + m.level * 0.6) / 1e7) * 1e7;
     const text = '📋 Mùa giải ' + m.season + ' khép lại: ' + m.club + ' xếp thứ ' + pos + '/' + n + (champ ? ' — VÔ ĐỊCH! 🏆' : '') + '. Mục tiêu ban lãnh đạo (' + GOAL_TXT[m.goal] + '): ' + (goalOk ? 'đạt ✅' : 'không đạt ❌') + '.' + (top && top.goals ? ' Vua phá lưới của đội: ' + top.name + ' (' + top.goals + ' bàn).' : '') + (retired.length ? ' Giải nghệ: ' + retired.map((p) => p.name).slice(0, 3).join(', ') + '.' : '');
     const res = { text, bonus, champ, goalOk, pos, perf: champ ? 20 : goalOk ? 10 : -18, happy: champ ? 10 : goalOk ? 4 : -6, sack: m.board < 20 };
     m.squadStr = squadStr(m); newSeason(m, m.season + 1);
+    if (res.sack && !m.sacked) { m.sacked = true; m.rep = U.clamp((m.rep || 0) - 12, 0, 100); }
     return res;
   }
   const GOAL_TXT = { title: 'vô địch', top4: 'vào top 4', mid: 'nửa trên bảng xếp hạng', avoid: 'trụ hạng' };
@@ -198,7 +214,18 @@
     m.squad.forEach((p) => { if (p.inj > 0) p.inj--; });
     lineup(m).forEach((p) => { p.apps++; p.morale = U.clamp(p.morale + res * 4, 30, 100); });
     m.squad.filter((p) => !lineup(m).includes(p)).forEach((p) => (p.morale = U.clamp(p.morale - 1, 30, 100)));
-    m.board = U.clamp(m.board + res * 2, 0, 100);
+    // ban lãnh đạo: thắng thì yên tâm, thua thì sốt ruột; thua liền mạch hoặc thua đội yếu hơn bị trừ nặng. Đủ thấp là bị sa thải giữa mùa
+    m.streak = res > 0 ? Math.max(1, (m.streak || 0) + 1) : res < 0 ? Math.min(-1, (m.streak || 0) - 1) : 0;
+    const opp0 = fx0 && m.teams[((fx0[0] === 0 ? fx0[1] : fx0[0])) - 1], weaker = opp0 && opp0.str + 4 < squadStr(m);
+    let d = res > 0 ? 2.5 : res < 0 ? -4.5 : -0.5;
+    if (res < 0 && weaker) d -= 3; if (m.streak <= -3) d -= 3; if (m.streak >= 4) d += 1;
+    m.games = (m.games || 0) + 1; m.board = U.clamp(m.board + d, 0, 100);
+    if (m.board < 25 && m.games <= 4) m.board = 25; // vài trận đầu nhiệm kỳ chưa bị sa thải
+    if (m.board <= 12 && !m.sacked) { m.sacked = true; m.rep = U.clamp((m.rep || 0) - 12, 0, 100); try { G().mgrNews('Ban lãnh đạo ' + m.club + ' sa thải bạn sau chuỗi kết quả tệ hại.'); } catch (e) { /* */ } }
+    // buổi tập: mỗi loại có một tác dụng thật
+    if (m.train === 'tech') { const y = m.squad.filter((p) => p.age <= 26 && p.ovr < p.pot); if (y.length && Math.random() < 0.35) { const p = pick(y); p.ovr = Math.min(p.pot, p.ovr + 1); p.val = Math.max(1.5e8, valueOf(p)); } }
+    if (m.train === 'rest') m.squad.forEach((p) => { p.morale = U.clamp(p.morale + 2, 30, 100); if (p.inj > 0) p.inj--; });
+    if (m.train === 'fit') m.squad.forEach((p) => { p.morale = U.clamp(p.morale + 0.5, 30, 100); });
   }
 
   // ------------------------------------------------------------------ giao diện (thiết kế mới: header CLB · thanh điều hướng · sân 4 người · ngăn kéo hồ sơ)
@@ -323,6 +350,7 @@
       return '<div class="mx-split t"><div class="mx-left"><section class="mx-panel"><h4>Sơ đồ ' + t.form + '</h4>' + pitchHtml(m, t.form, xi) + '<p class="mx-hint">' + FORMS[t.form].desc + '</p><div class="mx-forms">' + Object.keys(FORMS).map((f) => '<button type="button" class="mx-fm' + (t.form === f ? ' on' : '') + '" data-act="form" data-v="' + f + '" aria-pressed="' + (t.form === f) + '" title="' + FORMS[f].desc + '"><b>' + f + '</b><small>công ' + (FORMS[f].att >= 0 ? '+' : '') + FORMS[f].att + ' · thủ ' + (FORMS[f].def >= 0 ? '+' : '') + FORMS[f].def + '</small></button>').join('') + '</div></section></div>' +
         '<div class="mx-right"><section class="mx-panel"><h4>Lối chơi</h4><div class="mx-styles">' + Object.keys(STYLES).map((s) => { const S2 = STYLES[s]; return '<button type="button" class="mx-sty' + (t.style === s ? ' on' : '') + '" data-act="style" data-v="' + s + '" aria-pressed="' + (t.style === s) + '"><b>' + S2.name.replace(/^\S+\s/, '') + '</b><span><small>Công</small>' + bar(50 + S2.att * 8, 'a') + '<small>Thủ</small>' + bar(50 + S2.def * 8, 'g') + '</span><small class="s">+ ' + info[s][0] + '</small><small class="w">− ' + info[s][1] + '</small><small>' + (BEATS[s] ? 'Khắc chế: ' + STYLES[BEATS[s]].name.replace(/^\S+\s/, '') + ' · Bị khắc chế bởi: ' + STYLES[counterOf(s)].name.replace(/^\S+\s/, '') : 'Không khắc chế và không bị khắc chế bởi lối chơi nào') + '</small></button>'; }).join('') + '</div>' +
         '<h4>Cường độ pressing: <b id="mgrPv">' + t.press + '</b></h4><input type="range" min="10" max="95" value="' + t.press + '" id="mgrPress" class="mx-range" aria-label="Cường độ pressing" title="Cao: tấn công mạnh hơn, hở phía sau, dễ chấn thương"><p class="mx-hint">Pressing cao: tấn công mạnh hơn nhưng hở phía sau và dễ chấn thương.</p>' +
+        '<h4>Buổi tập giữa các trận</h4><div class="mx-chips">' + Object.keys(TRAIN).map((k) => '<button type="button" class="' + ((m.train || 'tact') === k ? 'on' : '') + '" data-act="train" data-v="' + k + '" title="' + TRAIN[k][1] + '">' + TRAIN[k][0] + '</button>').join('') + '</div><p class="mx-hint">' + TRAIN[m.train || 'tact'][1] + '.</p>' +
         '<div class="mx-pw"><span>Tấn công <b id="pwA">' + Math.round(pw.att) + '</b></span><span>Phòng ngự <b id="pwD">' + Math.round(pw.def) + '</b></span>' + (fx ? '<span>Đối thủ tới: ' + esc(fx.opp.name) + ' · ' + STYLES[fx.opp.style].name + '</span>' : '') + '</div></section></div></div>';
     }
     if (tab === 'market') {
@@ -340,12 +368,42 @@
     const hist = m.history.slice().reverse();
     return '<div class="mx-stats">' + statCard('Ban lãnh đạo', Math.round(m.board) + '%', bar(m.board, m.board < 35 ? 'r' : 'g'), 'Đạt mục tiêu cuối mùa thì tăng, không đạt thì giảm mạnh') + statCard('Mục tiêu mùa', GOAL_TXT[m.goal], 'Hiện hạng ' + pos + ' · cần ≤ ' + need, '') + statCard('Danh hiệu', '×' + m.trophies, '', '') + statCard('Ngân sách', m.national ? '—' : money(m.budget), '', '') + '</div>' +
       '<div class="mx-grid g2"><section class="mx-panel"><h4>Tiến độ mục tiêu</h4>' + bar(pos <= need ? 100 : Math.max(5, 100 - ((pos - need) / Math.max(1, n - need)) * 100), pos <= need ? 'g' : 'r') + '<p class="mx-hint">' + (pos <= need ? 'Bạn đang đạt mục tiêu của ban lãnh đạo.' : 'Bạn đang kém mục tiêu ' + (pos - need) + ' bậc.') + ' Còn ' + left + ' vòng.</p><div class="mx-acts"><button type="button" class="mx-btn danger" data-act="season"' + (left ? '' : ' disabled') + '>' + ic('fast', 16) + ' Đá hết mùa</button></div><p class="mx-hint">Đá hết mùa sẽ mô phỏng toàn bộ vòng còn lại, bạn không điều khiển trận nào.</p></section>' +
-      '<section class="mx-panel"><h4>Lịch sử các mùa</h4>' + (hist.length ? '<div class="mx-scroll"><table class="mx-tb"><thead><tr><th>Mùa</th><th>Hạng</th><th>Mục tiêu</th><th>Kết quả</th></tr></thead><tbody>' + hist.map((x) => '<tr><td>' + x.season + '</td><td>' + x.pos + '</td><td>' + GOAL_TXT[x.goal] + '</td><td>' + (x.champ ? 'Vô địch' : x.ok ? 'Đạt' : 'Không đạt') + '</td></tr>').join('') + '</tbody></table></div>' : '<p class="mx-empty">Chưa kết thúc mùa nào.</p>') + '</section></div>';
+      '<section class="mx-panel"><h4>Lịch sử các mùa</h4>' + (hist.length ? '<div class="mx-scroll"><table class="mx-tb"><thead><tr><th>Mùa</th><th>Hạng</th><th>Mục tiêu</th><th>Kết quả</th></tr></thead><tbody>' + hist.map((x) => '<tr><td>' + x.season + '</td><td>' + x.pos + '</td><td>' + GOAL_TXT[x.goal] + '</td><td>' + (x.champ ? 'Vô địch' : x.ok ? 'Đạt' : 'Không đạt') + '</td></tr>').join('') + '</tbody></table></div>' : '<p class="mx-empty">Chưa kết thúc mùa nào.</p>') + '</section></div>' + clubExtra(m);
+  }
+  // danh sách mọi CLB để chọn: CLB lớn cần uy tín HLV đủ cao (khoá nếu chưa đủ); bị sa thải thì không thể lên tầng cao hơn CLB cũ
+  const NEED_REP = { 1: 0, 2: 18, 3: 40 };
+  function clubLock(m, c, sacked) {
+    const t = CLUB_TIER[c], rep = m.rep || 0, cur = tierOf(m) === 4 ? 2 : tierOf(m);
+    if (rep < NEED_REP[t]) return 'Cần uy tín ≥ ' + NEED_REP[t] + ' (bạn ' + Math.round(rep) + ')';
+    if (sacked && t > cur) return 'Vừa bị sa thải, chưa ai dám giao CLB lớn hơn';
+    return '';
+  }
+  function offersHtml(m, sacked) {
+    const pick = !!(ui.offers && ui.offers.pick), rep = m.rep || 0;
+    const o = Object.keys(CLUB_TIER).filter((c) => pick || c !== m.club).sort((x, y) => CLUB_TIER[y] - CLUB_TIER[x] || (x < y ? -1 : 1));
+    return '<section class="mx-panel"><h4>' + (pick ? 'Chọn CLB để dẫn dắt' : sacked ? 'Các CLB còn muốn dùng bạn' : 'Chuyển sang CLB khác') + '</h4><p class="mx-hint">Uy tín HLV của bạn: <b>' + Math.round(rep) + '/100</b>. Từ 18 điểm được dẫn CLB tầm trung, từ 40 điểm được dẫn CLB lớn. Uy tín tăng khi đạt mục tiêu và giành cúp, giảm khi bị sa thải. Mỗi CLB có đội hình, quỹ và kỳ vọng riêng; danh hiệu và uy tín đi theo bạn.</p><div class="mx-cards">' +
+      o.map((c) => { const t = CLUB_TIER[c], T = TIERS[t], exp = t === 3 ? 'Phải vô địch' : t === 2 ? 'Vào top 4' : 'Giữ trụ hạng', lock = clubLock(m, c, sacked); return '<div class="mx-card' + (lock ? ' locked' : '') + '"><div class="mx-card-main" style="cursor:default">' + badge(c, 44) + '<span class="mx-rn"><b>' + esc(c) + '</b><small>' + T.name + ' · ' + exp + (c === m.club ? ' · CLB hiện tại' : '') + '</small></span></div><div class="mx-card-m"><span>Quỹ <b>' + money(T.budget) + '</b></span><span>Doanh thu <b>' + money(T.rev) + '/mùa</b></span></div><p class="mx-hint" style="margin:0">' + (lock || T.hint) + '</p><div class="mx-card-a"><button type="button" class="mx-btn pri sm" data-act="club-pick" data-name="' + esc(c) + '"' + (lock ? ' disabled' : '') + '>' + (c === m.club ? 'Ở lại CLB này' : 'Nhận lời dẫn dắt') + '</button></div></div>'; }).join('') + '</div>' +
+      '<div class="mx-acts">' + (sacked || pick ? '' : '<button type="button" class="mx-btn" data-act="club-cancel">Ở lại ' + esc(m.club) + '</button>') + '<button type="button" class="mx-btn danger" data-act="club-quit">Nghỉ làm huấn luyện viên</button></div></section>';
+  }
+  function sackedHtml(m) {
+    const r = m.results || [], w = r.filter((x) => x.gf > x.ga).length, d = r.filter((x) => x.gf === x.ga).length, l = r.length - w - d;
+    if (!ui.offers) ui.offers = { sacked: true };
+    return '<section class="mx-panel mx-sack"><h4>Bị sa thải</h4><p style="font-size:15px;line-height:1.6;margin:0 0 8px">Ban lãnh đạo <b>' + esc(m.club) + '</b> đã mất kiên nhẫn: mùa này đội bạn thắng ' + w + ', hoà ' + d + ', thua ' + l + ', xếp hạng ' + myPos(m) + '/' + m.table.length + ' và độ tin tưởng chỉ còn ' + Math.round(m.board) + '%. Uy tín của bạn giảm. Nếu không nhận lời CLB nào, sang năm bạn sẽ thất nghiệp.</p></section>' + offersHtml(m, true);
+  }
+  function clubExtra(m) {
+    const tr = tierOf(m), wagesNow = Math.round(m.squad.reduce((a, q) => a + q.val * 0.18, 0) / 1e8) * 1e8, fin = m.fin;
+    const car = (m.career || []).slice().reverse();
+    return '<div class="mx-grid g2"><section class="mx-panel"><h4>Hồ sơ huấn luyện viên</h4><div class="mx-kv"><span>Uy tín</span><b>' + Math.round(m.rep || 0) + '/100</b></div>' + bar(m.rep || 0, 'g') + '<div class="mx-kv"><span>CLB hiện tại</span><b>' + esc(m.club) + (m.national ? '' : ' · ' + TIERS[tr].name) + '</b></div><div class="mx-kv"><span>Danh hiệu</span><b>×' + m.trophies + '</b></div>' +
+      '<h5>Độ khó đối thủ</h5><div class="mx-chips">' + DIFF.map(([l], i) => '<button type="button" class="' + ((m.diff == null ? 1 : m.diff) === i ? 'on' : '') + '" data-act="diff" data-v="' + i + '">' + l + '</button>').join('') + '</div>' +
+      (car.length ? '<h5>Các CLB đã dẫn dắt</h5>' + car.map((x) => '<div class="mx-kv"><span>' + esc(x.club) + '</span><b>' + x.from + '–' + x.to + '</b></div>').join('') : '') +
+      '<div class="mx-acts"><button type="button" class="mx-btn danger" data-act="resign">Từ chức, xem lời mời CLB khác</button></div></section>' +
+      '<section class="mx-panel"><h4>Tài chính CLB</h4>' + (m.national ? '<p class="mx-empty">Đội tuyển quốc gia không có ngân sách riêng.</p>' : '<div class="mx-kv"><span>Ngân sách</span><b>' + money(m.budget) + '</b></div><div class="mx-kv"><span>Quỹ lương hiện tại</span><b>' + money(wagesNow) + '/mùa</b></div><div class="mx-kv"><span>Doanh thu dự kiến</span><b>khoảng ' + money(TIERS[tr].rev) + '/mùa + thưởng thứ hạng</b></div>' + (fin ? '<div class="mx-kv"><span>Mùa ' + fin.season + '</span><b>' + (fin.net >= 0 ? '+' : '') + money(fin.net) + ' (thu ' + money(fin.rev) + ', lương ' + money(fin.wages) + ')</b></div>' : '') + '<p class="mx-hint">Mua cầu thủ giỏi làm quỹ lương phình to. Ngân sách âm cuối mùa sẽ khiến ban lãnh đạo nổi giận. Thua nhiều, độ tin tưởng về dưới 12% là bị sa thải ngay giữa mùa.</p>') + '</section></div>';
   }
   const TABS = [['home', 'Tổng quan'], ['squad', 'Đội hình'], ['tactic', 'Chiến thuật'], ['market', 'Chuyển nhượng'], ['league', 'Giải đấu'], ['club', 'Quản lý CLB']];
   function open(t) {
     const m = st(); if (!m) return;
     if (t) { if (t !== tab) ui.sel = null; tab = t; }
+    if (m.pick && !m.sacked && !(ui.offers && ui.offers.pick)) ui.offers = { pick: true };
     const old = root && root.querySelector('.mx-main'), sc = old ? old.scrollTop : 0;
     if (!root) { root = document.createElement('div'); root.className = 'hax mgr mx'; document.body.appendChild(root); root.addEventListener('keydown', onKey); root.addEventListener('pointerdown', onPD); root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange); }
     const pos = myPos(m), n = m.table.length, need = GOAL_NEED(m), okNow = pos <= need;
@@ -353,7 +411,7 @@
       '<div class="mx-kpis"><span title="Ngân sách chuyển nhượng"><small>Ngân sách</small><b>' + (m.national ? '—' : money(m.budget)) + '</b></span><span title="Độ tin tưởng của ban lãnh đạo"><small>Ban lãnh đạo</small><b>' + Math.round(m.board) + '%</b></span><span class="obj" title="Mục tiêu mùa: ' + GOAL_TXT[m.goal] + '"><small>Mục tiêu · ' + GOAL_TXT[m.goal] + '</small>' + bar(okNow ? 100 : Math.max(5, 100 - ((pos - need) / Math.max(1, n - need)) * 100), okNow ? 'g' : 'r') + '</span></div>' +
       '<div class="mx-tools"><small id="mxSaved">' + savedTxt() + '</small><button type="button" class="mx-x" data-act="close" aria-label="Đóng phòng HLV">' + ic('close', 20) + '</button></div></header>' +
       '<nav class="mx-nav" role="tablist" aria-label="Phòng huấn luyện">' + TABS.map(([k, l]) => '<button type="button" role="tab" aria-selected="' + (tab === k) + '" class="' + (tab === k ? 'on' : '') + '" data-act="tab" data-v="' + k + '">' + ic(k === 'tactic' ? 'tactic' : k === 'market' ? 'market' : k, 18) + '<span>' + (m.national && k === 'market' ? 'Triệu tập' : l) + '</span></button>').join('') + '</nav>' +
-      '<main class="mx-main" id="mgrBody">' + body(m) + '</main><aside class="mx-drawer" id="mxDrawer" aria-label="Hồ sơ cầu thủ"></aside><div class="mx-toasts" aria-live="polite"></div></div>';
+      '<main class="mx-main" id="mgrBody">' + (m.sacked ? sackedHtml(m) : ui.offers ? offersHtml(m, false) : body(m)) + '</main><aside class="mx-drawer" id="mxDrawer" aria-label="Hồ sơ cầu thủ"></aside><div class="mx-toasts" aria-live="polite"></div></div>';
     const mn = root.querySelector('.mx-main'); if (mn) mn.scrollTop = sc;
     drawer();
   }
@@ -435,6 +493,28 @@
     if (t.matches('[data-sort]')) ui.sort = t.value; else if (t.matches('[data-mage]')) ui.mage = +t.value; else if (t.matches('[data-mmin]')) ui.mmin = +t.value; else if (t.matches('[data-mmax]')) ui.mmax = +t.value; else return;
     refreshList();
   }
+  // lời dặn trước trận: mỗi cách nói có lợi và có hại riêng, tác động thật lên chỉ số cầu thủ trong trận
+  const TALKS = {
+    hype: ['Động viên, truyền lửa', 'Cả đội hưng phấn: +2 chỉ số mọi cầu thủ, tinh thần tăng.', { all: 2, att: 0, def: 0 }],
+    calm: ['Giữ bình tĩnh, chắc phòng ngự', 'Kỷ luật hàng thủ: +3 chỉ số cầu thủ phòng ngự, tiền đạo bớt máu lửa.', { all: 0, att: -1, def: 3 }],
+    press: ['Gây áp lực, đòi phải thắng', 'Tấn công bùng nổ: +4 chỉ số tiền đạo, −2 hậu vệ; có nguy cơ làm vài cầu thủ nặng đầu.', { all: 0, att: 4, def: -2 }],
+  };
+  function talkBox(m, go) {
+    const fx = myFix(m, m.round), w = document.createElement('div'); w.className = 'mx-dlg';
+    w.innerHTML = '<div class="mx-dlg-box" role="dialog" aria-modal="true" aria-label="Lời dặn trước trận"><h3>Lời dặn trước trận</h3><p>Phòng thay đồ đang chờ bạn' + (fx ? ' trước trận gặp <b>' + esc(fx.opp.name) + '</b>' : '') + '. Bạn nói gì?</p><div class="mx-talks">' + Object.keys(TALKS).map((k) => '<button type="button" class="mx-sty" data-talk="' + k + '"><b>' + TALKS[k][0] + '</b><small>' + TALKS[k][1] + '</small></button>').join('') + '</div><div class="mx-dlg-act"><button type="button" class="mx-btn" data-talk="none">Không nói gì, vào sân luôn</button></div></div>';
+    w.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); w.remove(); } });
+    w.querySelectorAll('[data-talk]').forEach((b) => (b.onclick = () => {
+      const k = b.dataset.talk; w.remove();
+      if (TALKS[k]) {
+        m.talk = Object.assign({}, TALKS[k][2]);
+        if (k === 'hype') m.squad.forEach((q) => { q.morale = U.clamp(q.morale + 3, 30, 100); });
+        if (k === 'press' && Math.random() < 0.3) { const q = pick(m.squad); q.morale = U.clamp(q.morale - 6, 30, 100); toast(q.name + ' bị áp lực nặng và có vẻ mất tự tin.', 'bad'); }
+        sfx('click');
+      } else delete m.talk;
+      go();
+    }));
+    root.appendChild(w); w.querySelector('[data-talk]').focus();
+  }
   function buy(m, p, price, label) {
     if (!p || !m.market.includes(p) || m.squad.includes(p)) return toast('Cầu thủ này không còn trên thị trường.', 'bad');
     if (!m.window) return toast('Kỳ chuyển nhượng đang đóng.', 'bad');
@@ -446,13 +526,19 @@
   function onClick(e) {
     const el = e.target.closest('[data-act]'); if (!el) return; const m = st(); if (!m) return; const a = el.dataset.act, id = el.dataset.id, v = el.dataset.v, p = id && findP(m, id);
     if (a === 'close') return close();
-    if (a === 'tab') { sfx('click'); return open(v); }
+    if (a === 'tab') { sfx('click'); ui.offers = null; return open(v); }
     if (a === 'sel') { ui.sel = id; ui.ctx = el.dataset.ctx; root.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); root.querySelectorAll('[data-id="' + id + '"]').forEach((x) => (x.closest('.mx-row,.mx-card,.mx-bp,.mx-pm') || x).classList.add('sel')); return drawer(); }
     if (a === 'drx') { ui.sel = null; root.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); return drawer(); }
     if (a === 'listtog') { ui.list = !ui.list; return root.querySelector('.mx-list').classList.toggle('open', ui.list); }
     if (a === 'pos') { ui.pos = v; root.querySelectorAll('[data-act=pos]').forEach((x) => x.classList.toggle('on', x.dataset.v === v)); return refreshList(); }
     if (a === 'mpos') { ui.mpos = v; root.querySelectorAll('[data-act=mpos]').forEach((x) => x.classList.toggle('on', x.dataset.v === v)); return refreshList(); }
     if (a === 'lock' && p) { p.lock = p.lock === v ? null : v; delete m.xi; save(); return open(); }
+    if (a === 'resign') return confirmBox('Từ chức ở ' + m.club + '?', 'Bạn rời CLB này và xem lời mời từ nơi khác. Đội hình, quỹ và bảng đấu của CLB cũ không mang theo; danh hiệu và uy tín vẫn giữ. Mùa giải đang đá dở sẽ bị huỷ.', 'Xem lời mời', () => { ui.offers = { sacked: false }; open(); }, true);
+    if (a === 'club-cancel') { ui.offers = null; return open(); }
+    if (a === 'club-pick') { const nm = el.dataset.name; if (nm === m.club && m.pick) { delete m.pick; ui.offers = null; save(); open(); return toast('Bạn dẫn dắt ' + nm + '.', 'ok'); } ui.offers = null; ui.sel = null; const nm2 = G().mgrClub ? G().mgrClub(nm, { demote: m.national }) : null; tab = 'home'; open(); return toast(nm2 ? 'Bạn chính thức dẫn dắt ' + nm + '.' : 'Không đổi được CLB.', nm2 ? 'ok' : 'bad'); }
+    if (a === 'club-quit') return confirmBox('Nghỉ làm huấn luyện viên?', 'Bạn rời ghế HLV và trở thành người không nghề nghiệp. Có thể ứng tuyển lại sau, nhưng sẽ bắt đầu lại với một CLB mới.', 'Nghỉ việc', () => { ui.offers = null; close(); try { G().mgrQuit(); } catch (e) { /* */ } }, true);
+    if (a === 'diff') { m.diff = +v; save(); open(); return toast('Độ khó: ' + DIFF[+v][0] + '. Áp dụng từ mùa giải kế tiếp cho đối thủ mới.', 'ok'); }
+    if (a === 'train') { m.train = v; save(); open(); return toast('Buổi tập: ' + TRAIN[v][0], 'ok'); }
     if (a === 'autoxi') { delete m.xi; save(); open(); return toast('Đã trả về tự chọn đội hình theo chỉ số và tinh thần.', 'ok'); }
     if (a === 'form') { m.tactic.form = v; save(); return open(); }
     if (a === 'style') { m.tactic.style = v; save(); return open(); }
@@ -470,9 +556,9 @@
     });
     if (a === 'call' && p) { if (m.squad.length >= 12) return toast('Tối đa 12 người, hãy loại bớt trước.', 'bad'); if (m.squad.some((x) => x.name === p.name)) return toast('Cầu thủ này đã có trong đội.', 'bad'); m.squad.push(Object.assign({}, p, { id: pid() })); ui.sel = null; save(); open(); return toast('Đã triệu tập ' + p.name, 'ok'); }
     if (a === 'drop' && p) { if (m.squad.length <= 6) return toast('Cần ít nhất 6 người.', 'bad'); return confirmBox('Loại ' + p.name + ' khỏi đội?', 'Cầu thủ sẽ rời danh sách triệu tập.', 'Loại', () => { m.squad = m.squad.filter((x) => x.id !== p.id); ui.sel = null; save(); open(); }, true); }
-    if (a === 'play') return KN.Hax && KN.Hax.watch ? watchHax(m) : (open('league'), live(m));
+    if (a === 'play') return KN.Hax && KN.Hax.watch ? talkBox(m, () => watchHax(m)) : (open('league'), live(m));
     if (a === 'quick') { const before = m.table[0].pts, gf0 = m.table[0].gf, ga0 = m.table[0].ga; quickRound(m); const d = m.table[0].pts - before; m.lastMatch = 'Vòng ' + m.round + ': ' + (d === 3 ? 'Thắng' : d === 1 ? 'Hoà' : 'Thua') + ' ' + (m.table[0].gf - gf0) + '–' + (m.table[0].ga - ga0); save(); return open(); }
-    if (a === 'season') return confirmBox('Đá hết mùa?', 'Mô phỏng nhanh toàn bộ ' + (m.fixtures.length - m.round) + ' vòng còn lại. Bạn sẽ không điều khiển trận nào.', 'Đá hết mùa', () => { while (m.round < m.fixtures.length) quickRound(m); m.lastMatch = 'Đã đá hết mùa: hạng ' + myPos(m) + '/' + m.table.length + '.'; save(); open(); }, true);
+    if (a === 'season') return confirmBox('Đá hết mùa?', 'Mô phỏng nhanh toàn bộ ' + (m.fixtures.length - m.round) + ' vòng còn lại. Bạn sẽ không điều khiển trận nào.', 'Đá hết mùa', () => { while (m.round < m.fixtures.length && !m.sacked) quickRound(m); m.lastMatch = 'Đã đá hết mùa: hạng ' + myPos(m) + '/' + m.table.length + '.'; save(); open(); }, true);
     if (a === 'cont') { close(); const b = document.getElementById('btnAge'); if (b && !b.disabled) b.click(); }
   }
 
@@ -525,6 +611,10 @@
   async function watchHax(m) {
     const rd = m.fixtures[m.round], mine = rd.find(([a, b]) => a === 0 || b === 0), home = mine[0] === 0, opp = m.teams[(home ? mine[1] : mine[0]) - 1];
     const xi = lineup(m), me = haxTeam(m.club, xi), them = { name: opp.name, players: oppXI(opp) };
+    // lời dặn trước trận + buổi tập chiến thuật tác động trực tiếp lên chỉ số thi đấu
+    const tk = m.talk || { all: 0, att: 0, def: 0 }, tb = m.train === 'tact' ? 1 : 0;
+    me.players.forEach((pl) => { pl.ovr += tk.all + tb + (pl.role === 'att' ? tk.att : 0) + (pl.role === 'def' ? tk.def : 0); });
+    delete m.talk;
     const prevStyle = m.tactic.style;
     if (root) root.style.display = 'none';
     const r = await KN.Hax.watch({ home: home ? me : them, away: home ? them : me, coachTeam: home ? 0 : 1, dur: 90, map: 'big', title: (m.national ? 'AFF Cup' : 'V-League') + ' vòng ' + (m.round + 1) });

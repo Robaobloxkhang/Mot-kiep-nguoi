@@ -1553,3 +1553,8 @@ details.more.risk p { margin: 0 0 8px; }
 .lg-tab th { font: 600 12px var(--f-head); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); }
 .lg-tab tr.me { background: rgba(255, 181, 71, .13); font-weight: 700; }
 @media (max-width: 560px) { .id-name { font-size: 18px; } .id-card { gap: 8px; padding: 6px 10px 6px 6px; } .age-box { min-width: 50px; height: 52px; } .age-num { font-size: 32px; } }
+
+.mx-kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; padding: 4px 0; border-bottom: 1px solid rgba(160, 180, 220, .07); } .mx-kv span { color: var(--mx-dim); } .mx-kv b { text-align: right; font-weight: 600; }
+.mx-sack { border-color: rgba(239, 106, 98, .55); background: linear-gradient(135deg, rgba(239, 106, 98, .12), var(--mx-s1) 55%); } .mx-sack h4 { color: #ff9a93; font-size: 24px; }
+.mx-talks { display: grid; gap: 8px; margin-bottom: 12px; } .mx-talks .mx-sty b { font-size: 17px; }
+.mx-card.locked { opacity: .55; } .mx-card.locked .mx-hint { color: #ffb36b; } .mx-btn:disabled { cursor: not-allowed; }
