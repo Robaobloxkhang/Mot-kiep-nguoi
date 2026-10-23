@@ -903,6 +903,156 @@
               scene: { anim: 'angry', fx: 'dust' } }
           ] }
       ]
+    },
+
+    // ───────────────────────── NHÀ ĐẤT & MÔI GIỚI ─────────────────────────
+    {
+      id: 's_re_so_do_gia', title: 'Mảnh đất giá hời', icon: '📜', age: [24, 70], weight: 1.2, once: false, cooldown: 4, req: { minMoney: 3e8 },
+      text: 'Một người môi giới nhắn: “Anh/chị ơi, có mảnh đất mặt đường giá rẻ hơn thị trường cả trăm triệu, chủ cần tiền gấp, đặt cọc trong hôm nay là chốt.” Sổ đỏ chụp qua ảnh trông rất đẹp.',
+      scene: { loc: 'street', time: 'day', anim: 'phone', expr: 'surprised', npcs: [{ role: 'stranger', anim: 'talk', say: 'Giá này không có lần hai đâu!' }], fx: 'money', shot: 'close' },
+      choices: [
+        { label: 'Thuê luật sư kiểm tra sổ và quy hoạch (3 triệu)',
+          outcomes: [
+            { p: 0.7, text: 'Luật sư xác minh sổ hợp lệ, đất không tranh chấp. Bạn mua được mảnh đất đúng giá hời, vài năm sau tăng giá thấy rõ.', effects: { money: 90000000, happy: 4, smarts: 1 }, scene: { loc: 'office', anim: 'cheer', fx: 'money' } },
+            { p: 0.3, text: 'Luật sư phát hiện sổ đỏ làm giả và đất nằm trong diện quy hoạch. Tốn 3 triệu nhưng bạn tránh được thảm hoạ cả trăm triệu.', effects: { money: -3000000, happy: 1, smarts: 2, karma: 1 }, scene: { loc: 'office', anim: 'nod', fx: 'idea' } }
+          ] },
+        { label: 'Chuyển cọc luôn kẻo mất cơ hội',
+          outcomes: [
+            { p: 0.35, text: 'May mắn, sổ thật, đất sạch. Bạn mua được giá hời và ăn lời nhanh.', effects: { money: 100000000, happy: 5 }, scene: { anim: 'cheer', fx: 'money' } },
+            { p: 0.65, text: 'Sổ đỏ là giả, người môi giới chặn số. Số tiền cọc bay sạch, công an ghi nhận hồ sơ nhưng khó đòi lại.', effects: { money: -150000000, happy: -10, smarts: 1 }, scene: { anim: 'cry', fx: 'tears' }, tone: 'bad' }
+          ] },
+        { label: 'Bỏ qua, giá rẻ bất thường thường có vấn đề', text: 'Bạn lắc đầu. Hai tháng sau nghe tin vài người sập bẫy chính mảnh đất đó.', effects: { karma: 1, smarts: 1 }, scene: { anim: 'nod' } }
+      ]
+    },
+    {
+      id: 's_re_quy_hoach', title: 'Tin đồn quy hoạch đường mới', icon: '🛣️', age: [25, 65], weight: 1.2, once: false, cooldown: 4, req: { minMoney: 2e8 },
+      text: 'Cả quán cà phê xôn xao: sắp có tuyến đường mới chạy qua khu đất ven đô, giá sẽ tăng gấp đôi. Anh bạn quen nói chắc như đinh đóng cột: “Mua sớm là lãi to.”',
+      scene: { loc: 'cafe', time: 'day', anim: 'think', npcs: [{ role: 'stranger', gender: 'm', anim: 'talk', say: 'Nghe anh, mua đi!' }, { role: 'crowd', anim: 'talk' }], fx: 'idea', shot: 'wide' },
+      choices: [
+        { label: 'Mua đất ven đô chờ quy hoạch (200 triệu)',
+          outcomes: [
+            { p: 0.4, text: 'Tuyến đường được duyệt đúng như tin đồn. Giá đất nhảy vọt, bạn chốt lời thật đậm.', effects: { money: 250000000, happy: 6 }, scene: { anim: 'cheer', fx: 'money' } },
+            { p: 0.35, text: 'Tin đồn chỉ là tin đồn. Đất nằm đó nhiều năm không ai mua, tiền bị chôn chặt, bạn sốt ruột mỗi lần nhìn sổ.', effects: { money: -20000000, happy: -4 }, scene: { anim: 'sad', fx: 'sweat' } },
+            { p: 0.25, text: 'Khu đất bị treo quy hoạch, không xây không bán được. Bạn bán lỗ để rút vốn.', effects: { money: -80000000, happy: -7 }, scene: { anim: 'cry', fx: 'tears' }, tone: 'bad' }
+          ] },
+        { label: 'Hỏi phòng quy hoạch của quận trước khi quyết', success: { stat: 'smarts', base: 0.3, scale: 0.5 },
+          outcomes: [
+            { text: 'Bạn xin được bản đồ quy hoạch chính thức: đất ngoài diện giải toả và có đường vào. Bạn mua có căn cứ và về sau lãi đều.', effects: { money: 120000000, happy: 4, smarts: 2 }, scene: { loc: 'office', anim: 'nod', fx: 'idea' } },
+            { text: 'Bạn hỏi mất nửa tháng, cuối cùng người khác đã mua trước. Tiếc nhưng không mất đồng nào.', effects: { happy: -1 }, scene: { anim: 'shrug' } }
+          ] },
+        { label: 'Không đầu cơ, giữ tiền', text: 'Bạn không chạy theo đám đông. Có người lời, có người cháy túi, bạn ngủ ngon.', effects: { happy: 2 }, scene: { anim: 'nod' } }
+      ]
+    },
+    {
+      id: 's_re_sang_ten', title: 'Thủ tục sang tên sổ đỏ', icon: '🏛️', age: [25, 70], weight: 1, once: false, cooldown: 5, req: { minMoney: 1e8 },
+      text: 'Bạn vừa mua căn nhà và phải ra phòng công chứng sang tên. Người bên cạnh thì thầm: “Hay ghi giá thấp trong hợp đồng cho đỡ tiền thuế, ai cũng làm thế.”',
+      scene: { loc: 'office', time: 'day', anim: 'think', npcs: [{ role: 'stranger', anim: 'talk', say: 'Ghi giá thấp đi, đỡ thuế mà!' }], fx: 'question', shot: 'close' },
+      choices: [
+        { label: 'Khai đúng giá, đóng đủ thuế phí', text: 'Bạn đóng thuế và lệ phí sang tên theo giá thật, tốn thêm một khoản nhưng hồ sơ sạch sẽ, sau này bán lại hay vay thế chấp đều thuận lợi.', effects: { money: -12000000, karma: 2, happy: 1 }, scene: { loc: 'office', anim: 'nod', fx: 'sparkle' } },
+        { label: 'Ghi giá thấp để giảm thuế',
+          outcomes: [
+            { p: 0.6, text: 'Hồ sơ qua trót lọt, bạn tiết kiệm được khoản thuế kha khá. Nhưng lòng vẫn thấy nhấp nhổm.', effects: { money: 6000000, karma: -3 }, scene: { anim: 'scared' } },
+            { p: 0.4, text: 'Cơ quan thuế rà soát, phát hiện giá ghi thấp hơn giá thị trường: bạn bị truy thu thuế và phạt gấp mấy lần.', effects: { money: -45000000, karma: -2, happy: -6 }, scene: { loc: 'office', anim: 'angry', fx: 'sweat' }, tone: 'bad' }
+          ] }
+      ]
+    },
+    {
+      id: 's_re_nguoi_thue', title: 'Người thuê nhà không trả tiền', icon: '🔑', age: [30, 75], weight: 1, once: false, cooldown: 4, req: { minMoney: 5e8 },
+      text: 'Căn nhà bạn cho thuê đã hai tháng liền không thấy chuyển tiền. Gọi điện thì người thuê hẹn hết lần này đến lần khác, nghe nói chị ấy vừa mất việc và đang nuôi con nhỏ.',
+      scene: { loc: 'home', time: 'dusk', anim: 'phone', expr: 'angry', npcs: [{ role: 'stranger', gender: 'f', anim: 'sad', say: 'Cho em xin thêm ít hôm…' }], fx: 'question', shot: 'close' },
+      choices: [
+        { label: 'Thông cảm, cho khất ba tháng', text: 'Bạn đồng ý. Ba tháng sau chị ấy có việc mới, trả đủ gốc và còn gửi kèm hộp bánh. Quan hệ chủ nhà - người thuê hoá ra cũng ấm áp.', effects: { money: -6000000, karma: 4, happy: 3 }, scene: { anim: 'nod', fx: 'hearts' } },
+        { label: 'Đòi nhà ngay, báo chính quyền', text: 'Bạn thu hồi nhà theo đúng hợp đồng. Người thuê dọn đi trong nước mắt. Bạn đúng về mặt pháp lý, nhưng cả tuần sau bạn không yên lòng.', effects: { money: -3000000, karma: -2, happy: -3 }, scene: { anim: 'sad', fx: 'sweat' } },
+        { label: 'Thuê dân anh chị đòi nợ', success: { stat: 'health', base: 0.4, scale: 0.3 },
+          outcomes: [
+            { text: 'Đám đòi nợ doạ nạt mấy hôm, người thuê gom đủ tiền trả. Nhưng bà con khu phố nhìn bạn khác đi, và bạn bị nhắc tên trong nhóm cư dân.', effects: { money: 6000000, karma: -5, happy: -2 }, scene: { anim: 'angry', fx: 'anger' }, tone: 'bad' },
+            { text: 'Chuyện loan ra, người thuê tố công an. Bạn bị mời lên làm việc và phạt hành chính vì dùng người đe doạ.', effects: { money: -15000000, karma: -6, happy: -6 }, scene: { loc: 'office', anim: 'sad', fx: 'sweat' }, tone: 'bad' }
+          ] }
+      ]
+    },
+    {
+      id: 's_re_mg_chot', title: 'Chốt giao dịch căn hộ', icon: '🏢', age: [20, 65], weight: 2, once: false, cooldown: 1, req: { jobId: ['moigioi'] },
+      text: 'Một cặp vợ chồng trẻ dẫn bạn xem căn hộ hai phòng ngủ. Họ ưng nhưng chê giá cao, chủ nhà lại nhất quyết không giảm. Hoa hồng của bạn nằm ở cuộc thương lượng này.',
+      scene: { loc: 'home', time: 'day', anim: 'talk', npcs: [{ role: 'stranger', gender: 'f', anim: 'think', say: 'Giá này em hơi ngợp…' }, { role: 'stranger', gender: 'm', anim: 'idle' }], fx: 'money', shot: 'wide' },
+      choices: [
+        { label: 'Đàm phán hai bên để chốt giá', mini: 'haggle', success: { stat: 'smarts', base: 0.35, scale: 0.45 },
+          outcomes: [
+            { text: 'Bạn khéo léo kéo hai bên về mức giá chung. Giao dịch thành công, hoa hồng về đúng hạn và cặp vợ chồng giới thiệu thêm bạn bè.', effects: { money: 30000000, perf: 14, happy: 5 }, scene: { anim: 'cheer', fx: 'money' } },
+            { text: 'Hai bên không thống nhất, khách đi xem căn khác và bạn mất hoa hồng.', effects: { perf: -6, happy: -3 }, scene: { anim: 'sad', fx: 'sweat' } }
+          ] },
+        { label: 'Nói quá về căn hộ để khách mua nhanh',
+          outcomes: [
+            { p: 0.5, text: 'Khách tin lời bạn, ký hợp đồng ngay. Bạn nhận hoa hồng nhanh nhưng lòng không yên về việc đã nói quá.', effects: { money: 30000000, karma: -3, perf: 8 }, scene: { anim: 'cheer', fx: 'money' } },
+            { p: 0.5, text: 'Sau khi dọn vào, khách phát hiện căn hộ thiếu nước vào mùa khô và quay lại làm ầm lên. Công ty phạt bạn.', effects: { money: -20000000, karma: -3, perf: -12, happy: -5 }, scene: { anim: 'angry', fx: 'anger' }, tone: 'bad' }
+          ] },
+        { label: 'Nói thật ưu nhược điểm, để khách tự quyết', text: 'Khách cảm ơn sự thẳng thắn và quay lại mua căn khác với giá hợp lý. Bạn mất một hoa hồng nhưng có thêm hai khách quen.', effects: { money: 12000000, perf: 7, karma: 3, happy: 3 }, scene: { anim: 'nod', fx: 'sparkle' } }
+      ]
+    },
+    {
+      id: 's_re_mg_huycoc', title: 'Khách huỷ cọc phút chót', icon: '📉', age: [20, 65], weight: 1.4, once: false, cooldown: 2, req: { jobId: ['moigioi'] },
+      text: 'Khách đã đặt cọc căn nhà, hai bên chuẩn bị ký hợp đồng thì khách nhắn: “Em đổi ý, em mua căn khác rẻ hơn.” Chủ nhà đòi bạn đền công vì đã từ chối nhiều khách khác.',
+      scene: { loc: 'office', time: 'day', anim: 'sad', npcs: [{ role: 'stranger', anim: 'angry', say: 'Anh làm ăn kiểu gì vậy!' }], fx: 'sweat', shot: 'close' },
+      choices: [
+        { label: 'Nhận lỗi, đền một phần cho chủ nhà', text: 'Bạn đền 5 triệu để giữ uy tín. Chủ nhà dịu lại và tiếp tục giao nhà cho bạn rao bán.', effects: { money: -5000000, perf: 4, karma: 1 }, scene: { anim: 'bow', fx: 'sweat' } },
+        { label: 'Thuyết phục chủ nhà chờ khách khác', success: { stat: 'smarts', base: 0.35, scale: 0.4 },
+          outcomes: [
+            { text: 'Bạn chăm chỉ tìm khách mới, một tuần sau có người mua đúng giá. Chủ nhà phục bạn.', effects: { money: 18000000, perf: 10, happy: 3 }, scene: { anim: 'cheer', fx: 'money' } },
+            { text: 'Chủ nhà mất kiên nhẫn, rút luôn hợp đồng độc quyền. Bạn mất cả khách lẫn hoa hồng.', effects: { perf: -8, happy: -4 }, scene: { anim: 'sad' } }
+          ] }
+      ]
+    },
+    // ───────────────────────── GAME & ESPORT ─────────────────────────
+    {
+      id: 'a_game_leo_rank', title: 'Leo rank xuyên đêm', icon: '🎮', age: [12, 35], weight: 1.4, once: false, cooldown: 2,
+      text: 'Bạn đang kẹt ở nấc rank cuối trước khi lên hạng cao nhất mùa này. Đã gần hai giờ sáng, đồng đội chat “thêm một trận cuối” đến lần thứ năm. Chuột đã nóng tay.',
+      scene: { loc: 'bedroom', time: 'night', anim: 'gamepad', expr: 'angry', npcs: [{ role: 'stranger', anim: 'gamepad', say: 'Một trận nữa thôi!' }], fx: 'sweat', shot: 'close' },
+      choices: [
+        { label: 'Tập trung vào, đánh nốt trận quyết định', mini: 'aim', success: { stat: 'smarts', base: 0.35, scale: 0.4 },
+          outcomes: [
+            { text: 'Bạn chơi cực tập trung và bứt tốc cuối trận, lên hạng cao nhất mùa! Lũ bạn ném cả loạt biểu tượng cảm xúc chúc mừng.', effects: { happy: 7, smarts: 1, flag: 'game_rank_top' }, scene: { anim: 'cheer', fx: 'stars' } },
+            { text: 'Bạn mất tập trung vì thiếu ngủ, thua sát nút và tụt hẳn mấy bậc. Cả đêm công cốc, sáng mắt thâm như gấu trúc.', effects: { happy: -5, health: -3 }, scene: { anim: 'cry', fx: 'tears' }, tone: 'bad' }
+          ] },
+        { label: 'Đi ngủ, mai chơi tiếp', text: 'Bạn tắt máy đi ngủ. Sáng hôm sau đầu óc tỉnh táo, bạn lên hạng ngay trận đầu tiên. Ngủ đủ đúng là buff mạnh nhất.', effects: { health: 3, happy: 3, smarts: 1 }, scene: { loc: 'bedroom', anim: 'sleep', fx: 'zzz' } }
+      ]
+    },
+    {
+      id: 's_es_giai', title: 'Giải đấu mùa này', icon: '🏆', age: [16, 32], weight: 2.2, once: false, cooldown: 1, req: { jobId: ['esports'] },
+      text: 'Giải đấu quốc gia mở cửa, đội bạn lọt vào vòng chung kết. Sân khấu rực đèn, khán giả hò reo, màn hình lớn chiếu thẳng mặt từng tuyển thủ. Tay bạn hơi run.',
+      scene: { loc: 'studio', time: 'night', anim: 'gamepad', expr: 'surprised', npcs: [{ role: 'crowd', anim: 'cheer' }, { role: 'stranger', anim: 'gamepad', say: 'Bình tĩnh nhé!' }], fx: 'stars', shot: 'dramatic' },
+      choices: [
+        { label: 'Thi đấu hết mình', mini: 'aim', success: { stat: 'smarts', base: 0.3, scale: 0.5 },
+          outcomes: [
+            { text: 'Bạn chơi xuất thần, đội thắng chung kết! Chiếc cúp được nâng lên giữa tràng pháo tay, tiền thưởng và hợp đồng tài trợ đổ về.', effects: { money: 80000000, perf: 18, happy: 8, flag: 'es_champion' }, scene: { anim: 'cheer', fx: 'confetti' } },
+            { text: 'Đội thua trận cuối sát nút. Bạn ôm đầu ngồi lặng trên sân khấu, nhưng khán giả vẫn vỗ tay động viên.', effects: { money: 10000000, perf: -3, happy: -4 }, scene: { anim: 'sad', fx: 'tears' } }
+          ] },
+        { label: 'Đá an toàn, hỗ trợ đồng đội', text: 'Bạn nhường nổi bật cho đồng đội, đội vào được top 3. Không phải ngôi sao, nhưng ban huấn luyện đánh giá cao tinh thần đồng đội.', effects: { money: 25000000, perf: 6, happy: 3 }, scene: { anim: 'clap', fx: 'sparkle' } }
+      ]
+    },
+    {
+      id: 's_es_hack', title: 'Lời rủ dùng phần mềm hack', icon: '🕹️', age: [16, 32], weight: 1.2, once: false, cooldown: 3, req: { jobId: ['esports'] },
+      text: 'Một tuyển thủ khác nhắn riêng: “Bên anh có công cụ hỗ trợ ngắm bắn, không ai phát hiện đâu, giải lớn sắp tới rồi, em dùng thử không?” Tiền thưởng chung kết là con số bạn mơ ước.',
+      scene: { loc: 'studio', time: 'night', anim: 'phone', expr: 'surprised', npcs: [{ role: 'stranger', anim: 'talk', say: 'Không ai biết đâu!' }], fx: 'question', shot: 'close' },
+      choices: [
+        { label: 'Dùng thử cho có lợi thế',
+          outcomes: [
+            { p: 0.4, text: 'Bạn thắng giải nhưng trong lòng không vui. Phần thưởng đến tay mà bạn cứ nhìn qua vai mỗi khi có người lạ tới gần.', effects: { money: 60000000, karma: -6, happy: -3, perf: 10 }, scene: { anim: 'scared', fx: 'money' }, tone: 'bad' },
+            { p: 0.6, text: 'Hệ thống chống gian lận phát hiện. Bạn bị cấm thi đấu, mất hợp đồng và tiếng xấu lan khắp cộng đồng game thủ.', effects: { money: -20000000, karma: -6, happy: -10, perf: -30 }, scene: { anim: 'cry', fx: 'tears' }, tone: 'bad' }
+          ] },
+        { label: 'Từ chối và báo ban tổ chức', text: 'Bạn chụp lại tin nhắn gửi ban tổ chức. Người kia bị loại khỏi giải, bạn được khen là tuyển thủ đáng tin. Một số người gọi bạn là “mách lẻo”, nhưng lòng bạn sạch sẽ.', effects: { karma: 6, happy: 3, perf: 6 }, scene: { anim: 'nod', fx: 'stars' } },
+        { label: 'Từ chối, im lặng', text: 'Bạn xoá tin nhắn và thi đấu bằng thực lực. Không thắng lớn, nhưng không phải giấu giếm điều gì.', effects: { karma: 2, happy: 2 }, scene: { anim: 'shake' } }
+      ]
+    },
+    {
+      id: 's_es_stream', title: 'Lên sóng stream game', icon: '📺', age: [16, 34], weight: 1.4, once: false, cooldown: 3, req: { jobId: ['esports'] },
+      text: 'Đội yêu cầu bạn stream một buổi để kéo thêm khán giả cho mùa giải. Khung chat chạy vun vút, người xem đòi bạn chơi thử “tướng khó nhất”, người khác lại đòi bạn xin lỗi vì lần thua hôm trước.',
+      scene: { loc: 'studio', time: 'night', anim: 'gamepad', npcs: [{ role: 'crowd', anim: 'cheer' }], fx: 'music', shot: 'close' },
+      choices: [
+        { label: 'Chơi vui vẻ, đùa với người xem', text: 'Bạn pha trò suốt buổi, khán giả thích thú. Lượng người theo dõi tăng vọt, nhà tài trợ gửi lời mời hợp tác.', effects: { money: 15000000, happy: 5, looks: 1 }, scene: { anim: 'laugh', fx: 'hearts' } },
+        { label: 'Cãi lại antifan trên sóng', outcomes: [
+            { p: 0.4, text: 'Bạn đáp trả đanh thép và được fan cổ vũ, view tăng vọt.', effects: { money: 8000000, happy: 2 }, scene: { anim: 'angry', fx: 'stars' } },
+            { p: 0.6, text: 'Đoạn clip bạn mất bình tĩnh bị cắt ra lan khắp mạng. Nhà tài trợ gạch tên, bạn bị đội nhắc nhở.', effects: { money: -10000000, happy: -6, perf: -8 }, scene: { anim: 'angry', fx: 'sweat' }, tone: 'bad' }
+          ] }
+      ]
     }
   );
 })();

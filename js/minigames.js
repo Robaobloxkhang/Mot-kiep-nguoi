@@ -123,7 +123,7 @@
   const NAME = {
     quiz: '📝 Làm bài kiểm tra', penalty: '⚽ Sút phạt đền', keeper: '🧤 Bắt penalty', shoot: '🏀 Ném rổ', sprint: '🏃 Chạy nước rút',
     swim: '🏊 Bơi', chase: '🚓 Rượt đuổi', drive: '🛵 Lái xe', fight: '🥊 Đánh nhau', interview: '💼 Phỏng vấn', cook: '🍜 Bán hàng',
-    scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
+    aim: '🎯 Tập ngắm', scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
   };
 
   // ------------------------------------------------------------------ khung chung
@@ -166,6 +166,7 @@
       case 'haggle': return S + (st.smarts >= 70 ? 'đọc được thái độ người bán' : 'phải tự đoán giá vốn');
       case 'cpr': return S + lv(st.smarts, 'thuộc kỹ thuật, nhịp dễ giữ', 'biết sơ qua', 'lúng túng, khó giữ nhịp');
       case 'scamchat': return S + (st.smarts >= 65 ? 'nói chuyện khéo, quản lý ít nghi ngờ hơn' : 'dễ để lộ sơ hở') + ' · ' + L + (st.looks >= 65 ? 'nạn nhân dễ có cảm tình' : 'nạn nhân khó tin hơn');
+      case 'aim': return H + 'mục tiêu tồn tại ' + lv(st.health, 'lâu hơn, dễ bắt', 'vừa phải', 'ngắn, khó bắt') + ' · ' + S + (st.smarts >= 70 ? 'đọc được nhịp xuất hiện' : 'phản xạ thuần tuý');
       case 'cards': return S + (st.smarts >= 65 ? 'tính được xác suất quắc khi rút' : 'chơi theo cảm giác');
       case 'hoops': return H + 'vùng lực chuẩn ' + lv(st.health, 'rộng, tay chắc', 'vừa', 'hẹp, tay run') + ', thanh lực chạy ' + lv(st.health, 'chậm', 'vừa', 'nhanh');
       case 'sneak': return H + 'bò ' + lv(st.health, 'nhanh', 'vừa', 'chậm') + ' · ' + S + 'đoán lính gác quay lại ' + lv(st.smarts, 'rất sớm', 'khá sớm', 'muộn');
@@ -194,6 +195,7 @@
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
     scamchat: 'Một ca làm việc trong khu lừa đảo: KPI năm nay là lừa đủ số người, không đạt sẽ bị đánh đập. Mỗi nạn nhân đi theo một kịch bản 3 bước (làm quen, giới thiệu lợi ích, xin thông tin thẻ nhận tiền). Chọn câu gợi ý đúng ngữ cảnh hoặc tự gõ. Khi nạn nhân đọc số thẻ, gõ đúng 16 số vào cửa sổ Hồ sơ rồi xác nhận. Quản lý luôn nhìn Camera: bấm nút 📞 ở cửa sổ Chỉ tiêu để họ bớt nghi ngờ. Bạn cũng có thể lén cảnh báo nạn nhân để cứu họ, nhưng bị bắt gặp là bị đánh.',
+    aim: 'Các mục tiêu tròn xuất hiện rồi mờ dần trong 25 giây. Bấm chuột (hoặc chạm) vào từng mục tiêu trước khi nó biến mất. Bấm trượt hoặc để mục tiêu biến mất sẽ mất combo.',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
   // màn giới thiệu: giải thích rõ cách chơi (mục tiêu · từng bước · phím) rồi mới cho chơi; có nút chơi thử không tính điểm
@@ -1550,7 +1552,38 @@
       }, 100);
     });
   }
-  const GAMES = { scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
+  // ------------------------------------------------------------------ 13. tập ngắm / phản xạ (leo rank, thi đấu eSports)
+  function aim(p) {
+    return new Promise((res) => {
+      const st = p.ctx.stats, DUR = 25, target = Math.round(14 + p.need * 10), life = 1.25 + st.health / 220 + st.smarts / 400 - p.need * 0.35;
+      let hits = 0, miss = 0, t = 0, done = false, combo = 0, uid = 0, next = 0.6, balls = [];
+      const box = open('<div class="mini-head"><b>🎯 Tập ngắm</b><small id="amH"></small></div><div class="mini-bar"><i id="amT" style="width:100%"></i></div><div class="am-arena" id="amA"></div><p class="mini-keys">🖱️ Bấm vào mục tiêu trước khi nó biến mất · bấm liền mạch để tăng combo.</p>');
+      const arena = box.querySelector('#amA');
+      const spawn = () => {
+        const el = document.createElement('button'); el.type = 'button'; el.className = 'am-t'; el.dataset.id = ++uid;
+        const r = 26 + rnd() * 14; el.style.width = el.style.height = r * 2 + 'px'; el.style.left = (4 + rnd() * 88) + '%'; el.style.top = (6 + rnd() * 80) + '%';
+        arena.appendChild(el); balls.push({ el, id: uid, left: life });
+      };
+      const hud = () => { box.querySelector('#amH').textContent = 'Trúng ' + hits + '/' + target + ' · combo ×' + combo + ' · còn ' + Math.max(0, Math.ceil(DUR - t)) + 's'; box.querySelector('#amT').style.width = Math.max(0, (1 - t / DUR) * 100) + '%'; };
+      arena.addEventListener('pointerdown', (e) => {
+        if (done) return; e.preventDefault();
+        const b = e.target.closest('.am-t'); const o = b && balls.find((x) => x.id === +b.dataset.id);
+        if (o) { hits++; combo++; sfx(combo >= 3 ? 'coin' : 'click'); o.el.classList.add('hit'); setTimeout(() => o.el.remove(), 120); balls = balls.filter((x) => x !== o); }
+        else { combo = 0; miss++; sfx('bad'); }
+        hud();
+      });
+      hud();
+      every(() => {
+        if (done) return; t += 0.05; next -= 0.05;
+        if (next <= 0) { spawn(); next = rand(0.55, 0.9) - p.need * 0.12; }
+        balls.forEach((o) => { o.left -= 0.05; o.el.style.opacity = Math.min(1, o.left / 0.4); });
+        const gone = balls.filter((o) => o.left <= 0); if (gone.length) { gone.forEach((o) => o.el.remove()); balls = balls.filter((o) => o.left > 0); combo = 0; miss += gone.length; }
+        hud();
+        if (t >= DUR) { done = true; const score = clamp(hits / target - miss * 0.015, 0, 1); setTimeout(() => res({ score, text: 'Bạn bắn trúng ' + hits + ' mục tiêu (cần khoảng ' + target + ')' + (miss ? ', trượt ' + miss + ' lần' : '') + '.' }), 400); }
+      }, 50);
+    });
+  }
+  const GAMES = { aim, scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
   KN.Mini = {
     plan, planJob, planPropose, planHaggle, planDuel, run, NAME, DUEL_TYPES,
     // file khác đăng ký thêm minigame (js/showbiz.js): fn(p) → Promise<{score, text}>, tự mở khung riêng

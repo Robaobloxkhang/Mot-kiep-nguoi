@@ -2144,7 +2144,7 @@
     try { xkYear(L, deltas); if (S.abroad && S.abroad.settled && S.year - S.abroad.since === 5 && !S.flags.citizen) queueMilestone('ms_quoctich'); } catch (e) { U.warnOnce('xk', 'xk', e); }
     try { officeYear(L); if (S.company) chainYear(L, deltas); } catch (e) { U.warnOnce('batchB2', 'office/chain', e); }
     try { groupsYear(L); familyBYear(L); rivalYear(L); } catch (e) { U.warnOnce('famB', 'family batch B', e); }
-    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); scamJobYear(L, deltas); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
+    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); scamJobYear(L, deltas); hospitalYear(L, deltas); eldersYear(L); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
     // công việc tự tìm đến: mỗi năm có khả năng gặp một ca làm việc nổi bật của nghề
     try { if (S.job && !S.jail && S.pending.length < 2 && Math.random() < 0.4) { const ev = jobTaskEvent(); if (ev) S.pending.push(ev); } } catch (e) { U.warnOnce('jt', 'jobtask', e); }
     jailYear(L, deltas);
@@ -3437,6 +3437,61 @@
     if (k === 'lazy') return { key: k, label: '🙈 Làm cho có, không dụ ai', hint: 'Không hại ai nhưng bị trừ hiệu suất', fn: () => { j.perf = r100(j.perf - 12); return { text: 'Bạn gọi cho vui, hỏi han vài câu rồi cúp máy. Không ai bị hại, nhưng quản lý ghi tên bạn vào danh sách “làm biếng”.', effects: { karma: 1, happy: -1 }, scene: { anim: 'shrug', fx: 'question' } }; } };
     return { key: 'quit', label: '🚪 Bỏ đường dây, về làm lương thiện', hint: 'Đi sớm thì bớt tội, nhưng bọn họ không dễ tha', fn: () => { S.job = null; S.flags.ldNo = S.year; delete S.flags.ld_invite; const p = 0.6; if (Math.random() < p) return { text: 'Bạn nộp đơn nghỉ và xoá hết tin nhắn. Quản lý hầm hè dọa dẫm nhưng cuối cùng cũng để bạn đi. Bạn bắt đầu lại từ số không, nhẹ lòng hơn nhiều.', effects: { karma: 5, happy: 4 }, scene: { loc: 'street', anim: 'walk', fx: 'sparkle' } }; return { text: 'Bạn xin nghỉ nhưng bọn họ không chịu để yên: chặn đường đánh bạn một trận rồi lấy luôn điện thoại. Bạn thoát ra được, nhưng trầy trật.', effects: { karma: 5, health: -12, happy: -3 }, scene: { loc: 'street', time: 'night', anim: 'fall', npcs: [{ role: 'thug', anim: 'angry' }], fx: 'dust' }, tone: 'bad' }; } };
   }
+
+  // ------------------------------------------------------------------ BỆNH VIỆN & BẢO HIỂM: nhập viện bất ngờ, hoá đơn viện phí, bảo hiểm trả một phần (có thể bị từ chối)
+  const HV_BILL = [[8e6, 25e6], [40e6, 110e6], [150e6, 450e6]];
+  function hospitalYear() {
+    if (!S || S.dead || S.jail || S.pending.length >= 2) return;
+    const pa = P().age, h = S.stats.health; if (pa < 25) return;
+    const p = 0.012 + Math.max(0, 55 - h) / 900 + Math.max(0, pa - 55) / 1800;
+    if (Math.random() >= p) return;
+    const sev = h < 30 || Math.random() < 0.15 ? 2 : Math.random() < 0.45 ? 1 : 0, r = HV_BILL[sev];
+    S.flags.hvSev = sev; S.flags.hvBill = Math.round(U.rand(r[0], r[1]) / 1e6) * 1e6;
+    queueMilestone('ms_hv_nhapvien');
+  }
+  const hvCover = () => { const i = S.ins || {}; return Math.min(0.8, (i.bhyt ? 0.5 : 0) + (i.life ? 0.3 : 0)); };
+  function hvChoice(k) {
+    const bill = S.flags.hvBill || 20e6, sev = S.flags.hvSev || 0, cov = hvCover(), net = Math.round(bill * (1 - cov) / 1e6) * 1e6, heal = (sev + 1) * 4;
+    const after = () => { // bảo hiểm có thể từ chối chi trả; chưa mua bảo hiểm thì được nhắc mua
+      if (S.ins && (S.ins.bhyt || S.ins.life) && Math.random() < 0.12 && !S.pending.some((e) => e.id === 'ms_bh_tuchoi')) { S.flags.bhClaim = bill; queueMilestone('ms_bh_tuchoi'); }
+      else if (!S.ins && S.pending.length < 2) queueMilestone('ms_baohiem');
+    };
+    if (k === 'full') return { key: k, label: '🏥 Điều trị đầy đủ (viện phí ' + fmtMoney(bill) + (cov ? ', bảo hiểm trả ' + Math.round(cov * 100) + '% → bạn trả ' + fmtMoney(net) : ', chưa có bảo hiểm') + ')', fn: () => { after(); return { text: (sev === 2 ? 'Bạn trải qua ca mổ lớn và nằm viện nhiều tuần. ' : sev === 1 ? 'Bạn nằm viện vài ngày điều trị tích cực. ' : 'Bạn được truyền dịch, xét nghiệm và nằm viện theo dõi. ') + 'Viện phí ' + fmtMoney(bill) + (cov ? ', bảo hiểm chi trả ' + Math.round(cov * 100) + '%, bạn đóng ' + fmtMoney(net) + '.' : ', bạn tự chi trả toàn bộ.') + ' Sức khoẻ hồi phục dần.', effects: { money: -net, health: heal, happy: -2 }, scene: { loc: 'hospital', anim: 'sick', expr: 'sick', npcs: [{ role: 'doctor', gender: 'f', anim: 'nod', say: 'Cứ yên tâm điều trị.' }], fx: 'sparkle' } }; } };
+    if (k === 'family') { const pay = campPayer(); return { key: k, label: '📞 Xin người thân góp tiền viện phí (' + fmtMoney(net) + ')', _ok: !!pay, hint: pay ? nameOf(pay) + ' sẽ giúp, nhưng mang nợ ân tình' : '', fn: () => { addRel(pay, -4, []); S.flags.famDebt = (S.flags.famDebt || 0) + net; after(); return { text: nameOf(pay).replace(/^./, (x) => x.toUpperCase()) + ' chạy vạy khắp nơi, đóng giúp ' + fmtMoney(net) + ' viện phí. Bạn khỏi bệnh, nhưng áy náy mãi vì khoản nợ ân tình.', effects: { health: heal, happy: -1 }, scene: { loc: 'hospital', anim: 'hug', npcs: [{ role: pay.role, anim: 'sad', say: 'Cứ khoẻ lại đã.' }], fx: 'hearts' } }; } }; }
+    return { key: 'half', label: '💊 Chỉ chữa tạm rồi về nhà (tiết kiệm, nhưng rủi ro)', hint: 'Bác sĩ khuyên nên điều trị đầy đủ', fn: () => { const cost = Math.round(net * 0.2 / 1e6) * 1e6; if (sev === 2 && Math.random() < 0.28) return { text: 'Bạn xin về sớm, chỉ uống thuốc theo toa. Vài hôm sau cơn đau trở lại dữ dội và đã quá muộn.', effects: { die: 'Biến chứng vì không điều trị đến nơi đến chốn' }, scene: { loc: 'home', anim: 'sick', fx: 'tears' }, tone: 'bad' }; return { text: 'Bạn chỉ chữa tạm, tốn ' + fmtMoney(cost) + ' rồi xin về nhà. Bệnh đỡ chút ít nhưng vẫn âm ỉ, ' + (sev ? 'bác sĩ dặn nếu tái phát phải vào viện ngay.' : 'nhìn chung không có gì nghiêm trọng.'), effects: { money: -cost, health: Math.round(heal / 3), happy: -2 }, scene: { loc: 'home', anim: 'sick', fx: 'sweat' }, tone: 'bad' }; } };
+  }
+  ms({ id: 'ms_hv_nhapvien', title: 'Nhập viện bất ngờ', icon: '🚑', age: [25, 120],
+    text: 'Đang làm việc thì bạn đau dữ dội và được người thân chở thẳng vào bệnh viện. Bác sĩ khám xong, nghiêm mặt: “Cần nhập viện điều trị ngay.” Quầy thu ngân đưa ra bảng viện phí tạm tính.',
+    scene: { loc: 'hospital', time: 'night', anim: 'sick', expr: 'sick', npcs: [{ role: 'doctor', gender: 'f', anim: 'talk', say: 'Cần nhập viện ngay.' }], fx: 'sweat', shot: 'close' },
+    choicesFn: () => ['full', 'family', 'half'].map(hvChoice).filter((c) => c._ok !== false), choiceByKey: hvChoice });
+
+  // ------------------------------------------------------------------ VỀ HƯU & DI CHÚC
+  function eldersYear() {
+    if (!S || S.dead || S.jail || S.pending.length >= 2) return;
+    const pa = P().age; if (pa < 60) return;
+    const kids = S.people.filter((x) => x.role === 'child' && x.alive).length;
+    if (pa >= 62 && !S.flags.willAsked && (kids || has('spouse')) && Math.random() < 0.4) { S.flags.willAsked = S.year; queueMilestone('ms_dichuc_viet'); return; }
+    if ((!S.flags.thamQue || S.year - S.flags.thamQue >= 8) && Math.random() < 0.1) { S.flags.thamQue = S.year; queueMilestone('ms_huu_thamque'); }
+  }
+  function willChoice(k) {
+    const kids = S.people.filter((x) => x.role === 'child' && x.alive), best = kids.slice().sort((a, b) => (b.relation ?? 50) - (a.relation ?? 50))[0];
+    if (k === 'equal') return { key: k, label: '⚖️ Chia đều cho các con (và vợ/chồng)', fn: () => { S.flags.will = 'equal'; kids.forEach((c) => addRel(c, 4, [])); return { text: 'Bạn nhờ công chứng viên lập di chúc: tài sản chia đều cho tất cả. Các con nghe xong đều im lặng gật đầu, không ai thấy thiệt.', effects: { happy: 3, karma: 1 }, scene: { loc: 'office', anim: 'nod', npcs: [{ role: 'stranger', anim: 'talk', say: 'Di chúc đã hợp lệ.' }], fx: 'sparkle' } }; } };
+    if (k === 'carer') return { key: k, label: '🤍 Cho người con chăm sóc mình nhiều nhất phần hơn' + (best ? ' (' + best.firstName + ')' : ''), _ok: !!best, hint: 'Người đó nhận gấp 2,5 phần, anh chị em có thể ghen tị', fn: () => { S.flags.will = 'carer'; S.flags.willCarer = best.id; addRel(best, 8, []); kids.filter((c) => c !== best).forEach((c) => addRel(c, -6, [])); return { text: 'Bạn ghi vào di chúc phần nhiều hơn cho ' + best.firstName + ', người luôn ở bên bạn những lúc ốm đau. ' + best.firstName + ' rưng rưng cảm ơn, còn mấy anh chị em còn lại im lặng, có người nhìn đi chỗ khác.', effects: { happy: 1 }, scene: { loc: 'home', anim: 'hug', npcs: [{ role: 'child', anim: 'cry' }], fx: 'hearts' } }; } };
+    if (k === 'charity') return { key: k, label: '💝 Dành 30% làm từ thiện, còn lại chia các con', fn: () => { S.flags.will = 'charity'; return { text: 'Bạn dành 30% tài sản lập quỹ giúp trẻ em nghèo học giỏi mang tên mình. Các con ngạc nhiên rồi tự hào: “Bố/mẹ làm đúng ý nguyện rồi.” Tên bạn sẽ còn được nhắc dài lâu.', effects: { karma: 10, happy: 5 }, scene: { loc: 'office', anim: 'cheer', fx: 'stars' } }; } };
+    return { key: 'none', label: '🙅 Không viết, để con cháu tự lo', hint: 'Có thể gây tranh chấp sau này', fn: () => { S.flags.will = null; return { text: 'Bạn phẩy tay: “Gia đình mình hoà thuận, cần gì giấy tờ.” Nhưng đâu đó trong lòng bạn vẫn thấp thoáng lo lắng.', effects: { happy: 0 }, scene: { anim: 'shrug' } }; } };
+  }
+  ms({ id: 'ms_dichuc_viet', title: 'Lập di chúc', icon: '📜', age: [60, 120],
+    text: 'Tuổi đã cao, bạn bắt đầu nghĩ chuyện hậu sự. Một người bạn già vừa mất mà con cháu cãi nhau suốt đám tang vì chia tài sản. Bạn quyết định tìm công chứng viên lập di chúc ngay hôm nay.',
+    scene: { loc: 'office', time: 'day', anim: 'think', npcs: [{ role: 'stranger', anim: 'talk', say: 'Bác muốn chia thế nào ạ?' }], fx: 'idea', shot: 'close' },
+    choicesFn: () => ['equal', 'carer', 'charity', 'none'].map(willChoice).filter((c) => c._ok !== false), choiceByKey: willChoice });
+  ms({ id: 'ms_huu_thamque', title: 'Về thăm chốn cũ', icon: '🏡', age: [60, 120],
+    text: 'Nghỉ ngơi rảnh rỗi, bạn bỗng nhớ da diết nơi mình sinh ra: cái giếng đầu làng, con đường đất đỏ, mái trường cũ. Bạn quyết định về thăm một chuyến, vài người bạn cũ nghe tin cũng hẹn gặp.',
+    scene: { loc: 'countryside', time: 'day', anim: 'walk', npcs: [{ role: 'friend', anim: 'wave', say: 'Lâu quá mới gặp bác!' }], fx: 'sparkle', shot: 'wide' },
+    choices: [
+      { label: '🍵 Ngồi uống trà, kể chuyện xưa với bạn cũ', text: 'Mấy ông bà già ngồi cả buổi chiều kể chuyện thời trẻ, cười đến chảy nước mắt. Có người đã mất, có người còn lẫn, nhưng ai cũng vui như được sống lại tuổi đôi mươi.', effects: { happy: 8, health: 1, rel: { friend: 6 } }, scene: { anim: 'laugh', fx: 'hearts' } },
+      { label: '🪦 Thắp nén hương mộ tổ tiên và người đã khuất', text: 'Bạn dọn cỏ, thắp hương ở nghĩa trang làng. Đứng trước những bia mộ quen tên, bạn thấy lòng bình yên lạ thường.', effects: { happy: 4, karma: 3 }, scene: { loc: 'temple', anim: 'pray', fx: 'smoke' } },
+      { label: '💰 Góp tiền sửa lại mái trường và con đường làng', req: { minMoney: 50000000 }, text: 'Bạn góp 50 triệu sửa mái trường tiểu học và cái cầu tre. Bà con kéo ra đón, bọn trẻ tặng bạn những bó hoa dại. Bạn thấy mình đã sống một đời có ích.', effects: { money: -50000000, karma: 8, happy: 8 }, scene: { loc: 'school', anim: 'cheer', npcs: [{ role: 'kid', anim: 'cheer' }], fx: 'stars' } }
+    ] });
 
   // ------------------------------------------------------------------ CHỈ SỐ QUÁ THẤP: đến ngưỡng thì xã hội, bố mẹ, thầy cô phản ứng và buộc bạn chọn cách đối mặt
   function lowStatYear(L) {
@@ -6410,7 +6465,10 @@
     const spouseLeft = old.people.find((p) => p.alive && p.role === 'spouse');
     const firesale = Math.round((assetsValue(old) - (old.company ? Math.round(old.company.val * old.company.own) : 0)) * 0.12);
     const funeral = Math.min(estate, Math.round((U.rand(80e6, 200e6) + estate * 0.015) / 1e6) * 1e6);
-    const pool = Math.max(0, estate - funeral - firesale), each = pool / (heirs.length + (spouseLeft ? 1 : 0));
+    const pool0 = Math.max(0, estate - funeral - firesale);
+    const will = old.flags.will || null, carerId = old.flags.willCarer, charityAmt = will === 'charity' ? Math.round(pool0 * 0.3 / 1e6) * 1e6 : 0, pool = pool0 - charityAmt;
+    const wOf = (p) => (will === 'carer' && p.id === carerId ? 2.5 : 1), totalW = heirs.reduce((a, p) => a + wOf(p), 0) + (spouseLeft ? 1 : 0);
+    const each = pool * wOf(heir) / totalW;
     const inhTax = Math.max(0, Math.round((each - 10e6) * 0.1 / 1e6) * 1e6);
     const share = Math.max(0, Math.round(each - inhTax));
     S = baseState(old.generation + 1, old.year, old.city);
@@ -6421,7 +6479,8 @@
     S.people.push(deadParent);
     const other = old.people.find((p) => p.alive && p.role === 'spouse');
     if (other) S.people.push(Object.assign({}, other, { role: other.gender === 'f' ? 'mother' : 'father', relation: U.randi(60, 90) }));
-    heirs.filter((p) => p !== heir).forEach((p) => S.people.push(Object.assign({}, p, { role: 'sibling', relation: U.randi(50, 85) })));
+    const sibRel = (p) => (will === 'equal' ? U.randi(60, 90) : will === 'carer' ? (heir.id === carerId ? U.randi(30, 60) : p.id === carerId ? U.randi(40, 70) : U.randi(55, 85)) : !will && estate >= 5e8 && heirs.length > 1 ? U.randi(20, 55) : U.randi(50, 85));
+    heirs.filter((p) => p !== heir).forEach((p) => S.people.push(Object.assign({}, p, { role: 'sibling', relation: sibRel(p) })));
     old.people.filter((p) => p.alive && p.role === 'pet').forEach((p) => S.people.push(Object.assign({}, p)));
     // cơ nghiệp gia đình: công ty truyền lại cho người con nối dõi
     if (old.company) { S.company = Object.assign({}, old.company, { bad: 0, boost: 0, inherited: (old.company.inherited || 0) + 1, heir: true, run: 0 }); S.flags.co_heir = S.year; }
@@ -6467,6 +6526,9 @@
     S.goals = pickGoals();
     const K = old.player.gender === 'f' ? 'mẹ' : 'bố';
     addLog('Bạn là ' + fullName(S.player) + ', ' + pa + ' tuổi, tiếp nối cuộc đời sau khi ' + K + ' ' + old.player.firstName + ' qua đời.' + (share ? ' Bạn được thừa kế ' + fmtMoney(share) + '.' : ''), 'milestone', '🌳');
+    if (will === 'charity' && charityAmt > 0) addLog('💝 Theo di chúc, ' + fmtMoney(charityAmt) + ' được dùng lập quỹ khuyến học mang tên người đã khuất.', 'milestone', '💝');
+    else if (will === 'carer') addLog('📜 Di chúc để lại phần nhiều hơn cho người con chăm sóc nhiều nhất. ' + (heir.id === carerId ? 'Đó chính là bạn, nhưng anh chị em có vẻ không vui.' : 'Anh/chị em trong nhà có người bàn tán.'), 'neutral', '📜');
+    else if (!will && estate >= 5e8 && heirs.length > 1) addLog('⚔️ Không có di chúc nên anh chị em cãi nhau chuyện chia tài sản, tình cảm rạn nứt.', 'bad', '⚔️');
     if (estate > 0) addLog('Di sản ' + fmtMoney(estate) + ': ma chay ' + fmtMoney(funeral) + (firesale > 0 ? ', bán gấp nhà đất bị ép giá mất ' + fmtMoney(firesale) : '') + ', chia ' + (heirs.length + (spouseLeft ? 1 : 0)) + ' phần (' + heirs.length + ' người con' + (spouseLeft ? ' + ' + (old.player.gender === 'f' ? 'bố' : 'mẹ') + ' bạn' : '') + '), thuế thừa kế 10% ' + fmtMoney(inhTax) + '.', 'neutral', '📜');
     if (S.company) addLog('Bạn tiếp quản ' + S.company.name + ', nhưng cổ đông và nhân viên cũ chưa phục. Phải tự tay điều hành nhiều năm thì công ty mới chạy hết công suất.', 'neutral', '🏢');
     checkProgress(); changed();

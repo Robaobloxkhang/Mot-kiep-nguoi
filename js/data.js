@@ -157,6 +157,7 @@
     cuuhoa: { title: 'Lính cứu hỏa', icon: '🚒', minAge: 18, maxStart: 30, req: { hs: true, minStat: { health: 65 } }, levels: [['Chiến sĩ PCCC', 8], ['Tiểu đội trưởng', 12], ['Đội trưởng cứu nạn', 18], ['Trưởng phòng PCCC', 26]], loc: 'street', style: 'uniform' },
     khoahoc: { title: 'Nhà khoa học', icon: '🔬', minAge: 24, req: { degree: true, minStat: { smarts: 80 } }, levels: [['Nghiên cứu viên', 12], ['Tiến sĩ', 25], ['Phó giáo sư', 40], ['Giáo sư đầu ngành', 65]], loc: 'university', style: 'coat' },
     nongdan: { title: 'Nông dân', icon: '🧑‍🌾', minAge: 16, levels: [['Làm ruộng thuê', 4], ['Chủ vườn', 9], ['Chủ trang trại', 28]], loc: 'countryside', style: 'tshirt' },
+    moigioi: { title: 'Môi giới bất động sản', icon: '🏘️', minAge: 20, volatile: true, req: {}, levels: [['Nhân viên sale dự án', 8], ['Môi giới có khách quen', 25], ['Trưởng sàn giao dịch', 60], ['Chủ sàn bất động sản', 150]], loc: 'office', style: 'suit' },
     luadao: { title: 'Đường dây lừa đảo', icon: '📱', minAge: 18, volatile: true, req: { flag: 'ld_invite' }, levels: [['Nhân viên gọi điện', 12], ['Tổ trưởng nhóm', 30], ['Quản lý đường dây', 75], ['Trùm đường dây', 180]], loc: 'office', style: 'jacket' },
     giangho: { title: 'Dân anh chị', icon: '🦹', minAge: 15, volatile: true, req: { flag: 'gh_invite' }, levels: [['Đàn em', 6], ['Tay chân thân tín', 15], ['Đàn anh khu phố', 35], ['Đại ca', 80], ['Trùm giang hồ', 200]], loc: 'street', style: 'jacket' },
   };
@@ -255,6 +256,7 @@
     streamer: ['Lên sóng mỗi tối, sống nhờ người xem.', ['Bị antifan tấn công', 'Nhà tài trợ “bẩn”', 'Livestream triệu view']],
     cauthu: ['Tập luyện khắc nghiệt, sự nghiệp ngắn mà rực rỡ. Giải nghệ khoảng 35 tuổi.', ['Đứt dây chằng', 'Lời mời bán độ', 'Được gọi lên tuyển quốc gia', 'Lời mời chơi bóng nước ngoài', 'Giải nghệ']],
     kinhdoanh: ['Tự làm chủ, lời ăn lỗ chịu.', ['Đối tác lừa đảo', 'Thanh tra đột xuất', 'Mở thêm chi nhánh']],
+    moigioi: ['Hưởng hoa hồng theo giao dịch: tháng ngập tiền, tháng trắng tay. Cần miệng lưỡi khéo, chữ tín và chút may mắn với thị trường.', ['Khách huỷ cọc', 'Chốt giao dịch lớn', 'Sổ đỏ có vấn đề', 'Thị trường đóng băng']],
     luadao: ['Tiền về nhanh, lương hậu hĩnh, nhưng mỗi cuộc gọi là một gia đình bị hại. Công an truy quét, án tù nặng, mất sạch tài sản.', ['Công an triệu tập', 'Đồng bọn khai ra', 'Bị tịch thu tài sản', 'Vào tù']],
     giangho: ['Bảo kê, đòi nợ, tranh địa bàn. Tiền nhanh, đường ngắn.', ['Tranh địa bàn', 'Bị công an truy bắt', 'Đàn em phản bội', 'Vào tù']],
     congchuc: ['Ổn định, giờ hành chính, nhiều thủ tục.', ['Bị gợi ý nhận phong bì', 'Thi nâng ngạch', 'Bị điều chuyển công tác']],
@@ -789,6 +791,12 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.75', date: '23/10/2026', items: [
+      '🏘️ Nhà đất & môi giới: mảnh đất giá hời (sổ đỏ có thể giả), tin đồn quy hoạch, thủ tục sang tên, người thuê không trả tiền. Mới: nghề Môi giới bất động sản (hoa hồng theo giao dịch, đàm phán bằng minigame).',
+      '🎮 Game & esport: leo rank xuyên đêm, giải đấu mùa, lời rủ dùng phần mềm hack, stream game. Mới: minigame “Tập ngắm” bấm mục tiêu trước khi biến mất.',
+      '🚑 Bệnh viện & bảo hiểm: nhập viện bất ngờ có hoá đơn theo mức bệnh, bảo hiểm y tế/nhân thọ trả một phần (có thể bị từ chối), hoặc xin người thân góp tiền, hoặc chữa tạm đầy rủi ro.',
+      '📜 Về hưu & di chúc: từ 62 tuổi lập di chúc (chia đều, thưởng người con chăm sóc, dành 30% từ thiện hoặc không viết gây tranh chấp). Di chúc ảnh hưởng đến phần thừa kế và tình anh em ở đời sau. Thêm chuyến về thăm chốn cũ.',
+    ] },
     { v: '1.74', date: '23/10/2026', items: [
       '📱 Mới: nghề “Đường dây lừa đảo” (tự nguyện): lương rất cao, mỗi quý có ca làm việc bằng minigame, nhưng càng lên cao càng dễ bị công an bắt, tịch thu tài sản và ngồi tù. Có thể bị bạn bè rủ vào, hoặc báo công an, hoặc từ chối.',
       '💬 Minigame lừa đảo viết lại theo kịch bản: mỗi nạn nhân là một tình huống riêng (quỹ tặng tiền, việc làm online, đầu tư, trúng thưởng) với 3 bước, câu gợi ý đúng ngữ cảnh hoặc tự gõ. Cuối cùng nhập đúng số thẻ nạn nhân đọc. Hết mỗi lượt có mẹo nhận biết lừa đảo.',
