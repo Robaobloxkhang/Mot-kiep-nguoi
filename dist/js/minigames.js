@@ -193,7 +193,7 @@
     hoops: '6 cú ném: lên rổ, tầm trung, ba điểm, ném phạt, ba điểm có hậu vệ và cú ném quyết định. Giữ Space để thanh lực dâng lên, thả tay khi vạch trắng nằm trong vùng xanh (ném càng xa càng cần nhiều lực). Có hậu vệ thì ném trước khi hắn bật nhảy!',
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
-    scamchat: 'Giao diện nhiều cửa sổ: Điện thoại (nhắn tin với nạn nhân), Hồ sơ giao dịch, Camera quản lý và Chỉ tiêu cuộc gọi. Gõ tin nhắn tự do hoặc bấm câu gợi ý. Làm quen để tăng niềm tin rồi mới nhắc chuyện tiền, khi nạn nhân đồng ý thì ghi đúng số tiền họ nói vào cửa sổ Hồ sơ. Quản lý luôn nhìn camera: bấm nút 📞 ở cửa sổ Chỉ tiêu để họ bớt nghi ngờ. Hoặc lén cảnh báo nạn nhân đây là lừa đảo, cứu được họ nhưng sẽ làm quản lý nổi giận.',
+    scamchat: 'Một ca làm việc trong khu lừa đảo: KPI năm nay là lừa đủ số người, không đạt sẽ bị đánh đập. Mỗi nạn nhân đi theo một kịch bản 3 bước (làm quen, giới thiệu lợi ích, xin thông tin thẻ nhận tiền). Chọn câu gợi ý đúng ngữ cảnh hoặc tự gõ. Khi nạn nhân đọc số thẻ, gõ đúng 16 số vào cửa sổ Hồ sơ rồi xác nhận. Quản lý luôn nhìn Camera: bấm nút 📞 ở cửa sổ Chỉ tiêu để họ bớt nghi ngờ. Bạn cũng có thể lén cảnh báo nạn nhân để cứu họ, nhưng bị bắt gặp là bị đánh.',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
   // màn giới thiệu: giải thích rõ cách chơi (mục tiêu · từng bước · phím) rồi mới cho chơi; có nút chơi thử không tính điểm
@@ -1375,11 +1375,40 @@
   // 'shoot' (trò canh thời điểm cũ) đã bỏ — giữ tên làm bí danh của Ném rổ cho các thách đấu cũ
   // ------------------------------------------------------------------ 12. nhắn tin dụ nạn nhân (trong khu lừa đảo bị ép làm) — gõ tự do hoặc bấm câu gợi ý
   // Bạn là người bị ép: có thể làm theo để đủ chỉ tiêu, hoặc lén cảnh báo nạn nhân (quản lý giám sát, bị phát hiện là bị đánh).
-  const SC_VICTIMS = [
-    { n: 'Bác Hùng', age: 62, face: '👴', job: 'vừa nghỉ hưu, vợ mất sớm', likes: ['suc khoe', 'chau', 'con', 'ba', 'tuoi', 'huu', 'thuoc', 'tho'], open: 'Alo? Ai đấy nhỉ? Sao lại biết số điện thoại của bác?' },
-    { n: 'Mai', age: 24, face: '👩', job: 'sinh viên mới ra trường, đang tìm việc', likes: ['viec', 'luong', 'phong van', 'cv', 'hoc', 'cong ty', 'thue tro', 'tuyen'], open: 'Dạ em chào anh/chị, mình nhắn em có việc gì vậy ạ?' },
-    { n: 'Anh Tuấn', age: 35, face: '🧔', job: 'nhân viên văn phòng, thích làm giàu nhanh', likes: ['kiem tien', 'giau', 'dau tu', 'xe', 'nha', 'lam them', 'cong viec', 'coin', 'chung khoan'], open: 'Ừ, ai thế? Đang họp, nói nhanh giúp mình nhé.' },
-    { n: 'Cô Lan', age: 48, face: '👩‍🦳', job: 'bán hàng chợ, một mình nuôi con', likes: ['con', 'cho', 'ban hang', 'tiet kiem', 'tien', 'hoc phi', 'suc khoe', 'gia dinh'], open: 'Ai đó? Cô đang bận bán hàng, có gì thì nhắn cô sau nhé.' },
+  // mỗi nạn nhân đi theo một kịch bản (tổ chức hư cấu): 3 bước làm quen → giới thiệu lợi ích → xin thẻ nhận tiền. Mỗi bước có 4 câu gợi ý đúng ngữ cảnh (điểm 2 / 1 / 0 / 0)
+  const SC_SCEN = [
+    { n: 'Bác Hùng', age: 62, face: '👴', job: 'vừa nghỉ hưu, vợ mất sớm', org: 'Quỹ hỗ trợ người cao tuổi An Phát', open: 'Alo? Ai đấy nhỉ? Sao lại biết số điện thoại của bác?',
+      tip: 'Không có quỹ nào gọi điện “tặng tiền” rồi xin số thẻ ngân hàng. Tiền hỗ trợ thật không bao giờ cần bạn đưa số thẻ cho người lạ.',
+      kw: [['chao', 'quy', 'an phat', 'nguoi cao tuoi', 'ho tro', 'hoi tham', 'suc khoe'], ['5 trieu', 'nam trieu', 'tien ho tro', 'tang', 'quyen loi', 'mien phi', 'danh sach', 'duoc chon'], ['so the', 'the ngan hang', 'tai khoan', 'chuyen khoan', 'nhan tien', 'doc so', 'cung cap']],
+      st: [
+        { hint: 'Tự giới thiệu, hỏi thăm bác', chips: [['Chào bác ạ, cháu gọi từ Quỹ hỗ trợ người cao tuổi An Phát, hỏi thăm sức khoẻ bác.', 2], ['Cháu chào bác, cháu có chuyện muốn nhờ bác ạ.', 1], ['Bác ơi cho cháu hỏi bác có bao nhiêu tiền?', 0], ['Alo? Nghe máy đi chứ!', 0]], good: '“Quỹ gì cơ? À, quỹ cho người già hả cháu? Bác có nghe nói. Cháu cứ nói.”', ok: '“Nhờ việc gì? Bác nghe đây.”', bad: '“Cái gì mà hỏi tiền? Bác cúp máy đây!”' },
+        { hint: 'Nói về khoản hỗ trợ dành cho bác', chips: [['Quỹ đang có suất hỗ trợ 5 triệu cho người cao tuổi, bác nằm trong danh sách được chọn đợt này.', 2], ['Bên cháu có chương trình tặng quà, bác quan tâm không ạ?', 1], ['Bác phải làm theo cháu, không là mất suất đấy.', 0], ['Có tiền miễn phí đây, bác nhận không, nhanh lên!', 0]], good: '“Thật hả cháu? Bác có được chọn á? Thế thì quý quá, bác già rồi cũng cần.”', ok: '“Quà gì mà quà? Cháu nói rõ ra xem.”', bad: '“Sao lại hối thúc bác thế? Nghe không ổn chút nào.”' },
+        { hint: 'Nói cần thông tin để chuyển tiền cho bác', chips: [['Để chuyển 5 triệu cho bác, bác cho cháu số thẻ ngân hàng để quỹ chuyển khoản ạ.', 2], ['Bác cho cháu xin thông tin tài khoản để quỹ làm hồ sơ nhé.', 1], ['Bác đọc luôn mật khẩu thẻ cho cháu đi!', 0], ['Bác chuyển trước cho cháu một ít phí nhé.', 0]], good: '“Ừ, để bác lấy cái thẻ ra. Cháu ghi cho cẩn thận nhé.”', ok: '“Thông tin tài khoản là sao? Bác không rành, cháu nói dễ hiểu thôi.”', bad: '“Mật khẩu thì không đời nào! Bác báo công an đấy!”' },
+      ] },
+    { n: 'Mai', age: 24, face: '👩', job: 'sinh viên mới ra trường, đang tìm việc', org: 'công ty Việc Nhanh', open: 'Dạ em chào anh/chị, mình nhắn em có việc gì vậy ạ?',
+      tip: 'Công việc online “nhẹ lương cao, làm theo nhiệm vụ rồi nhận hoa hồng” là dấu hiệu lừa đảo kinh điển. Công ty thật không bắt bạn đưa số thẻ cho người lạ.',
+      kw: [['chao', 'viec nhanh', 'viec lam', 'tuyen', 'cong ty', 'online', 'cv'], ['luong', 'hoa hong', 'nhiem vu', 'lam them', 'thu nhap', 'linh hoat', 'tai nha'], ['so the', 'the ngan hang', 'tai khoan', 'nhan luong', 'chuyen khoan', 'cung cap', 'doc so']],
+      st: [
+        { hint: 'Giới thiệu công ty và lý do nhắn', chips: [['Chào em, anh/chị bên công ty Việc Nhanh, thấy hồ sơ em đang tìm việc nên nhắn hỏi thăm.', 2], ['Chào em, bên mình đang cần tuyển người ạ.', 1], ['Em ơi đi làm không, lương cao lắm!', 0], ['Nhắn nhanh lên, đừng hỏi nhiều.', 0]], good: '“Dạ em đang tìm việc thật ạ! Công ty mình làm về gì vậy anh/chị?”', ok: '“Dạ tuyển vị trí gì ạ? Em chưa hiểu lắm.”', bad: '“Sao nói chuyện kỳ vậy ạ? Em thấy không ổn.”' },
+        { hint: 'Giới thiệu công việc và thu nhập', chips: [['Công việc làm online tại nhà, giờ giấc linh hoạt, thu nhập khoảng 12 triệu một tháng, có hoa hồng theo nhiệm vụ.', 2], ['Việc nhẹ nhàng, em làm thử một tuần xem sao nhé.', 1], ['Làm xong là có tiền ngay, không cần kinh nghiệm gì hết!', 0], ['Không làm là tiếc, mai hết suất đấy.', 0]], good: '“Nghe hấp dẫn quá ạ! Em đang thiếu tiền thuê trọ. Em cần làm gì ạ?”', ok: '“Nhẹ nhàng thế sao ạ? Em hơi lo.”', bad: '“Hối thúc quá, em thấy giống lừa đảo…”' },
+        { hint: 'Nói cần thẻ để nhận lương', chips: [['Để công ty chuyển tiền lương cho em, em cho anh/chị số thẻ ngân hàng để kế toán làm hồ sơ nhé.', 2], ['Em gửi thông tin tài khoản để bên mình ghi nhận lương nhé.', 1], ['Em chuyển anh/chị trước một khoản phí giữ chỗ nhé.', 0], ['Em đọc luôn mã OTP cho anh/chị đi.', 0]], good: '“Dạ vâng, em lấy thẻ ra liền ạ. Anh/chị ghi lại giúp em.”', ok: '“Tài khoản em thì em hơi ngại, anh/chị nói rõ hơn được không?”', bad: '“OTP á?! Không bao giờ! Em chặn số này!”' },
+      ] },
+    { n: 'Anh Tuấn', age: 35, face: '🧔', job: 'nhân viên văn phòng, muốn làm giàu nhanh', org: 'sàn Coin Vàng', open: 'Ừ, ai thế? Đang họp, nói nhanh giúp mình nhé.',
+      tip: 'Lãi suất cao bất thường, “chuyên gia hướng dẫn”, hối thúc nạp tiền gấp đều là dấu hiệu lừa đảo đầu tư. Đừng đưa thông tin thẻ cho người lạ.',
+      kw: [['chao', 'coin vang', 'dau tu', 'chuyen gia', 'tai chinh', 'lam giau', 'kiem tien'], ['loi nhuan', 'lai suat', 'cam ket', 'an toan', 'lai cao', 'hang ngay', 'khach hang cu', 'von'], ['so the', 'the ngan hang', 'lien ket', 'tai khoan', 'nap tien', 'chuyen khoan', 'doc so']],
+      st: [
+        { hint: 'Giới thiệu nhanh, vào việc ngắn gọn', chips: [['Chào anh, em tư vấn bên sàn Coin Vàng, em gọi nhanh một phút giới thiệu cơ hội đầu tư.', 2], ['Chào anh, em có việc muốn chia sẻ với anh ạ.', 1], ['Anh ơi anh muốn giàu không, nghe em đi!', 0], ['Alo anh nghe máy rồi thì đừng cúp nhé.', 0]], good: '“Đầu tư hả? Cũng đang tìm hiểu. Một phút thôi nhé, cậu nói đi.”', ok: '“Chia sẻ gì? Nói ngắn gọn thôi.”', bad: '“Giọng điệu gì vậy? Tôi cúp máy.”' },
+        { hint: 'Nói về lợi nhuận và độ an toàn', chips: [['Sàn em có chuyên gia hướng dẫn, nhiều khách cũ lãi đều mỗi ngày, anh bỏ vốn nhỏ để làm quen trước.', 2], ['Bên em lãi cao, anh thử một ít xem sao ạ.', 1], ['Cam kết lãi 100% trong một tuần, không lỗ đồng nào!', 0], ['Anh phải vào ngay hôm nay, mai mất cơ hội đấy.', 0]], good: '“Khách cũ lãi đều hả? Nghe cũng được. Vốn nhỏ thì tôi thử xem.”', ok: '“Lãi cao thì rủi ro cao chứ. Cậu nói rõ hơn đi.”', bad: '“Cam kết lãi 100% á? Lừa đảo rồi! Tôi chặn số đây.”' },
+        { hint: 'Nói cần thẻ để liên kết tài khoản', chips: [['Để nạp vốn và rút lãi, anh cho em số thẻ ngân hàng để em liên kết vào tài khoản sàn nhé.', 2], ['Anh gửi thông tin tài khoản em hướng dẫn nạp tiền nhé.', 1], ['Anh đưa em mật khẩu, em đầu tư giúp anh luôn.', 0], ['Anh chuyển thẳng cho em, em đầu tư hộ.', 0]], good: '“Ừ, liên kết thẻ thì được. Để tôi lấy thẻ, cậu ghi lại nhé.”', ok: '“Thông tin tài khoản thì tôi phải xem kỹ đã. Cậu nói cụ thể.”', bad: '“Đưa mật khẩu cho cậu á? Điên à! Tôi báo công an!”' },
+      ] },
+    { n: 'Cô Lan', age: 48, face: '👩‍🦳', job: 'bán hàng chợ, một mình nuôi con', org: 'Siêu Mall', open: 'Ai đó? Cô đang bận bán hàng, có gì thì nói nhanh nhé.',
+      tip: 'Chưa tham gia mà “trúng thưởng” là lừa. Chương trình thật không bắt bạn cung cấp số thẻ hay trả phí trước để nhận quà.',
+      kw: [['chao', 'sieu mall', 'chuong trinh', 'khach hang', 'cam on', 'khuyen mai', 'tri an'], ['trung thuong', 'giai thuong', 'xe may', 'phan thuong', 'may man', 'tang', 'bao mat'], ['so the', 'the ngan hang', 'tai khoan', 'nhan thuong', 'chuyen khoan', 'cung cap', 'doc so']],
+      st: [
+        { hint: 'Chào hỏi theo kiểu chăm sóc khách hàng', chips: [['Em chào cô ạ, em gọi từ Siêu Mall để cảm ơn cô là khách hàng thân thiết ạ.', 2], ['Em chào cô, bên em có tin vui muốn báo cô ạ.', 1], ['Cô ơi cô có tiền không cô?', 0], ['Nghe máy rồi thì nghe em nói đây.', 0]], good: '“Ừ, cô có hay mua ở Siêu Mall thật. Có chuyện gì thế em?”', ok: '“Tin vui gì? Nói nhanh nhé, cô đang bán.”', bad: '“Nói chuyện kiểu gì vậy? Cô không rảnh!”' },
+        { hint: 'Báo chương trình trúng thưởng', chips: [['Cô được chọn ngẫu nhiên trong chương trình tri ân, trúng giải một chiếc xe máy, em báo để cô nhận ạ.', 2], ['Cô có may mắn được tặng một phần quà ạ.', 1], ['Cô trúng thưởng, nhưng phải nộp thuế trước nhé.', 0], ['Cô phải nhận ngay, không là em tặng người khác đấy.', 0]], good: '“Trời, cô trúng xe máy á? May quá! Con cô đang cần xe đi học.”', ok: '“Quà gì? Cô chưa hiểu, em nói kỹ xem.”', bad: '“Nộp thuế trước là lừa rồi! Cô biết thừa!”' },
+        { hint: 'Nói cần thẻ để chuyển tiền thưởng', chips: [['Để chuyển tiền thưởng và hoàn tất thủ tục, cô cho em số thẻ ngân hàng của cô ạ.', 2], ['Cô gửi em thông tin tài khoản để em làm hồ sơ nhận thưởng nhé.', 1], ['Cô chuyển trước cho em phí vận chuyển xe nhé.', 0], ['Cô đọc mã xác nhận gửi về điện thoại cho em đi.', 0]], good: '“Ừ để cô lấy thẻ. Em ghi cho đúng nhé, cô cảm ơn em.”', ok: '“Thông tin tài khoản hả? Cô hơi lo, em giải thích thêm đi.”', bad: '“Mã xác nhận á? Không! Cô gọi công an đây!”' },
+      ] },
   ];
   const SC_WARN = ['lua dao', 'lua dao', 'dung chuyen', 'khong chuyen', 'dung gui', 'canh bao', 'bi ep', 'bi bat', 'nan nhan', 'cong an', 'bao cong an', '113', 'chan so', 'chan toi', 'dung tin', 'khong that', 'tron di', 'bi giam', 'bi lua', 'campuchia', 'cuu toi', 'giup toi', 'dung nghe'];
   const SC_ASK = ['chuyen khoan', 'chuyen tien', 'nap tien', 'gui tien', 'dau tu', 'von', 'lai suat', 'loi nhuan', 'dang ky', 'so tai khoan', 'stk', 'dat coc', 'phi', 'vi dien tu', 'tien ao', 'coin', 'chot', 'giao dich', 'gap lam', 'ngay hom nay', 'kiem tien', 'thanh toan'];
@@ -1394,25 +1423,22 @@
     if (hasAny(t, SC_RAP)) return 'rap';
     return 'other';
   };
+  const cardGroups = (c) => c.replace(/(\d{4})(?=\d)/g, '$1 ');
   function scamchat(p) {
     return new Promise((res) => {
-      const st = p.ctx.stats, V = pick(SC_VICTIMS), MAXT = 10, DUR = 110;
-      let trust = 18 + Math.max(0, (st.looks - 50) / 5), boss = 6, turns = 0, t = 0, done = false, warned = false, scammed = false, caught = false, blocked = false, lastRaw = '';
-      let calls = 0, power = 1, helpers = 0, phase = 'chat', formLeft = 0, amount = 0, talk = 0, earned = 0;
+      const st = p.ctx.stats, kd = (G().campKpi && G().campKpi()) || { target: 3 }, KPI = kd.target, MAXT = 12, DUR = 80 + 45 * KPI;
+      let V = null, si = 0, prog = 0, strikes = 0, turns = 0, phase = 'chat', card = '', earned = 0, formLeft = 0, blocked = false, victimN = 0, used = [];
+      let boss = 6, t = 0, done = false, caught = false, scammedN = 0, warnedN = 0, calls = 0, power = 1, helpers = 0, talk = 0, wait = 0;
       const box = open('<div class="sc-desk">' +
-        // cửa sổ trái: bấm để làm bộ hồ sơ chỉ tiêu (giữ cho quản lý bớt nghi ngờ)
         '<section class="sc-win sc-clk"><header><span>🖱️ Chỉ tiêu cuộc gọi</span></header><div class="sc-wb"><button type="button" class="sc-big" id="scBig" aria-label="Gọi thêm">📞</button><div class="sc-cnt"><b id="scCalls">0</b> cuộc gọi · <span id="scRate">+1/lần bấm</span></div>' +
         '<p class="sc-hint">Bấm liên tục để quản lý thấy bạn đang làm việc. Đổi cuộc gọi lấy “trợ thủ” cho chạy tự động.</p>' +
         '<button type="button" class="sc-up" id="scU1"><b>👤 Đàn em gọi hộ</b><small id="scU1c"></small></button><button type="button" class="sc-up" id="scU2"><b>🎧 Tai nghe xịn</b><small id="scU2c"></small></button></div></section>' +
-        // cửa sổ giữa: điện thoại
-        '<section class="sc-win sc-phone"><header><span>📞 Điện thoại</span><em id="scH"></em></header><div class="sc-wb"><div class="sc-trust"><span>NIỀM TIN NGƯỜI NHẬN</span><b id="scTL">NGHI NGỜ</b></div><div class="mini-bar"><i id="scT" style="width:0"></i></div>' +
-        '<div class="sc-who"><div class="sc-face" id="scFace">' + V.face + '</div><div><b>' + esc(V.n) + '</b><small>' + V.age + ' tuổi · ' + esc(V.job) + '</small><div class="sc-wave" id="scW"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>' +
-        '<div class="sc-chat" id="scC"></div><div class="sc-chips" id="scK"></div>' +
-        '<form class="sc-in" id="scF"><input id="scI" maxlength="140" autocomplete="off" placeholder="Gõ tin nhắn rồi Enter…"><button type="submit" class="btn btn-primary btn-sm" id="scS">Gửi</button></form>' +
-        '<div class="sc-calls"><button type="button" class="sc-hang" id="scHang">☎️ Cúp máy</button></div></div></section>' +
-        // cửa sổ phải trên: hồ sơ nạn nhân
-        '<section class="sc-win sc-form"><header><span>🧾 Hồ sơ giao dịch</span></header><div class="sc-wb"><p class="sc-ok" id="scFS">Đang chờ nạn nhân đồng ý chuyển tiền…</p><label for="scAmt">Số tiền nạn nhân đồng ý chuyển (triệu đồng)</label><input id="scAmt" inputmode="numeric" maxlength="4" autocomplete="off" disabled placeholder="???"><button type="button" class="btn btn-soft btn-sm" id="scVer" disabled>Xác nhận</button></div></section>' +
-        // cửa sổ phải dưới: camera quản lý
+        '<section class="sc-win sc-phone"><header><span>📞 Điện thoại</span><em id="scH"></em></header><div class="sc-wb"><div class="sc-kpi"><span>KPI NĂM NAY</span><b id="scK2"></b></div><div class="sc-trust"><span>NIỀM TIN NGƯỜI NHẬN</span><b id="scTL">NGHI NGỜ</b></div><div class="mini-bar"><i id="scT" style="width:0"></i></div>' +
+        '<div class="sc-who"><div class="sc-face" id="scFace">🙂</div><div><b id="scN"></b><small id="scM"></small><div class="sc-wave" id="scW"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>' +
+        '<div class="sc-chat" id="scC"></div><div class="sc-step" id="scStep"></div><div class="sc-chips" id="scK"></div>' +
+        '<form class="sc-in" id="scF"><input id="scI" maxlength="140" autocomplete="off" placeholder="Hoặc tự gõ câu của bạn rồi Enter…"><button type="submit" class="btn btn-primary btn-sm" id="scS">Gửi</button></form>' +
+        '<div class="sc-calls"><button type="button" class="sc-warnbtn" id="scWarn">🤫 Lén cảnh báo nạn nhân</button><button type="button" class="sc-hang" id="scHang">☎️ Cúp máy</button></div></div></section>' +
+        '<section class="sc-win sc-form"><header><span>🧾 Hồ sơ khách hàng</span></header><div class="sc-wb"><p class="sc-ok" id="scFS">Đang chờ nạn nhân đọc thông tin thẻ…</p><label for="scAmt">Số thẻ ngân hàng nạn nhân đọc (16 số, chỉ là số ví dụ trong game)</label><input id="scAmt" inputmode="numeric" maxlength="19" autocomplete="off" disabled placeholder="0000 0000 0000 0000"><button type="button" class="btn btn-soft btn-sm" id="scVer" disabled>Xác nhận</button></div></section>' +
         '<section class="sc-win sc-cam"><header><span>📹 Camera</span></header><div class="sc-wb"><div class="sc-boss-face" id="scBF">😐</div><div class="sc-bossbar"><span>👁️ Quản lý chú ý</span><div class="mini-bar sc-boss"><i id="scB" style="width:0"></i></div></div></div></section>' +
         '</div><div class="sc-pop" id="scPop"></div>');
       box.querySelector('.mini-box').classList.add('wide');
@@ -1420,84 +1446,107 @@
       const bub = (who, text) => { const d = document.createElement('div'); d.className = 'sc-b ' + who; d.textContent = text; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; };
       const pop = (text) => { const el = document.createElement('div'); el.className = 'sc-money'; el.textContent = text; $('#scPop').appendChild(el); setTimeout(() => el.remove(), 1800); };
       const upCost = (n) => (n === 1 ? 15 + helpers * 20 : 25 + (power - 1) * 30);
+      const trust = () => clamp(((si * 2 + prog) / 6) * 100, 0, 100);
       const meters = () => {
-        $('#scT').style.width = clamp(trust, 0, 100) + '%'; $('#scB').style.width = clamp(boss, 0, 100) + '%';
-        $('#scTL').textContent = trust < 30 ? 'NGHI NGỜ' : trust < 60 ? 'DO DỰ' : 'TIN TƯỞNG'; $('#scTL').className = trust < 30 ? 'bad' : trust < 60 ? 'mid' : 'good';
-        $('#scH').textContent = 'Lượt ' + Math.min(turns + 1, MAXT) + '/' + MAXT + ' · ' + Math.max(0, Math.ceil(DUR - t)) + 's';
+        const tr = trust();
+        $('#scT').style.width = tr + '%'; $('#scB').style.width = clamp(boss, 0, 100) + '%';
+        $('#scTL').textContent = tr < 30 ? 'NGHI NGỜ' : tr < 65 ? 'DO DỰ' : 'TIN TƯỞNG'; $('#scTL').className = tr < 30 ? 'bad' : tr < 65 ? 'mid' : 'good';
+        $('#scH').textContent = 'Người ' + victimN + ' · còn ' + Math.max(0, Math.ceil(DUR - t)) + 's';
+        $('#scK2').textContent = scammedN + '/' + KPI + ' người' + (warnedN ? ' · cứu ' + warnedN : ''); $('#scK2').className = scammedN >= KPI ? 'ok' : '';
         $('#scBF').textContent = boss < 30 ? '😐' : boss < 60 ? '🤨' : boss < 85 ? '😠' : '🤬'; $('#scBF').parentNode.parentNode.classList.toggle('alert', boss >= 70);
         $('#scCalls').textContent = Math.floor(calls); $('#scRate').textContent = '+' + power + '/lần bấm' + (helpers ? ' · +' + helpers + '/giây' : '');
         $('#scU1c').textContent = upCost(1) + ' cuộc gọi · đã có ' + helpers; $('#scU2c').textContent = upCost(2) + ' cuộc gọi · lực bấm ' + power;
         $('#scU1').disabled = calls < upCost(1); $('#scU2').disabled = calls < upCost(2);
         $('#scFace').classList.toggle('talk', talk > 0); $('#scW').classList.toggle('talk', talk > 0);
       };
-      const chips = [['👋 Chào bạn, mình làm quen được không?', 'rap'], ['💬 Dạo này bạn khoẻ không, công việc sao rồi?', 'rap'], ['💸 Mình có kèo đầu tư lãi cao, chuyển khoản trước nhé!', 'ask'], ['⚠️ Đây là lừa đảo, đừng chuyển tiền cho ai hết!', 'warn']];
-      $('#scK').innerHTML = chips.map((c, i) => '<button type="button" data-i="' + i + '">' + esc(c[0]) + '</button>').join('');
-      bub('them', V.open); talk = 15; bub('sys', 'Mục tiêu: dụ ' + V.n + ' đồng ý chuyển tiền, rồi ghi số tiền vào cửa sổ Hồ sơ. Hoặc… lén cảnh báo họ.');
-      meters();
+      const drawChips = () => {
+        const S0 = V.st[si]; if (!S0) { $('#scK').innerHTML = ''; $('#scStep').textContent = ''; return; }
+        $('#scStep').textContent = '💡 Bước ' + (si + 1) + '/3 · ' + S0.hint;
+        const list = shuffle(S0.chips.map((c, i) => [c[0], i]));
+        $('#scK').innerHTML = list.map((c) => '<button type="button" data-i="' + c[1] + '">' + esc(c[0]) + '</button>').join('');
+      };
+      const setForm = (on, msg, cls) => { $('#scAmt').disabled = !on; $('#scVer').disabled = !on; if (!on) $('#scAmt').value = ''; $('#scFS').textContent = msg; $('#scFS').className = 'sc-ok ' + (cls || ''); };
+      const showInput = (on) => { ['#scF', '#scK', '#scStep', '#scHang', '#scWarn'].forEach((q) => { const e = $(q); if (e) e.style.display = on ? '' : 'none'; }); };
+      const newVictim = () => {
+        const pool = SC_SCEN.filter((v) => !used.includes(v.n)); if (!pool.length) used = [];
+        V = pick(pool.length ? pool : SC_SCEN); used.push(V.n); victimN++;
+        si = 0; prog = 0; strikes = 0; turns = 0; phase = 'chat'; blocked = false; card = ''; wait = 0;
+        chat.innerHTML = ''; $('#scFace').textContent = V.face; $('#scN').textContent = V.n; $('#scM').textContent = V.age + ' tuổi · ' + V.job;
+        setForm(false, 'Đang chờ nạn nhân đọc thông tin thẻ…'); showInput(true);
+        bub('sys', '📞 Gọi người thứ ' + victimN + ' · kịch bản: ' + V.org); setTimeout(() => { if (!done) { bub('them', V.open); talk = 15; } }, 500);
+        drawChips(); meters();
+      };
       const say = (text) => { bub('them', text); talk = 18; };
-      const reply = (kind, raw) => {
-        const liked = hasAny(' ' + fold(raw), V.likes) ? 1 : 0;
-        if (kind === 'warn') {
-          warned = true; boss += 38 + rnd() * 10; blocked = true;
-          return pick(['“Hả? Bị ép á? Trời ơi… cảm ơn bạn đã nói. Tôi sẽ không chuyển đồng nào và báo công an ngay!”', '“Thật hả? Vậy là lừa đảo… may mà bạn nhắn cho tôi. Tôi chặn số này rồi nhé, bạn cố giữ an toàn!”']);
-        }
-        if (kind === 'ask') {
-          boss = Math.max(0, boss - 5);
-          if (trust < 45) { trust -= 12; return pick(['“Sao chưa gì đã nói chuyện tiền bạc? Tôi thấy không ổn…”', '“Không quen không biết mà bảo chuyển khoản, nghe lạ lắm nhé.”']); }
-          if (trust < 72) { trust += 3; return pick(['“Để tôi suy nghĩ đã… có chắc chắn không đấy?”', '“Nghe cũng hấp dẫn, nhưng tôi muốn hỏi người nhà trước.”']); }
-          phase = 'form'; formLeft = 28; amount = pick([5, 8, 12, 15, 20, 30, 50]);
-          return '“Thôi được, tôi tin bạn. Tôi chuyển ' + amount + ' triệu nhé! Bạn ghi lại cho đúng số tiền đi.”';
-        }
-        if (kind === 'rap') { boss = Math.max(0, boss - 3); trust += 11 + liked * 9 + (st.looks - 50) / 25; return liked ? pick(['“Ôi, sao bạn hiểu chuyện thế! Lâu lắm rồi mới có người hỏi thăm như vậy.”', '“Đúng rồi đó! Bạn nói chuyện dễ nghe thật, mình thấy quý ghê.”']) : pick(['“Cảm ơn bạn, nói chuyện với bạn vui ghê.”', '“Ừ, mình cũng thấy thoải mái khi nói với bạn.”', '“Bạn dễ thương thật đấy.”']); }
-        boss += kind === 'noise' ? 12 : 8; trust += liked ? 5 : 1;
-        return kind === 'noise' ? '“…Bạn gửi gì thế? Tôi không hiểu.”' : pick(['“Ừm… bạn nói gì tôi chưa hiểu lắm.”', '“Vậy à? Rồi sao nữa?”', '“Hả? Bạn nói lại được không?”']);
+      // q: 2 hợp ngữ cảnh · 1 tạm được · 0 lạc đề / làm lộ · 'warn'
+      const rate = (raw) => { if (scKind(raw) === 'warn') return 'warn'; const f = ' ' + fold(raw), n = (V.kw[si] || []).filter((w) => f.includes(w)).length; return n >= 2 ? 2 : n === 1 ? 1 : 0; };
+      const advance = (q) => {
+        const S0 = V.st[si]; let line;
+        if (q === 2) { prog += 2; line = S0.good; boss = Math.max(0, boss - 3); } else if (q === 1) { prog += 1; line = S0.ok; boss = Math.max(0, boss - 1); } else { prog -= 1; strikes++; line = S0.bad; boss += 8; }
+        if (prog >= 2) { si++; prog = 0; }
+        return line;
       };
       const finish = (text) => {
-        if (done) return; done = true; sfx(scammed ? 'bad' : warned && !caught ? 'cheer' : 'fail');
-        const out = { scammed, warned, caught, victim: V.n, trust: Math.round(trust), amount };
+        if (done) return; done = true; sfx(scammedN >= KPI ? 'bad' : warnedN && !caught ? 'cheer' : 'fail');
+        const out = { scammedN, warnedN, caught, target: KPI };
         if (KN.Mini) KN.Mini.lastOut = out;
-        const score = scammed ? 1 : clamp(trust / 220, 0, 0.45);
-        ['#scF', '#scK', '#scHang'].forEach((q) => { const e = $(q); e && e.remove(); }); $('#scAmt').disabled = true; $('#scVer').disabled = true;
+        const score = clamp(scammedN / KPI, 0, 1);
+        showInput(false); setForm(false, 'Ca làm việc đã kết thúc.');
         bub('sys', '🛡️ ' + pick(SC_TIPS));
-        setTimeout(() => res({ score, text }), 2200);
+        setTimeout(() => res({ score, text }), 2400);
       };
-      const hang = () => { if (done) return; finish('Bạn cúp máy giữa chừng. Không đủ chỉ tiêu nên bị quản lý phạt.'); };
-      const send = (raw, forcedKind) => {
-        raw = String(raw || '').trim(); if (done || blocked || phase === 'form' || !raw) return;
-        const kind = forcedKind || scKind(raw);
-        if (raw === lastRaw) boss += 12; lastRaw = raw;
-        bub('me', raw); turns++; inp.value = '';
+      const summary = (extra) => (extra ? extra + ' ' : '') + 'Kết quả ca: lừa ' + scammedN + '/' + KPI + ' người' + (warnedN ? ', lén cứu ' + warnedN + ' người' : '') + '.';
+      const endVictim = (msg) => { phase = 'end'; bub('sys', msg); showInput(false); setForm(false, 'Chờ cuộc gọi tiếp theo…'); wait = 16; };
+      const caughtEnd = () => { caught = true; bub('sys', '👁️ Quản lý xông tới giật điện thoại: “Mày dám làm trò gì hả?!”'); finish(summary(warnedN ? 'Quản lý phát hiện bạn lén cảnh báo nạn nhân nên đánh đập bạn.' : 'Bạn làm việc lề mề, bị quản lý đánh một trận.')); };
+      const warnNow = () => {
+        if (done || phase !== 'chat') return;
+        bub('me', '⚠️ Đây là lừa đảo, bạn đừng đưa thông tin thẻ và đừng chuyển tiền cho ai hết!'); warnedN++; boss += 38 + rnd() * 10; blocked = true;
+        const mine = victimN;
+        setTimeout(() => { if (done || mine !== victimN) return; say(pick(['“Hả? Bị ép á? Trời ơi… cảm ơn bạn đã nói. Tôi sẽ không đưa thông tin gì và báo công an ngay!”', '“Thật hả? Vậy là lừa đảo… may mà bạn nhắn cho tôi. Tôi chặn số này rồi nhé, bạn cố giữ an toàn!”'])); meters(); if (boss >= 100) return caughtEnd(); endVictim('✅ Bạn đã lén cảnh báo ' + V.n + ', họ chặn số kịp thời. Quản lý chưa biết…'); }, 650);
+      };
+      const send = (raw, forcedQ) => {
+        raw = String(raw || '').trim(); if (done || phase !== 'chat' || blocked || !raw) return;
+        const q = forcedQ != null ? forcedQ : rate(raw);
+        if (q === 'warn') { inp.value = ''; return warnNow(); }
+        bub('me', raw); turns++; inp.value = ''; const mine = victimN;
         setTimeout(() => {
-          if (done) return;
-          say(reply(kind, raw)); meters();
-          if (phase === 'form') { $('#scAmt').disabled = false; $('#scVer').disabled = false; $('#scAmt').focus(); $('#scFS').textContent = 'Nạn nhân đã đồng ý! Nhập số tiền và bấm Xác nhận.'; $('#scFS').className = 'sc-ok go'; }
+          if (done || mine !== victimN) return;
+          say(advance(q)); meters();
           if (boss >= 100) return caughtEnd();
-          if (blocked) return finish('Bạn đã lén cảnh báo ' + V.n + ' và họ chặn số kịp thời. Bạn không đủ chỉ tiêu, nhưng đã cứu được một người.');
-          if (turns >= MAXT && phase === 'chat') return finish('Hết lượt mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn không đủ chỉ tiêu và bị phạt.');
+          if (si >= 3) {
+            phase = 'form'; formLeft = 40; card = Array.from({ length: 16 }, () => Math.floor(rnd() * 10)).join('');
+            setTimeout(() => { if (done || mine !== victimN) return; say('“Thẻ của tôi đây, số là: ' + cardGroups(card) + '. Bạn ghi cho kỹ nhé!”'); showInput(false); $('#scWarn').style.display = 'none'; setForm(true, 'Nạn nhân đang đọc số thẻ! Gõ đúng 16 số vào ô và bấm Xác nhận.', 'go'); $('#scAmt').focus(); }, 900);
+            return;
+          }
+          if (strikes >= 3) return endVictim('😒 ' + V.n + ' nghi ngờ vì bạn nói chuyện lạc đề, cúp máy và chặn số.');
+          if (turns >= MAXT) return endVictim('😮‍💨 ' + V.n + ' mất kiên nhẫn và cúp máy.');
+          drawChips();
         }, 650);
       };
-      const caughtEnd = () => { caught = true; bub('sys', '👁️ Quản lý xông tới giật điện thoại: “Mày dám làm trò gì hả?!”'); finish(warned ? 'Quản lý phát hiện bạn lén cảnh báo nạn nhân. Bạn bị đánh một trận nhừ tử, nhưng nạn nhân đã kịp chặn số.' : 'Bạn bị quản lý phát hiện làm việc lề mề, ăn một trận đòn cảnh cáo.'); };
       const verify = () => {
-        if (done || phase !== 'form') return; const v = parseInt($('#scAmt').value, 10);
-        if (v === amount) { scammed = true; earned = amount; $('#scFS').textContent = 'Hoàn tất — nạn nhân đã chuyển ' + amount + ' triệu.'; $('#scFS').className = 'sc-ok done'; pop('+' + amount + ' triệu'); finish('Nạn nhân ' + V.n + ' đã chuyển ' + amount + ' triệu. Quản lý vỗ vai bạn, còn bạn thấy buồn nôn: một người nữa đã bị hại vì bạn bị ép.'); }
-        else { boss += 10; sfx('bad'); $('#scFS').textContent = 'Sai số tiền! Nghe lại nạn nhân nói và nhập lại.'; $('#scFS').className = 'sc-ok bad'; meters(); }
+        if (done || phase !== 'form') return; const v = $('#scAmt').value.replace(/\D/g, '');
+        if (v === card) { scammedN++; earned = Math.round(rand(5, 60)); setForm(false, 'Đã ghi đúng thẻ — rút được ' + earned + ' triệu từ nạn nhân.', 'done'); pop('+' + earned + ' triệu'); sfx('coin'); meters(); bub('sys', '🛡️ ' + V.tip); endVictim('💸 Thẻ của ' + V.n + ' đã bị lấy sạch tiền. Quản lý huýt sáo hài lòng, còn bạn thấy buồn nôn.'); }
+        else { boss += 10; sfx('bad'); setForm(true, 'Sai số thẻ! Nghe lại nạn nhân đọc và gõ lại cho đúng.', 'bad'); meters(); }
       };
-      $('#scK').addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (!b) return; const c = chips[+b.dataset.i]; send(c[0].replace(/^\S+\s/, ''), c[1]); });
+      $('#scK').addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (!b) return; const c = V.st[si].chips[+b.dataset.i]; send(c[0], c[1]); });
       $('#scF').addEventListener('submit', (e) => { e.preventDefault(); send(inp.value); });
       $('#scVer').onclick = verify; $('#scAmt').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verify(); } });
-      $('#scHang').onclick = hang;
+      $('#scWarn').onclick = warnNow;
+      $('#scHang').onclick = () => { if (done || phase === 'end') return; boss += 6; endVictim('☎️ Bạn cúp máy, chuyển sang người khác (quản lý thấy bạn bỏ lỡ một cuộc).'); };
       $('#scBig').addEventListener('pointerdown', (e) => { e.preventDefault(); if (done) return; calls += power; boss = Math.max(0, boss - 0.8 * power); sfx('click'); meters(); });
       $('#scU1').onclick = () => { const c = upCost(1); if (calls >= c) { calls -= c; helpers++; sfx('coin'); meters(); } };
       $('#scU2').onclick = () => { const c = upCost(2); if (calls >= c) { calls -= c; power++; sfx('coin'); meters(); } };
+      bub('sys', 'KPI năm nay: lừa đủ ' + KPI + ' người, không đạt sẽ bị đánh đập. Mỗi cuộc gọi có 3 bước theo kịch bản. Hoặc… lén cảnh báo nạn nhân.');
+      newVictim();
       setTimeout(() => inp.focus(), 80);
       onKeys((e) => !(e.target && (e.target.tagName === 'INPUT')));
       every(() => {
         if (done) return; t += 0.1;
         if (talk > 0) talk--;
-        calls += helpers * 0.1; boss = Math.max(0, boss + (blocked ? 0 : 0.08) - helpers * 0.05);
-        if (phase === 'form') { formLeft -= 0.1; if (formLeft <= 0) { return finish(V.n + ' đổi ý và cúp máy vì bạn ghi quá chậm. Không đủ chỉ tiêu nên bị phạt.'); } $('#scFS').dataset.left = Math.ceil(formLeft); }
+        calls += helpers * 0.1; boss = Math.max(0, boss + 0.05 - helpers * 0.04);
+        if (phase === 'form') { formLeft -= 0.1; if (formLeft <= 0) endVictim('😒 ' + V.n + ' mất kiên nhẫn và cúp máy vì bạn ghi quá chậm.'); }
+        else if (phase === 'end' && --wait <= 0) { if (t < DUR - 8) { newVictim(); } else finish(summary('Hết giờ làm.')); }
         meters();
-        if (boss >= 100) caughtEnd(); else if (t >= DUR) finish('Hết giờ mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn bị phạt vì không đủ chỉ tiêu.');
+        if (boss >= 100) caughtEnd(); else if (t >= DUR && phase !== 'form') finish(summary('Hết giờ làm.'));
       }, 100);
     });
   }

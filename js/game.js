@@ -228,6 +228,7 @@
           const st = Y.stages[t === 'ys.stage' ? S.ys.stage : Math.min(S.ys.stage + 1, Y.stages.length - 1)];
           return t === 'ys.test' ? st.test || '' : st.name;
         }
+        case 'camp.kpi': return String((S.camp && S.camp.kpi) || 2);
         case 'fo.club': return (S.flags.foreignOffer || {}).club || 'một đội nước ngoài';
         case 'fo.country': return (S.flags.foreignOffer || {}).country || 'nước ngoài';
         case 'ill': case 'ill.sym': case 'ill.years': case 'ill.next': case 'ill.cost': {
@@ -575,7 +576,7 @@
     rollEff({ health: [1, 4] }, 1, deltas);
     return { ok: false, text: 'Bệnh ' + illLabel(i).toLowerCase() + ' cần điều trị lâu dài. Bác sĩ kê đơn, bệnh đã thuyên giảm phần nào — nhớ tái khám, đừng bỏ dở.' + paid };
   }
-  const FIELD_JOBS = new Set(['streamer', 'casi', 'dienvien', 'nguoimau', 'nongdan', 'kinhdoanh', 'shipper', 'taixe', 'giangho']);
+  const FIELD_JOBS = new Set(['streamer', 'casi', 'dienvien', 'nguoimau', 'nongdan', 'kinhdoanh', 'shipper', 'taixe', 'giangho', 'luadao']);
   function fieldJob(id) { const c = D.CAREERS[id]; return !!(c && (c.sport || FIELD_JOBS.has(id))); }
   function hire(id) {
     const c = D.CAREERS[id]; if (!c) return;
@@ -985,6 +986,7 @@
     // sinh ở thời xưa: chưa có điện thoại thông minh, mạng xã hội, ứng dụng…
     if (S.year < 2009 && modernEv(def)) return false;
     // đang ngồi tù: chỉ còn những chuyện trong trại giam
+    if (S.jail && S.jail.camp) return !!(def.req && def.req.camp);
     if (S.jail && !(def.req && def.req.jail)) return false;
     const last = S.usedEvents[def.id];
     if (last != null) { if (def.once !== false) return false; if (S.year - last < (def.cooldown || 3)) return false; }
@@ -2142,7 +2144,7 @@
     try { xkYear(L, deltas); if (S.abroad && S.abroad.settled && S.year - S.abroad.since === 5 && !S.flags.citizen) queueMilestone('ms_quoctich'); } catch (e) { U.warnOnce('xk', 'xk', e); }
     try { officeYear(L); if (S.company) chainYear(L, deltas); } catch (e) { U.warnOnce('batchB2', 'office/chain', e); }
     try { groupsYear(L); familyBYear(L); rivalYear(L); } catch (e) { U.warnOnce('famB', 'family batch B', e); }
-    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
+    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); scamJobYear(L, deltas); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
     // công việc tự tìm đến: mỗi năm có khả năng gặp một ca làm việc nổi bật của nghề
     try { if (S.job && !S.jail && S.pending.length < 2 && Math.random() < 0.4) { const ev = jobTaskEvent(); if (ev) S.pending.push(ev); } } catch (e) { U.warnOnce('jt', 'jobtask', e); }
     jailYear(L, deltas);
@@ -3352,32 +3354,89 @@
   function campYear(L, deltas) {
     const c = S.camp || (S.camp = { kind: 'scam', since: S.jail.since, amount: 0, signal: 0 }), yrs = S.year - S.jail.since + 1;
     S.money = Math.max(0, S.money); addStat('happy', -U.rand(4, 8), deltas); addStat('health', -U.rand(2, 5), deltas);
+    c.kpi = c.kind === 'scam' ? Math.min(6, 2 + Math.floor((yrs - 1) / 2)) : 0;
     const base = c.kind === 'ransom' ? 0.07 : 0.05 + 0.025 * yrs, p = Math.min(0.85, base + (c.signal || 0) * 0.15 + (campPayer() ? 0.04 : 0));
     if (Math.random() < p) { campRelease('rescue'); return; }
-    L(c.kind === 'ransom' ? '⛓️ Năm thứ ' + yrs + ' bị giam: bọn bắt cóc đòi tiền chuộc ' + fmtMoney(c.amount) + '.' : '⛓️ Năm thứ ' + yrs + ' trong khu lừa đảo: ngày nào cũng phải ngồi gõ máy, nhắn tin dụ dỗ người khác, không đạt chỉ tiêu là bị đánh.', 'bad', '⛓️');
+    L(c.kind === 'ransom' ? '⛓️ Năm thứ ' + yrs + ' bị giam: bọn bắt cóc đòi tiền chuộc ' + fmtMoney(c.amount) + '.' : '⛓️ Năm thứ ' + yrs + ' trong khu lừa đảo: KPI năm nay là lừa đủ ' + c.kpi + ' người, không đạt là bị đánh đập.', 'bad', '⛓️');
     if (!S.pending.some((e) => e.id === 'ms_camp')) queueMilestone('ms_camp');
   }
   function campChoice(k) {
     const c = S.camp || { kind: 'scam', amount: 0 }, pay = campPayer();
     if (k === 'ransom') return { key: k, label: '📞 Xin gia đình chuộc (' + fmtMoney(c.amount) + ')', _ok: c.kind === 'ransom' && !!pay, hint: pay ? 'Tiền của ' + (nameOf(pay)) + ', không phải tiền của bạn — bạn đã mất hết' : 'Không còn người thân nào để nhờ',
       fn: () => { const rich = pay.role === 'spouse' ? 'hai vợ chồng' : nameOf(pay); S.flags.famDebt = (S.flags.famDebt || 0) + c.amount; addRel(pay, 6, []); campRelease('ransom'); return { text: 'Bạn run run đọc số điện thoại người thân. ' + nameOf(pay).replace(/^./, (x) => x.toUpperCase()) + ' nghe tin mà khóc nức nở, lập tức bán đất, vay mượn khắp họ hàng để gom đủ ' + fmtMoney(c.amount) + ' chuyển cho chúng. Vài ngày sau bạn được thả ở cửa khẩu. Món nợ ân tình ấy, ' + rich + ' gánh thay bạn.', effects: { happy: 3 }, scene: { loc: 'airport', anim: 'hug', npcs: [{ role: pay.role, anim: 'cry', say: 'Con về là tốt rồi…' }], fx: 'tears' } }; } };
-    if (k === 'work') { const p = U.clamp(0.4 + S.stats.smarts / 300 + (S.stats.looks - 50) / 400, 0.25, 0.75); return { key: k, label: '💬 Bị ép nhắn tin / gọi điện dụ nạn nhân', hint: 'Đủ chỉ tiêu thì bớt bị đánh, nhưng mất lương tâm. Bạn cũng có thể lén cảnh báo nạn nhân', _ok: c.kind === 'scam', mini: 'scamchat', odds: () => p, fn: () => {
+    if (k === 'work') { const kpi = c.kpi || 2, p = U.clamp(0.5 + S.stats.smarts / 300 + (S.stats.looks - 50) / 400 - kpi * 0.05, 0.15, 0.75); return { key: k, label: '💬 Làm ca: gọi dụ nạn nhân cho đủ KPI (' + kpi + ' người)', hint: 'Đủ KPI thì không bị đánh, nhưng mất lương tâm. Cũng có thể lén cảnh báo nạn nhân', _ok: c.kind === 'scam', mini: 'scamchat', odds: () => p, fn: () => {
       const out = KN.Mini && KN.Mini.lastOut; if (KN.Mini) KN.Mini.lastOut = null;
-      if (out && out.warned && !out.caught) { addStat('karma', 6, {}); S.camp.signal = (S.camp.signal || 0) + 0; S.flags.scamSaved = (S.flags.scamSaved || 0) + 1; return { text: 'Bạn lén gõ vội một dòng cảnh báo giữa lúc quản lý quay đi. ' + out.victim + ' hiểu ra, chặn số ngay. Bạn bị phạt vì không đủ chỉ tiêu, nhưng đêm đó bạn ngủ được. Cứu được một người, cũng là cứu một phần chính mình.', effects: { karma: 6, happy: 2, health: -3 }, scene: { loc: 'office', time: 'night', anim: 'nod', expr: 'sad', npcs: [{ role: 'thug', anim: 'angry', say: 'Sao hôm nay ít thế?!' }], fx: 'sparkle' } }; }
-      if (out && out.caught) return { text: out.warned ? 'Quản lý phát hiện bạn lén cảnh báo nạn nhân. Chúng đánh bạn bằng ống nhựa, điện giật, nhốt bạn vào phòng tối mấy ngày. Nạn nhân đã kịp thoát, nhưng bạn trả giá rất đắt.' : 'Bạn làm việc lề mề nên bị quản lý đánh một trận cảnh cáo.', effects: { health: out.warned ? -20 : -9, happy: -6, karma: out.warned ? 5 : 0 }, scene: { anim: 'fall', fx: 'dust', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' };
-      const win = out ? out.scammed : miniWin(p);
-      if (win) { const n = out ? 1 : U.randi(8, 30); addStat('karma', -6, {}); S.flags.scamMade = (S.flags.scamMade || 0) + n; return { text: 'Bạn dùng lời ngọt dụ được ' + (out ? out.victim : n + ' người xa lạ') + ' chuyển tiền. Quản lý vỗ tay, còn bạn thấy buồn nôn: một người nữa đã bị hại, và bạn không có lựa chọn nào khác. Không đạt chỉ tiêu thì bị đánh, nhưng lương tâm cắn rứt.', effects: { karma: -6, happy: -4, health: -1 }, scene: { loc: 'office', time: 'night', anim: 'type', expr: 'sad', npcs: [{ role: 'thug', anim: 'cheer', say: 'Khá lắm!' }], fx: 'sweat' }, tone: 'bad' }; }
-      return { text: 'Hôm nay bạn không dụ được ai. Không đủ chỉ tiêu nên bị quản lý đánh và phạt nhịn đói.', effects: { health: -8, happy: -4 }, scene: { anim: 'sad', fx: 'tears', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }; } }; }
-    if (k === 'resist') return { key: k, label: '✊ Chống đối, không chịu lừa ai', hint: 'Giữ lương tâm nhưng bị trừng phạt nặng', fn: () => ({ text: c.kind === 'scam' ? 'Bạn nhất quyết không lừa người vô tội. Bọn chúng nhốt bạn vào phòng tối, đánh đòn, bỏ đói mấy ngày liền. Bạn kiệt sức nhưng lòng thanh thản.' : 'Bạn cãi lại bọn bắt cóc. Chúng trói bạn lại, đánh một trận nhừ tử để cảnh cáo.', effects: { health: -14, happy: -5, karma: 3 }, scene: { anim: 'fall', fx: 'dust', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }) };
+      const got = out ? (out.scammedN || 0) : (miniWin(p) ? kpi : Math.floor(kpi * U.rand(0, 0.7))), saved = out ? (out.warnedN || 0) : 0, short = Math.max(0, kpi - got);
+      S.flags.scamMade = (S.flags.scamMade || 0) + got; S.flags.scamSaved = (S.flags.scamSaved || 0) + saved;
+      const eff = { karma: -3 * got + 4 * saved, happy: -4, health: -1 };
+      let text = 'Cả năm bạn lừa được ' + got + '/' + kpi + ' người' + (saved ? ', và lén cứu ' + saved + ' người khác' : '') + '. ';
+      if (out && out.caught) { eff.health -= 18; text += 'Quản lý bắt quả tang bạn lén cảnh báo hoặc làm việc lề mề nên đánh đập dã man.'; }
+      else if (short > 0) { eff.health -= 6 * short; eff.happy -= 2 * short; text += 'Thiếu ' + short + ' người so với KPI nên bị đánh đập, nhốt phòng tối và cắt bữa.'; }
+      else text += 'Đạt KPI nên năm nay bạn không bị đánh. Nhưng ' + got + ' gia đình đã mất tiền vì những lời ngọt của bạn.';
+      return { text, effects: eff, scene: { loc: 'office', time: 'night', anim: short > 0 || (out && out.caught) ? 'fall' : 'type', expr: 'sad', npcs: [{ role: 'thug', anim: short > 0 ? 'angry' : 'cheer', say: short > 0 ? 'Thiếu chỉ tiêu!' : 'Khá lắm!' }], fx: short > 0 ? 'dust' : 'sweat' }, tone: 'bad' }; } }; }
+    if (k === 'resist') return { key: k, label: '✊ Chống đối, không chịu lừa ai', hint: 'Giữ lương tâm nhưng không có KPI nên bị trừng phạt nặng', fn: () => ({ text: c.kind === 'scam' ? 'Bạn nhất quyết không lừa người vô tội nên cả năm không có người nào trong KPI. Bọn chúng nhốt bạn vào phòng tối, đánh đòn, bỏ đói mấy ngày liền. Bạn kiệt sức nhưng lòng thanh thản.' : 'Bạn cãi lại bọn bắt cóc. Chúng trói bạn lại, đánh một trận nhừ tử để cảnh cáo.', effects: { health: c.kind === 'scam' ? -20 : -14, happy: -5, karma: 3 }, scene: { anim: 'fall', fx: 'dust', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }) };
     if (k === 'signal') { const p = U.clamp(0.3 + S.stats.smarts / 300, 0.2, 0.65); return { key: k, label: '📱 Lén báo tin cho gia đình / cơ quan chức năng', hint: 'Nếu bị phát hiện sẽ bị trừng phạt rất nặng', odds: () => p, fn: () => { if (miniWin(p)) { S.camp.signal = (S.camp.signal || 0) + 1; return { text: 'Bạn lén mượn được một chiếc điện thoại trong giây lát, gửi vội vị trí và ảnh khu nhà cho người thân. Họ báo ngay cho cơ quan chức năng. Hy vọng được giải cứu lớn hơn rồi.', effects: { happy: 4, karma: 1 }, scene: { loc: 'office', time: 'night', anim: 'phone', expr: 'scared', fx: 'idea' } }; } return { text: 'Bạn bị phát hiện đang cầm điện thoại. Cả đêm bọn chúng đánh bạn đến ngất đi, điện giật, nhốt thêm một tháng không thấy ánh sáng.', effects: { health: -22, happy: -8 }, scene: { anim: 'fall', fx: 'tears', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }; } }; }
     // escape
     const p = U.clamp(0.12 + S.stats.health / 400 + S.stats.smarts / 600, 0.1, 0.4);
     return { key: 'escape', label: '🏃 Liều mạng bỏ trốn', hint: 'Rất nguy hiểm: bị bắt lại sẽ bị trừng phạt nặng', odds: () => p, fn: () => { if (miniWin(p)) { campRelease('escape'); return { text: 'Giữa đêm mưa, bạn trèo qua hàng rào thép gai, chạy băng qua ruộng và rừng tới khi thấy ánh đèn của đồn biên phòng. Bạn thoát! Đôi bàn chân rớm máu, nhưng bạn đã sống.', effects: { happy: 6 }, scene: { loc: 'countryside', time: 'night', weather: 'rain', anim: 'run', fx: 'sweat' } }; } if (c.kind === 'ransom' && Math.random() < 0.3) { c.kind = 'scam'; c.amount = 0; } return { text: 'Bạn bị bắt lại ngay sát hàng rào. Chúng đánh bạn gãy xương sườn' + (c.kind === 'scam' ? ', và bán bạn sang một khu lừa đảo khác nghiêm ngặt hơn' : '') + '.', effects: { health: -25, happy: -10 }, scene: { anim: 'fall', fx: 'tears', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }; } };
   }
   ms({ id: 'ms_camp', title: 'Một năm trong bóng tối', icon: '⛓️', age: [16, 120],
-    text: 'Lại thêm một năm nữa trôi qua. Cửa sổ có chấn song, cổng có lính canh, ngày nào cũng giống ngày nào. Bạn chỉ còn hai chọn lựa: chịu đựng, hoặc tìm cách thoát ra. Năm nay bạn làm gì?',
+    text: 'Lại thêm một năm nữa trôi qua. Cửa sổ có chấn song, cổng có lính canh. Nếu ở khu lừa đảo: KPI năm nay là lừa đủ {camp.kpi} người, không đạt sẽ bị đánh đập. Năm nay bạn làm gì?',
     scene: { loc: 'office', time: 'night', anim: 'sad', expr: 'sad', npcs: [{ role: 'thug', anim: 'point', say: 'Làm việc đi!' }], fx: 'tears', shot: 'dramatic' },
     choicesFn: () => ['ransom', 'work', 'resist', 'signal', 'escape'].map(campChoice).filter((c) => c._ok !== false), choiceByKey: campChoice });
+
+  // ------------------------------------------------------------------ NGHỀ LỪA ĐẢO (tự nguyện): lương cao, ca làm việc hằng năm bằng minigame, nguy cơ bị bắt tăng dần
+  function scamJobYear(L, deltas) {
+    if (!S || S.dead || S.jail) return;
+    const pa = P().age, job = S.job;
+    if (job && job.id === 'luadao') {
+      addStat('karma', -U.rand(1, 3), deltas);
+      const lv = job.level, made = S.flags.scamMade || 0;
+      // công an truy quét: càng lên cao, càng nhiều nạn nhân thì càng dễ bị bắt
+      const risk = U.clamp(0.05 + lv * 0.05 + made / 400 - (S.flags.ldCareful ? 0.03 : 0), 0.04, 0.45);
+      if (Math.random() < risk) {
+        const y = 3 + lv * 3 + U.randi(0, 4), lost = Math.max(0, S.money);
+        L('🚨 Công an triệt phá đường dây lừa đảo. Bạn bị bắt, toàn bộ tài sản bị tịch thu để trả lại bị hại.', 'bad', '🚨');
+        S.money = Math.min(S.money, 0); if (S.assets && S.assets.length) S.assets.length = 0;
+        sendToJail(y, 'lừa đảo chiếm đoạt tài sản'); void lost;
+        addStat('happy', -12, deltas); S.flags.ldBusted = S.year; return;
+      }
+      if (S.pending.length < 2 && !S.pending.some((e) => e.id === 'ms_ld_ca')) queueMilestone('ms_ld_ca');
+      return;
+    }
+    // lời mời vào đường dây: người túng thiếu, ít đức dễ bị rủ
+    if (pa >= 18 && pa <= 40 && !S.flags.ld_invite && !(S.flags.ldNo && S.year - S.flags.ldNo < 4) && S.pending.length < 2 && !S.flags.scamSurvivor) {
+      const poor = S.money < 10e6, p = 0.012 + (poor ? 0.03 : 0) + (S.karma < 40 ? 0.02 : 0) + (S.flags.noxau ? 0.03 : 0);
+      if (Math.random() < p) queueMilestone('ms_ld_moi');
+    }
+  }
+  ms({ id: 'ms_ld_moi', title: 'Việc nhẹ lương cao', icon: '📱', age: [18, 45],
+    text: 'Người bạn cũ nhắn riêng: “Có chỗ làm online, ngồi nhà gọi điện thôi, lương 12 triệu một tháng, thưởng theo kết quả. Anh em đang giàu lên đấy.” Bạn nghe ra đó là đường dây lừa đảo: lấy tiền của người khác bằng lời đường mật.',
+    scene: { loc: 'bedroom', time: 'night', anim: 'phone', expr: 'surprised', npcs: [{ role: 'friend', anim: 'talk', say: 'Tiền đến nhanh lắm!' }], fx: 'money', shot: 'close' },
+    choices: [
+      { label: '📱 Nhận lời, vào đường dây', hint: 'Lương cao nhưng mất đức, có thể ngồi tù', fn: () => { S.flags.ld_invite = S.year; hire('luadao'); return { text: 'Bạn gật đầu. Hôm sau bạn có một chiếc điện thoại mới, một kịch bản soạn sẵn và một “quản lý” dặn dò: “Đủ chỉ tiêu thì có thưởng, lộ ra thì không biết nhau.” Tiền về rất nhanh, nhưng bạn bắt đầu mất ngủ.', effects: { money: 5e6, karma: -8, happy: 2 }, scene: { loc: 'office', time: 'night', anim: 'type', expr: 'sad', fx: 'money' }, tone: 'bad' }; } },
+      { label: '🚫 Từ chối thẳng, chặn số', fn: () => { S.flags.ldNo = S.year; return { text: 'Bạn chặn số người bạn đó. Tiền không đáng để đánh đổi lương tâm. Về sau bạn nghe tin cả nhóm bị công an bắt.', effects: { karma: 3, happy: 1 }, scene: { anim: 'shake', fx: 'sparkle' } }; } },
+      { label: '👮 Báo công an', fn: () => { S.flags.ldNo = S.year; return { text: 'Bạn mang toàn bộ tin nhắn đến công an phường. Cán bộ cảm ơn bạn đã tố giác. Vài tuần sau đường dây bị triệt phá, bạn được biểu dương.', effects: { karma: 8, happy: 3 }, scene: { loc: 'office', anim: 'nod', npcs: [{ role: 'police', anim: 'clap', say: 'Cảm ơn công dân!' }], fx: 'stars' } }; } },
+    ] });
+  ms({ id: 'ms_ld_ca', title: 'Ca làm việc ở đường dây', icon: '📞', age: [18, 65],
+    text: 'Quản lý thông báo KPI quý này: mỗi người phải “chốt” được vài khách. Bên kia màn hình, những người xa lạ đang chờ nghe lời ngọt của bạn. Bạn làm gì đây?',
+    scene: { loc: 'office', time: 'night', anim: 'type', expr: 'sad', npcs: [{ role: 'boss', anim: 'point', say: 'KPI đâu?' }], fx: 'sweat', shot: 'close' },
+    choicesFn: () => ['work', 'lazy', 'quit'].map(ldChoice), choiceByKey: ldChoice });
+  function ldChoice(k) {
+    const j = S.job, lv = j ? j.level : 0, kpi = 2 + lv;
+    if (k === 'work') { const p = U.clamp(0.5 + S.stats.smarts / 300 + (S.stats.looks - 50) / 400 - kpi * 0.04, 0.2, 0.8); return { key: k, label: '📞 Làm ca: dụ nạn nhân cho đủ KPI (' + kpi + ' người)', hint: 'Tiền thưởng cao, mất đức, tăng nguy cơ bị bắt. Cũng có thể lén cảnh báo nạn nhân', mini: 'scamchat', odds: () => p, fn: () => {
+      const out = KN.Mini && KN.Mini.lastOut; if (KN.Mini) KN.Mini.lastOut = null;
+      const got = out ? (out.scammedN || 0) : (miniWin(p) ? kpi : Math.floor(kpi * U.rand(0, 0.7))), saved = out ? (out.warnedN || 0) : 0;
+      S.flags.scamMade = (S.flags.scamMade || 0) + got; S.flags.scamSaved = (S.flags.scamSaved || 0) + saved;
+      const bonus = Math.round(got * U.rand(6, 25)) * 1e6 * (1 + lv * 0.5), eff = { money: bonus, karma: -3 * got + 4 * saved, happy: -2 };
+      let text = 'Cả quý bạn chốt được ' + got + '/' + kpi + ' người' + (saved ? ' và lén cứu ' + saved + ' người khác' : '') + '. ';
+      if (out && out.caught) { eff.money = 0; eff.health = -10; eff.happy = -5; j.perf = r100(j.perf - 15); text += 'Quản lý bắt quả tang bạn làm lộ kịch bản nên cho bạn ăn đòn và cắt hết thưởng.'; }
+      else if (got >= kpi) { j.perf = r100(j.perf + 12); text += 'Đạt KPI, bạn nhận thưởng ' + fmtMoney(bonus) + '. Có tiền, nhưng ' + got + ' gia đình đã mất tiền vì bạn.'; }
+      else { j.perf = r100(j.perf - 6); text += got ? 'Chưa đủ KPI nên chỉ được thưởng ' + fmtMoney(bonus) + ' và bị mắng.' : 'Không chốt được ai nên không có thưởng và bị mắng.'; }
+      return { text, effects: eff, scene: { loc: 'office', time: 'night', anim: got >= kpi ? 'cheer' : 'sad', expr: 'sad', npcs: [{ role: 'boss', anim: got >= kpi ? 'clap' : 'angry' }], fx: got >= kpi ? 'money' : 'sweat' }, tone: 'bad' }; } }; }
+    if (k === 'lazy') return { key: k, label: '🙈 Làm cho có, không dụ ai', hint: 'Không hại ai nhưng bị trừ hiệu suất', fn: () => { j.perf = r100(j.perf - 12); return { text: 'Bạn gọi cho vui, hỏi han vài câu rồi cúp máy. Không ai bị hại, nhưng quản lý ghi tên bạn vào danh sách “làm biếng”.', effects: { karma: 1, happy: -1 }, scene: { anim: 'shrug', fx: 'question' } }; } };
+    return { key: 'quit', label: '🚪 Bỏ đường dây, về làm lương thiện', hint: 'Đi sớm thì bớt tội, nhưng bọn họ không dễ tha', fn: () => { S.job = null; S.flags.ldNo = S.year; delete S.flags.ld_invite; const p = 0.6; if (Math.random() < p) return { text: 'Bạn nộp đơn nghỉ và xoá hết tin nhắn. Quản lý hầm hè dọa dẫm nhưng cuối cùng cũng để bạn đi. Bạn bắt đầu lại từ số không, nhẹ lòng hơn nhiều.', effects: { karma: 5, happy: 4 }, scene: { loc: 'street', anim: 'walk', fx: 'sparkle' } }; return { text: 'Bạn xin nghỉ nhưng bọn họ không chịu để yên: chặn đường đánh bạn một trận rồi lấy luôn điện thoại. Bạn thoát ra được, nhưng trầy trật.', effects: { karma: 5, health: -12, happy: -3 }, scene: { loc: 'street', time: 'night', anim: 'fall', npcs: [{ role: 'thug', anim: 'angry' }], fx: 'dust' }, tone: 'bad' }; } };
+  }
 
   // ------------------------------------------------------------------ CHỈ SỐ QUÁ THẤP: đến ngưỡng thì xã hội, bố mẹ, thầy cô phản ứng và buộc bạn chọn cách đối mặt
   function lowStatYear(L) {
@@ -4727,7 +4786,7 @@
   }
   function jobListings() {
     if (!S || P().age < 14) return [];
-    return Object.values(D.CAREERS).filter((c) => (c.id !== 'giangho' || S.flags.gh_invite) && !(c.since && S.year < c.since - 15)).map((c) => {
+    return Object.values(D.CAREERS).filter((c) => (c.id !== 'giangho' || S.flags.gh_invite) && (c.id !== 'luadao' || S.flags.ld_invite) && !(c.since && S.year < c.since - 15)).map((c) => {
       const reason = jobEligible(c);
       return Object.assign({ id: c.id, title: c.title, icon: c.icon, salaryText: payLabel(c, 0), reqText: reqTextOf(c), eligible: !reason, reason, talent: !!S.flags['talent_' + c.id] }, careerInfo(c));
     }).sort((a, b) => (b.eligible ? 1 : 0) - (a.eligible ? 1 : 0) || (b.talent ? 1 : 0) - (a.talent ? 1 : 0));
@@ -4766,7 +4825,7 @@
     const status = c.fame || id === 'kinhdoanh' ? Math.min(0.12, prestige() * 0.01) : 0;
     const sportFit = c.sport ? (S.stats.health - 70) / 120 : 0;
     const fitBonus = (id === 'dienvien' && S.edu.major === 'dienanh' ? 0.3 : 0) + (S.flags.veteran && ['canhsat', 'cuuhoa', 'chinhtri'].includes(id) ? 0.2 : 0) + (S.flags.duhoc || S.flags.master ? 0.12 : 0) + (careerFit(id) ? 0.1 : 0) + (S.flags.route && D.INTERESTS[S.flags.route].careers.includes(id) ? 0.12 : 0) + (S.flags['voc_' + id] ? 0.4 : 0);
-    const record = S.flags.tienan && id !== 'giangho' ? (S.flags.hocnghe_tu && ['congnhan', 'nongdan', 'phucvu', 'shipper'].includes(id) ? -0.05 : -0.2) : 0; // có tiền án thì khó xin việc
+    const record = S.flags.tienan && id !== 'giangho' && id !== 'luadao' ? (S.flags.hocnghe_tu && ['congnhan', 'nongdan', 'phucvu', 'shipper'].includes(id) ? -0.05 : -0.2) : 0; // có tiền án thì khó xin việc
     return U.clamp((c.fame ? 0.25 : 0.55) + (S.stats.smarts - 50) / 150 + (S.stats.looks - 50) / (c.fame ? 120 : 300) + (S.edu.perf - 50) / 300 + talent + status + sportFit + fitBonus + record + (S.flags.phd ? 0.08 : 0) + jmHire(id), 0.08, 0.95);
   }
   // để giao diện mở minigame phỏng vấn trước khi nộp đơn
@@ -6574,6 +6633,7 @@
 
   KN.Game = {
     newLife, ageUp, choose, activities, doActivity, interact, eduAction, jobAction, jobListings, applyJob, shopItems, buy, buyLoan, sell, rentAsset,
+    campKpi: () => (S && S.camp && S.camp.kind === 'scam' ? { target: S.camp.kpi || 2, year: S.jail ? S.year - S.jail.since + 1 : 1 } : S && S.job && S.job.id === 'luadao' ? { target: 2 + S.job.level, year: 1 } : null),
     deathInfo, deathScene, afterlifeScene, continueAs, demoScene, view, onlineSnapshot, remoteEffect, setMode, peekSave, getMode: () => MODE,
     choiceOdds,
     jobOdds, interactOdds, haggleInfo, miniNeed, companyOptions, foundCompany, eras: () => ERAS.slice(),
