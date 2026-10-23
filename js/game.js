@@ -2144,7 +2144,7 @@
     try { xkYear(L, deltas); if (S.abroad && S.abroad.settled && S.year - S.abroad.since === 5 && !S.flags.citizen) queueMilestone('ms_quoctich'); } catch (e) { U.warnOnce('xk', 'xk', e); }
     try { officeYear(L); if (S.company) chainYear(L, deltas); } catch (e) { U.warnOnce('batchB2', 'office/chain', e); }
     try { groupsYear(L); familyBYear(L); rivalYear(L); } catch (e) { U.warnOnce('famB', 'family batch B', e); }
-    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); scamJobYear(L, deltas); hospitalYear(L, deltas); eldersYear(L); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
+    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); scamJobYear(L, deltas); hospitalYear(L, deltas); eldersYear(L); clubYear(L, deltas); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
     // công việc tự tìm đến: mỗi năm có khả năng gặp một ca làm việc nổi bật của nghề
     try { if (S.job && !S.jail && S.pending.length < 2 && Math.random() < 0.4) { const ev = jobTaskEvent(); if (ev) S.pending.push(ev); } } catch (e) { U.warnOnce('jt', 'jobtask', e); }
     jailYear(L, deltas);
@@ -3492,6 +3492,50 @@
       { label: '🪦 Thắp nén hương mộ tổ tiên và người đã khuất', text: 'Bạn dọn cỏ, thắp hương ở nghĩa trang làng. Đứng trước những bia mộ quen tên, bạn thấy lòng bình yên lạ thường.', effects: { happy: 4, karma: 3 }, scene: { loc: 'temple', anim: 'pray', fx: 'smoke' } },
       { label: '💰 Góp tiền sửa lại mái trường và con đường làng', req: { minMoney: 50000000 }, text: 'Bạn góp 50 triệu sửa mái trường tiểu học và cái cầu tre. Bà con kéo ra đón, bọn trẻ tặng bạn những bó hoa dại. Bạn thấy mình đã sống một đời có ích.', effects: { money: -50000000, karma: 8, happy: 8 }, scene: { loc: 'school', anim: 'cheer', npcs: [{ role: 'kid', anim: 'cheer' }], fx: 'stars' } }
     ] });
+
+  // ------------------------------------------------------------------ CÂU LẠC BỘ NGOẠI KHÓA NĂNG KHIẾU (ngoài thể thao): âm nhạc, hội hoạ, hát múa, sân khấu, cờ vua, robot, tiếng Anh, hướng đạo, nấu ăn
+  const CLUBS = {
+    piano: { icon: '🎹', name: 'CLB âm nhạc (đàn piano, guitar)', cat: 'nghethuat', talent: 'nhaccong', gain: { happy: [1, 2] }, fl: ['Cô giáo nhạc khen ngón đàn của bạn có tiến bộ.', 'Bạn biểu diễn bản nhạc đầu tiên trong buổi sinh hoạt, cả lớp vỗ tay.'] },
+    ve: { icon: '🎨', name: 'CLB hội hoạ (vẽ, nặn)', cat: 'nghethuat', talent: 'hoasi', gain: { happy: [1, 2], smarts: [0, 1] }, fl: ['Bức tranh “Gia đình em” của bạn được treo ở hành lang trường.', 'Bạn đoạt giải khuyến khích cuộc thi vẽ thiếu nhi.'] },
+    hat: { icon: '🎤', name: 'CLB hát múa', cat: 'nghethuat', talent: 'casi', gain: { happy: [1, 3], looks: [0, 1] }, fl: ['Bạn được chọn hát đơn ca trong buổi lễ khai giảng.', 'Đội múa của lớp đoạt giải nhất hội diễn văn nghệ.'] },
+    kich: { icon: '🎭', name: 'CLB sân khấu, kịch', cat: 'nghethuat', talent: 'dienvien', gain: { happy: [1, 2], looks: [0, 1] }, fl: ['Bạn đóng vai chính trong vở kịch “Cây tre trăm đốt” của trường.', 'Cô giáo bảo bạn có khiếu diễn xuất tự nhiên.'] },
+    covua: { icon: '♟️', name: 'CLB cờ vua', cat: 'tuduy', talent: null, gain: { smarts: [1, 3] }, fl: ['Bạn thắng ván cờ đầu tiên trước đàn anh lớp trên.', 'Bạn vào chung kết giải cờ vua học sinh cấp quận.'] },
+    robot: { icon: '🤖', name: 'CLB robot & lập trình', cat: 'tuduy', talent: 'laptrinh', gain: { smarts: [1, 3] }, fl: ['Bạn lắp được con robot biết né vật cản, thầy hướng dẫn tròn mắt.', 'Chương trình đầu tiên bạn viết chạy đúng, bạn reo lên giữa lớp.'] },
+    anh: { icon: '🗣️', name: 'CLB tiếng Anh', cat: 'xahoi', talent: null, gain: { smarts: [0, 2], happy: [0, 1] }, english: 5, fl: ['Bạn tự tin chào khách nước ngoài bằng tiếng Anh ở hội chợ.', 'Bạn đoạt giải kể chuyện bằng tiếng Anh.'] },
+    huongdao: { icon: '⛺', name: 'CLB hướng đạo, khám phá thiên nhiên', cat: 'khampha', talent: null, gain: { health: [1, 3], happy: [1, 2] }, fl: ['Bạn học thắt nút dây, dựng lều và nhóm lửa trại.', 'Chuyến cắm trại cuối tuần là kỷ niệm đẹp nhất năm của bạn.'] },
+    bep: { icon: '🍳', name: 'CLB nấu ăn', cat: 'tayngh', talent: 'daubep', gain: { happy: [1, 2] }, fl: ['Bạn làm được món trứng chiên không cháy, cả nhà ăn sạch.', 'Món bánh bạn tự nướng được bạn bè khen ngon.'] },
+  };
+  function clubYear(L, deltas) {
+    if (!S || S.dead) return;
+    const pa = P().age;
+    if (!S.clubs) S.clubs = [];
+    // hỏi đăng ký CLB năng khiếu (lần hai sau một năm nếu mới chọn một CLB)
+    if (pa >= 6 && pa <= 12 && !S.flags.clb_no && S.pending.length < 2 && S.clubs.length < 2 && !S.jail) {
+      const first = !S.flags.clb_asked, second = S.clubs.length === 1 && !S.flags.clb_asked2 && S.year - S.flags.clb_asked >= 1;
+      if ((first && (pa === 8 || (pa > 8 && Math.random() < 0.5))) || (second && Math.random() < 0.7)) { if (first) S.flags.clb_asked = S.year; else S.flags.clb_asked2 = S.year; queueMilestone('ms_clb_join'); }
+    }
+    S.clubs.forEach((c) => {
+      const C = CLUBS[c.id]; if (!C) return; c.years = (c.years || 0) + 1;
+      Object.keys(C.gain).forEach((k) => addStat(k, U.rand(C.gain[k][0], C.gain[k][1]), deltas));
+      if (C.english) S.english = r100((S.english || 0) + C.english);
+      addInterest(C.cat, 1.5);
+      if (Math.random() < 0.35) L(C.icon + ' ' + U.pick(C.fl), 'good', C.icon);
+      if (c.years === 3) { if (C.talent) S.flags['talent_' + C.talent] = S.year; L('🌟 Sau ba năm gắn bó với ' + C.name + ', thầy cô nhận xét bạn có năng khiếu thật sự' + (C.talent ? '. Sau này ứng tuyển nghề liên quan sẽ có lợi thế.' : '.'), 'milestone', '🌟'); }
+    });
+    if (pa >= 15 && S.clubs.length) { S.clubs = []; L('🎒 Lên cấp 3, việc học dày đặc nên bạn rời các câu lạc bộ ngoại khóa. Kỹ năng vẫn còn ở lại.', 'neutral', '🎒'); }
+  }
+  function clubChoice(k) {
+    if (k === 'none') return { key: k, label: '🚫 Thôi, em không tham gia CLB nào', fn: () => { S.flags.clb_no = true; return { text: 'Bạn gấp phiếu đăng ký lại. Buổi chiều của bạn vẫn dành cho chơi và học.', effects: { happy: 1 }, scene: { anim: 'shrug' } }; } };
+    const C = CLUBS[k];
+    return { key: k, label: C.icon + ' ' + C.name, hint: 'Rèn: ' + Object.keys(C.gain).map((x) => ({ happy: 'hạnh phúc', smarts: 'trí tuệ', looks: 'ngoại hình', health: 'sức khoẻ' }[x])).join(', ') + (C.english ? ', tiếng Anh' : '') + (C.talent ? ' · hợp nghề ' + D.CAREERS[C.talent].title.toLowerCase() : ''), fn: () => {
+      S.clubs = S.clubs || []; S.clubs.push({ id: k, since: S.year, years: 0 }); addInterest(C.cat, 3);
+      return { text: 'Bạn đăng ký vào ' + C.name + '. Buổi sinh hoạt đầu tiên làm bạn hào hứng, về nhà bạn kể suốt bữa cơm. Mỗi năm bạn sẽ học thêm một chút, ba năm sau có thể thành năng khiếu thật sự.', effects: { happy: 4 }, scene: { loc: 'school', anim: 'cheer', fx: 'sparkle', npcs: [{ role: 'teacher', gender: 'f', anim: 'clap', say: 'Chào mừng em!' }] } };
+    } };
+  }
+  ms({ id: 'ms_clb_join', title: 'Câu lạc bộ ngoại khóa', icon: '🎒', age: [6, 13],
+    text: 'Trường mở các câu lạc bộ ngoại khóa buổi chiều: âm nhạc, hội hoạ, hát múa, sân khấu, cờ vua, robot, tiếng Anh, hướng đạo, nấu ăn… Cô giáo chủ nhiệm hỏi: “Em thích tham gia CLB nào?”',
+    scene: { loc: 'school', anim: 'think', npcs: [{ role: 'teacher', gender: 'f', anim: 'talk', say: 'Em thích CLB nào?' }], fx: 'question' },
+    choicesFn: () => Object.keys(CLUBS).filter((k) => !(S.clubs || []).some((c) => c.id === k)).map(clubChoice).concat([clubChoice('none')]), choiceByKey: clubChoice });
 
   // ------------------------------------------------------------------ CHỈ SỐ QUÁ THẤP: đến ngưỡng thì xã hội, bố mẹ, thầy cô phản ứng và buộc bạn chọn cách đối mặt
   function lowStatYear(L) {

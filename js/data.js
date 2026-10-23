@@ -706,9 +706,9 @@
       ],
       seasons: ['Năm nay bạn leo lên rank cao nhất, cày {n} trăm trận.', 'Đội bạn đánh {n} giải online, có giải vào chung kết.', 'Năm nay bạn chỉ chơi {n} giải, bố mẹ bắt giảm giờ chơi.'] }
   };
-  YOUTH_SPORT.bongro = { name: 'Bóng rổ', icon: '🏀', loc: 'court', fee: 3e6, from: 8, pro: 'Ký hợp đồng với một đội bóng rổ chuyên nghiệp VBA',
+  YOUTH_SPORT.bongro = { name: 'Bóng rổ', icon: '🏀', loc: 'court', fee: 3e6, from: 6, pro: 'Ký hợp đồng với một đội bóng rổ chuyên nghiệp VBA',
     stages: [
-      { name: 'Đội bóng rổ ngoại khóa của trường', age: 8 },
+      { name: 'Đội bóng rổ ngoại khóa của trường', age: 6 },
       { name: 'CLB bóng rổ trẻ thành phố', age: 11, need: 12, hp: 55, odds: 0.45, test: 'CLB bóng rổ trẻ tuyển quân: đo chiều cao, bật nhảy, ném rổ, đấu 3x3.' },
       { name: 'Đội tuyển trẻ U16', age: 13, need: 28, hp: 65, odds: 0.4, test: 'Giải bóng rổ học sinh toàn quốc: thành tích cá nhân quyết định suất lên U16.' },
       { name: 'Đội trẻ của CLB VBA', age: 16, need: 45, hp: 70, odds: 0.35, test: 'Trại tuyển chọn tài năng trẻ của giải VBA, tuyển trạch viên các đội có mặt đủ.' }
@@ -716,8 +716,8 @@
     seasons: ['Mùa này bạn ghi trung bình {n} điểm mỗi trận.', 'Bạn có {n} cú úp rổ, cả trường hò hét.', 'Năm nay bạn chủ yếu ngồi dự bị, ra sân {n} trận.'] };
   const ySport = (name, icon, loc, from, stages, pro, seasons) => ({ name, icon, loc, fee: 3e6, from, pro, seasons, stages: stages.map((s, i) => Object.assign({ name: s[0], age: s[1] }, i ? { need: [0, 12, 28, 45][i], hp: [0, 55, 64, 72][i], odds: [0, 0.45, 0.4, 0.33][i], test: s[2] } : {})) });
   YOUTH_SPORT.boi = ySport('Bơi lội', '🏊', 'beach', 6, [['Lớp bơi ngoại khóa', 6], ['Đội năng khiếu bơi', 9, 'Thi tuyển năng khiếu: bơi 50 mét tự do tính giờ, kiểm tra sải tay và sức bền.'], ['Đội tuyển trẻ tỉnh', 12, 'Giải bơi trẻ toàn quốc: phải vào chung kết mới được giữ lại đội tỉnh.'], ['Đội tuyển trẻ quốc gia', 15, 'Đợt tập trung đội tuyển trẻ quốc gia, chỉ lấy người có thành tích tốt nhất mỗi cự ly.']], 'Lên đội tuyển bơi chuyên nghiệp của tỉnh', ['Năm nay bạn bơi {n} giải, lần nào cũng phá thành tích cá nhân.', 'Sáng nào cũng xuống bể lúc 5 giờ, bạn bơi {n} cây số mỗi tuần.', 'Năm nay bạn chỉ thi {n} giải vì bị viêm tai.']);
-  YOUTH_SPORT.dienkinh = ySport('Điền kinh', '🏃', 'stadium', 8, [['Đội điền kinh của trường', 8], ['Đội năng khiếu điền kinh', 11, 'Hội khỏe Phù Đổng cấp thành phố: chạy 100 mét, nhảy xa, ném bóng.'], ['Đội tuyển trẻ tỉnh', 13, 'Giải điền kinh trẻ toàn quốc: phải có huy chương mới được gọi lên đội tỉnh.'], ['Đội tuyển trẻ quốc gia', 16, 'Đợt tuyển chọn đội tuyển trẻ quốc gia, đo thành tích từng phần trăm giây.']], 'Lên đội tuyển điền kinh chuyên nghiệp của tỉnh', ['Năm nay bạn chạy {n} giải, cải thiện thành tích đáng kể.', 'Bạn tập {n} buổi một tuần trên đường chạy đất đỏ của trường.', 'Năm nay bạn bị đau cổ chân, chỉ thi được {n} giải.']);
-  YOUTH_SPORT.bongchuyen = ySport('Bóng chuyền', '🏐', 'court', 10, [['Đội bóng chuyền của trường', 10], ['CLB bóng chuyền trẻ', 12, 'CLB bóng chuyền trẻ tuyển quân: đo chiều cao, bật nhảy, chuyền và đập bóng.'], ['Đội trẻ tỉnh', 14, 'Giải bóng chuyền trẻ toàn quốc, các đội VĐQG cử người xem.'], ['Đội trẻ của CLB VĐQG', 16, 'Trại tuyển chọn của CLB bóng chuyền VĐQG.']], 'Ký hợp đồng với CLB bóng chuyền VĐQG', ['Mùa này bạn có {n} cú đập ghi điểm mỗi trận.', 'Bạn đá chính {n} trận, chuyền hai cực ăn ý.', 'Năm nay bạn ngồi dự bị, vào sân {n} trận.']);
+  YOUTH_SPORT.dienkinh = ySport('Điền kinh', '🏃', 'stadium', 6, [['Đội điền kinh của trường', 6], ['Đội năng khiếu điền kinh', 11, 'Hội khỏe Phù Đổng cấp thành phố: chạy 100 mét, nhảy xa, ném bóng.'], ['Đội tuyển trẻ tỉnh', 13, 'Giải điền kinh trẻ toàn quốc: phải có huy chương mới được gọi lên đội tỉnh.'], ['Đội tuyển trẻ quốc gia', 16, 'Đợt tuyển chọn đội tuyển trẻ quốc gia, đo thành tích từng phần trăm giây.']], 'Lên đội tuyển điền kinh chuyên nghiệp của tỉnh', ['Năm nay bạn chạy {n} giải, cải thiện thành tích đáng kể.', 'Bạn tập {n} buổi một tuần trên đường chạy đất đỏ của trường.', 'Năm nay bạn bị đau cổ chân, chỉ thi được {n} giải.']);
+  YOUTH_SPORT.bongchuyen = ySport('Bóng chuyền', '🏐', 'court', 7, [['Đội bóng chuyền của trường', 7], ['CLB bóng chuyền trẻ', 12, 'CLB bóng chuyền trẻ tuyển quân: đo chiều cao, bật nhảy, chuyền và đập bóng.'], ['Đội trẻ tỉnh', 14, 'Giải bóng chuyền trẻ toàn quốc, các đội VĐQG cử người xem.'], ['Đội trẻ của CLB VĐQG', 16, 'Trại tuyển chọn của CLB bóng chuyền VĐQG.']], 'Ký hợp đồng với CLB bóng chuyền VĐQG', ['Mùa này bạn có {n} cú đập ghi điểm mỗi trận.', 'Bạn đá chính {n} trận, chuyền hai cực ăn ý.', 'Năm nay bạn ngồi dự bị, vào sân {n} trận.']);
   // đội nước ngoài có thể chiêu mộ VĐV Việt (tier càng cao càng khó, mult = hệ số thu nhập)
   // câu lạc bộ nước ngoài, gọi theo biệt danh quen thuộc của fan Việt; stars = ngôi sao (biệt danh) có thể làm đồng đội
   const FOREIGN_CLUBS = {
@@ -791,6 +791,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.79', date: '23/10/2026', items: [
+      '🏅 Đăng ký ngoại khóa lúc 7 tuổi giờ có đủ môn: bóng đá, võ, cầu lông, bơi, và thêm bóng rổ, điền kinh, bóng chuyền (trước đây phải 8–10 tuổi mới thấy).',
+      '🎒 Mới: câu lạc bộ ngoại khóa năng khiếu (từ 6–12 tuổi, chọn tối đa 2): âm nhạc, hội hoạ, hát múa, sân khấu, cờ vua, robot & lập trình, tiếng Anh, hướng đạo, nấu ăn. Mỗi năm rèn thêm chỉ số, ba năm thì có năng khiếu và có lợi thế khi ứng tuyển nghề liên quan.',
+    ] },
     { v: '1.78', date: '23/10/2026', items: [
       '⚡ Haxball online bớt lag: máy chủ gửi trạng thái 60 lần/giây (trước là 30), lệnh điều khiển gửi ngay khi bạn đổi hướng/sút thay vì chờ nhịp, và bù trễ cho bóng + cầu thủ khác theo ping thật (hiển thị vị trí đã đẩy tới trước theo nửa vòng ping).',
       '📶 Ping hiện màu: 🟢 dưới 80ms · 🟡 dưới 160ms · 🔴 từ 160ms trở lên.',
