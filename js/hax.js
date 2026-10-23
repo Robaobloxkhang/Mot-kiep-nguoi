@@ -29,7 +29,7 @@
   // roster: [{ team, name }] theo thứ tự cầu thủ
   function newMatch(o) {
     o = o || {}; applyMap(o.map);
-    const m = { map: MAPS[o.map] ? o.map : 'classic', players: [], ball: { x: W / 2, y: CY, vx: 0, vy: 0, spin: 0 }, score: [0, 0], time: 0, dur: o.dur || 180, phase: 'kickoff', phaseT: 0, kickoff: 0, golden: false, events: [], client: !!o.client, lastTouch: -1, goalsBy: {} };
+    const m = { map: MAPS[o.map] ? o.map : 'classic', players: [], ball: { x: W / 2, y: CY, vx: 0, vy: 0, spin: 0 }, score: [0, 0], time: 0, dur: o.dur || 180, phase: 'kickoff', phaseT: 0, kickoff: 0, golden: false, noGolden: !!o.noGolden, events: [], client: !!o.client, lastTouch: -1, goalsBy: {} };
     (o.roster || [{ team: 0 }, { team: 1 }]).forEach((r) => m.players.push({ team: r.team, x: 0, y: 0, vx: 0, vy: 0, cool: 0, kicking: false, flash: 0, charge: 0, name: r.name || '', num: 0, hx: 0, hy: 0, sk: r.sk || { charge: true, curve: true } }));
     [0, 1].forEach((t) => m.players.filter((p) => p.team === t).forEach((p, i) => (p.num = i + 1)));
     resetPositions(m); return m;
@@ -69,7 +69,7 @@
     m.phaseT++;
     if (m.phase === 'goal') { if (!m.client && m.phaseT > 150) { m.cele = null; resetPositions(m); } else { celebrate(m); moveBall(m); return; } }
     if (m.phase === 'end') return;
-    if (m.phase === 'play' && !m.client) { m.time += 1 / 60; if (m.time >= m.dur && !m.golden) { if (m.score[0] === m.score[1]) { m.golden = true; m.events.push({ t: 'golden' }); } else { m.phase = 'end'; m.events.push({ t: 'end' }); return; } } if (m.golden && m.time >= m.dur + 90) { m.phase = 'end'; m.events.push({ t: 'end' }); return; } }
+    if (m.phase === 'play' && !m.client) { m.time += 1 / 60; if (m.time >= m.dur && !m.golden) { if (m.score[0] === m.score[1] && !m.noGolden) { m.golden = true; m.events.push({ t: 'golden' }); } else { m.phase = 'end'; m.events.push({ t: 'end' }); return; } } if (m.golden && m.time >= m.dur + 90) { m.phase = 'end'; m.events.push({ t: 'end' }); return; } }
     m.players.forEach((p, i) => {
       if (p.out) return; // bị thẻ đỏ: rời sân
       const v = p.stun > 0 ? vecOf({}) : vecOf(inputs[i]);
@@ -489,79 +489,141 @@
     document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Esc: menu';
     runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { again: playAI });
   }
-  // ---------------------------------------------------------------- CÚP HAX: 8 đội, tứ kết → bán kết → chung kết, đối thủ mạnh dần
-  const CUP_KEY = 'kn_hax_cup';
-  const CUP_TEAMS = ['FC Sông Hàn', 'Hà Thành United', 'Sài Gòn Star', 'Hải Phòng Port', 'Huế Royal', 'Cần Thơ Mekong', 'Đà Lạt Pine', 'Quy Nhơn Wave', 'Vinh Phoenix', 'Nha Trang Coral', 'Thái Bình Rice', 'Hạ Long Bay FC'];
+  // ---------------------------------------------------------------- CÁC GIẢI HAX: Cúp Hax · Cúp Mùa Đông · Cúp Biển Xanh (8 đội, loại trực tiếp) · Giải Vô Địch (16 đội: vòng bảng rồi loại trực tiếp)
+  const CUP_TEAMS = ['FC Sông Hàn', 'Hà Thành United', 'Sài Gòn Star', 'Hải Phòng Port', 'Huế Royal', 'Cần Thơ Mekong', 'Đà Lạt Pine', 'Quy Nhơn Wave', 'Vinh Phoenix', 'Nha Trang Coral', 'Thái Bình Rice', 'Hạ Long Bay FC', 'Biên Hoà Rồng Vàng', 'Phú Quốc Pearl', 'Buôn Ma Thuột Cà Phê', 'Cà Mau Sấu', 'Lạng Sơn Hổ', 'Hội An Lantern', 'Bình Dương Gỗ', 'Pleiku Gió Núi', 'Đồng Tháp Sen', 'Sa Pa Sương Mù', 'Vũng Tàu Hải Âu', 'Thanh Hoá Voi'];
   const ROUND = ['Tứ kết', 'Bán kết', 'Chung kết'];
-  const PRIZE = [0, 3e6, 8e6, 2e7]; // tiền thưởng theo vòng đi tới (vô địch 20 triệu, gửi vào cuộc đời đang sống)
-  const cupLoad = () => { try { return JSON.parse(localStorage.getItem(CUP_KEY) || 'null'); } catch (e) { return null; } };
-  const cupSave = (c) => { try { localStorage.setItem(CUP_KEY, JSON.stringify(c)); } catch (e) { /* */ } };
-  function cupNew(prev) {
-    const names = CUP_TEAMS.slice().sort(() => Math.random() - 0.5).slice(0, 7);
-    const teams = [{ name: (cfg.name ? 'Đội của ' + cfg.name : 'Đội của bạn').slice(0, 22), me: true }].concat(names.map((n) => ({ name: n, str: Math.random() })));
-    const order = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5);
-    return { season: prev ? prev.season + 1 : 1, titles: prev ? prev.titles || 0 : 0, teams, rounds: [order.map((x) => x), null, null], scores: [[], [], []], round: 0, out: false, champ: null, size: cfg.size, map: mapOf() };
+  const CUPS = {
+    classic: { name: 'Cúp Hax', icon: '🏆', desc: '8 đội, đấu loại trực tiếp (tứ kết, bán kết, chung kết)', key: 'kn_hax_cup', map: null, mult: 1, prizes: [0, 3e6, 8e6, 2e7] },
+    ice: { name: 'Cúp Mùa Đông', icon: '🧊', desc: '8 đội, thi đấu trên sân băng trơn trượt · thưởng ×1,5', key: 'kn_hax_cup_ice', map: 'ice', mult: 1.5, prizes: [0, 3e6, 8e6, 2e7] },
+    beach: { name: 'Cúp Biển Xanh', icon: '🏖️', desc: '8 đội, thi đấu trên bãi cát nặng chân · thưởng ×1,5', key: 'kn_hax_cup_beach', map: 'beach', mult: 1.5, prizes: [0, 3e6, 8e6, 2e7] },
+    champ: { name: 'Giải Vô Địch Hax', icon: '🌏', desc: '16 đội: vòng bảng 4 bảng (đá vòng tròn, hoà được) lấy nhất nhì vào tứ kết · thưởng lớn nhất', key: 'kn_hax_cup_champ', map: null, mult: 1, groups: true, prizes: [0, 4e6, 8e6, 15e6, 4e7] },
+  };
+  const FIX = [[[0, 1], [2, 3]], [[0, 2], [1, 3]], [[0, 3], [1, 2]]]; // 3 lượt vòng bảng: ai cũng gặp 3 đối thủ cùng bảng
+  const GROUP = ['A', 'B', 'C', 'D'];
+  const shuf = (a) => a.sort(() => Math.random() - 0.5);
+  const cupLoad = (type) => { try { return JSON.parse(localStorage.getItem(CUPS[type].key) || 'null'); } catch (e) { return null; } };
+  const cupSave = (c) => { try { localStorage.setItem(CUPS[c.type].key, JSON.stringify(c)); } catch (e) { /* */ } };
+  function cupNew(type, prev) {
+    const T = CUPS[type], n = T.groups ? 16 : 8;
+    const names = shuf(CUP_TEAMS.slice()).slice(0, n - 1);
+    const teams = [{ name: (cfg.name ? 'Đội của ' + cfg.name : 'Đội của bạn').slice(0, 22), me: true }].concat(names.map((nm) => ({ name: nm, str: Math.random() })));
+    const order = shuf(teams.map((t, i) => i));
+    const c = { type, season: prev ? prev.season + 1 : 1, titles: prev ? prev.titles || 0 : 0, teams, scores: [[], [], []], round: 0, out: false, champ: null, size: cfg.size, map: T.map || mapOf(), rounds: [null, null, null] };
+    if (T.groups) { c.stage = 'group'; c.md = 0; c.groups = [0, 1, 2, 3].map((g) => order.slice(g * 4, g * 4 + 4)); c.res = c.groups.map(() => [[null, null], [null, null], [null, null]]); } else { c.stage = 'ko'; c.rounds[0] = order; }
+    return c;
   }
-  // trận giữa hai đội máy: đội mạnh hơn dễ thắng hơn
-  function simMatch(c, a, b) {
+  // trận giữa hai đội máy: đội mạnh hơn dễ thắng hơn (hoà = bàn thắng vàng khi loại trực tiếp)
+  function simMatch(c, a, b, draw) {
     const sa = c.teams[a].str, sb = c.teams[b].str; let ga = 0, gb = 0;
     for (let i = 0; i < 6; i++) { if (Math.random() < 0.25 + sa * 0.25) ga++; if (Math.random() < 0.25 + sb * 0.25) gb++; }
-    if (ga === gb) { if (Math.random() < 0.5 + (sa - sb) * 0.3) ga++; else gb++; }
+    if (ga === gb && !draw) { if (Math.random() < 0.5 + (sa - sb) * 0.3) ga++; else gb++; }
     return [ga, gb];
   }
+  // bảng xếp hạng một bảng: điểm → hiệu số → bàn thắng → ngẫu nhiên
+  function groupTable(c, g) {
+    const rows = c.groups[g].map((t) => ({ t, p: 0, pts: 0, gf: 0, ga: 0 }));
+    for (let md = 0; md < 3; md++) FIX[md].forEach((f, m) => { const r = c.res[g][md][m]; if (!r) return; const A = rows[f[0]], B = rows[f[1]]; A.p++; B.p++; A.gf += r[0]; A.ga += r[1]; B.gf += r[1]; B.ga += r[0]; if (r[0] > r[1]) A.pts += 3; else if (r[0] < r[1]) B.pts += 3; else { A.pts++; B.pts++; } });
+    return rows.sort((x, y) => y.pts - x.pts || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf || (x.t === 0 ? -1 : 0) || Math.random() - 0.5);
+  }
+  function simRest(c) { // bị loại: đá nốt các vòng loại trực tiếp (máy với máy) để biết nhà vô địch
+    while (c.round <= 2) { const l = c.rounds[c.round], s2 = c.scores[c.round], nx = []; for (let k = 0; k < l.length; k += 2) { const g = simMatch(c, l[k], l[k + 1]); s2[k / 2] = g; nx.push(g[0] > g[1] ? l[k] : l[k + 1]); } if (c.round < 2) { c.rounds[c.round + 1] = nx; c.round++; } else { c.champ = nx[0]; c.round = 3; } }
+  }
+  function groupAdvance(c, myGf, myGa) {
+    const md = c.md;
+    c.groups.forEach((grp, g) => FIX[md].forEach((f, m) => { const a = grp[f[0]], b = grp[f[1]]; c.res[g][md][m] = c.teams[a].me ? [myGf, myGa] : c.teams[b].me ? [myGa, myGf] : simMatch(c, a, b, true); }));
+    c.md++;
+    if (c.md >= 3) { // hết vòng bảng: nhất nhì mỗi bảng vào tứ kết, nhất bảng này gặp nhì bảng kia
+      const top = c.groups.map((_, g) => groupTable(c, g).slice(0, 2).map((r) => r.t));
+      c.rounds[0] = [top[0][0], top[1][1], top[2][0], top[3][1], top[1][0], top[0][1], top[3][0], top[2][1]];
+      c.stage = 'ko'; c.round = 0;
+      if (!c.rounds[0].some((t) => c.teams[t].me)) { c.out = true; simRest(c); }
+    }
+    cupSave(c);
+  }
   function cupAdvance(c, myGf, myGa) {
+    if (c.stage === 'group') return groupAdvance(c, myGf, myGa);
     const list = c.rounds[c.round], sc = c.scores[c.round], next = [];
     for (let k = 0; k < list.length; k += 2) {
       const a = list[k], b = list[k + 1];
-      let g = c.teams[a].me ? [myGf, myGa] : c.teams[b].me ? [myGa, myGf] : simMatch(c, a, b);
+      const g = c.teams[a].me ? [myGf, myGa] : c.teams[b].me ? [myGa, myGf] : simMatch(c, a, b);
       sc[k / 2] = g; next.push(g[0] > g[1] ? a : b);
     }
     if (!next.some((t) => c.teams[t].me)) c.out = true;
     if (c.round < 2) { c.rounds[c.round + 1] = next; c.round++; } else { c.champ = next[0]; c.round = 3; }
     if (c.champ != null && c.teams[c.champ].me) { c.titles = (c.titles || 0) + 1; (KN.Weekly && KN.Weekly.track('cup')); }
-    // bị loại: đá nốt các vòng còn lại (máy với máy) để biết nhà vô địch
-    while (c.out && c.round <= 2) { const l = c.rounds[c.round], s2 = c.scores[c.round], nx = []; for (let k = 0; k < l.length; k += 2) { const g = simMatch(c, l[k], l[k + 1]); s2[k / 2] = g; nx.push(g[0] > g[1] ? l[k] : l[k + 1]); } if (c.round < 2) { c.rounds[c.round + 1] = nx; c.round++; } else { c.champ = nx[0]; c.round = 3; } }
+    if (c.out && c.round <= 2) simRest(c);
     cupSave(c);
   }
+  // mức đi tới: 0 = dừng ở vòng bảng/tứ kết (cúp 8 đội), tăng dần theo vòng
+  function cupReached(c) {
+    const T = CUPS[c.type], mine = (r) => c.rounds[r] && c.rounds[r].some((t) => c.teams[t].me), champ = c.champ != null && c.teams[c.champ].me;
+    if (T.groups) return champ ? 4 : mine(2) ? 3 : mine(1) ? 2 : mine(0) ? 1 : 0;
+    return champ ? 3 : mine(2) ? 2 : mine(1) ? 1 : 0;
+  }
   function cupReward(c) {
-    const reached = c.champ != null && c.teams[c.champ].me ? 3 : c.rounds[2] && c.rounds[2].some((t) => c.teams[t].me) ? 2 : c.rounds[1] && c.rounds[1].some((t) => c.teams[t].me) ? 1 : 0;
+    const T = CUPS[c.type], reached = cupReached(c), top = T.groups ? 4 : 3;
     if (c.rewarded || !reached) return '';
     c.rewarded = true; cupSave(c);
-    try { if (KN.Game && KN.Game.hasLife() && !KN.Game.isDead() && KN.Game.remoteEffect) { KN.Game.remoteEffect({ happy: reached === 3 ? 5 : 2, money: PRIZE[reached] * (KN.Weekly && KN.Weekly.bonus('hax') ? 2 : 1) }, reached === 3 ? '🏆 Bạn cùng đồng đội vô địch Cúp Hax mùa ' + c.season + '! Tiền thưởng ' + (PRIZE[3] / 1e6) + ' triệu.' : '⚽ Đội bạn vào tới ' + (reached === 2 ? 'chung kết' : 'bán kết') + ' Cúp Hax, nhận ' + (PRIZE[reached] / 1e6) + ' triệu tiền thưởng.', '🏆'); return ' Đã cộng ' + (PRIZE[reached] / 1e6) + ' triệu vào cuộc đời đang sống.'; } } catch (e) { /* */ }
-    return '';
+    const money = Math.round(T.prizes[reached] * T.mult * (KN.Weekly && KN.Weekly.bonus('hax') ? 2 : 1));
+    try { if (KN.Game && KN.Game.hasLife() && !KN.Game.isDead() && KN.Game.remoteEffect) { KN.Game.remoteEffect({ happy: reached === top ? 5 : 2, money }, reached === top ? '🏆 Bạn cùng đồng đội vô địch ' + T.name + ' mùa ' + c.season + '! Tiền thưởng ' + Math.round(money / 1e6) + ' triệu.' : '⚽ Đội bạn đi tới ' + (T.groups ? ['', 'tứ kết', 'bán kết', 'chung kết'][reached] : ['', 'bán kết', 'chung kết'][reached]) + ' ' + T.name + ' mùa ' + c.season + ', thưởng ' + Math.round(money / 1e6) + ' triệu.', '⚽'); } } catch (e) { /* */ }
+    return ' 💰 Thưởng ' + Math.round(money / 1e6) + ' triệu.';
   }
-  function cupScreen() {
-    let c = cupLoad(); if (!c || c.round > 2 && c.viewed) c = cupNew(c);
-    if (!c.rounds[0]) c = cupNew(c);
+  // chọn giải
+  function cupMenu() {
+    const rows = Object.keys(CUPS).map((k) => { const T = CUPS[k], c = cupLoad(k), st = !c ? 'Mùa 1' : c.round > 2 ? 'Mùa ' + c.season + ' đã xong' : 'Mùa ' + c.season + ' đang đá' + (c.stage === 'group' ? ' · vòng bảng lượt ' + (c.md + 1) + '/3' : ' · ' + ROUND[c.round].toLowerCase()); return '<button type="button" class="btn btn-soft cup-pick" data-cup="' + k + '"><b>' + T.icon + ' ' + T.name + '</b><small>' + T.desc + '</small><em>' + st + (c && c.titles ? ' · 🏆×' + c.titles : '') + '</em></button>'; }).join('');
+    open('<div class="hax-lobby"><h3>🏆 Các giải đấu Hax</h3><p class="sub">Chọn một giải. Mỗi giải lưu tiến độ riêng, đội máy mạnh dần theo vòng.</p><div class="hax-menu">' + rows + '</div><div class="btnrow"><button type="button" class="btn btn-ghost" id="cupBack">← Menu</button></div></div>');
+    document.getElementById('cupBack').onclick = () => menu();
+    root.querySelectorAll('[data-cup]').forEach((b) => (b.onclick = () => cupScreen(b.dataset.cup)));
+  }
+  function cupScreen(type) {
+    if (!CUPS[type]) return cupMenu();
+    const T = CUPS[type];
+    let c = cupLoad(type); if (!c || (c.round > 2 && c.viewed)) c = cupNew(type, c);
     cupSave(c);
     const tn = (i) => '<span class="' + (c.teams[i].me ? 'cup-me' : '') + '">' + esc(c.teams[i].name) + '</span>';
     const col = (r) => { const l = c.rounds[r]; if (!l) return '<div class="cup-col"><b>' + ROUND[r] + '</b><div class="cup-m p-sub">Chờ…</div></div>'; let h = '<div class="cup-col"><b>' + ROUND[r] + '</b>'; for (let k = 0; k < l.length; k += 2) { const g = c.scores[r][k / 2]; h += '<div class="cup-m">' + tn(l[k]) + (g ? ' <b>' + g[0] + '</b>' : '') + '<br>' + tn(l[k + 1]) + (g ? ' <b>' + g[1] + '</b>' : '') + '</div>'; } return h + '</div>'; };
+    // bảng vòng bảng (chỉ giải 16 đội)
+    const groupsHtml = T.groups ? '<div class="cup-groups">' + c.groups.map((grp, g) => { const rows = groupTable(c, g); return '<div class="cup-g"><b>Bảng ' + GROUP[g] + '</b><table><tr><th></th><th>Tr</th><th>Đ</th><th>HS</th></tr>' + rows.map((r, i) => '<tr class="' + (i < 2 && c.md >= 3 ? 'adv' : '') + '"><td>' + tn(r.t) + '</td><td>' + r.p + '</td><td><b>' + r.pts + '</b></td><td>' + (r.gf - r.ga > 0 ? '+' : '') + (r.gf - r.ga) + '</td></tr>').join('') + '</table></div>'; }).join('') + '</div>' : '';
     let msg = '', btn = '';
+    const top = T.groups ? 4 : 3;
     if (c.round > 2) {
       const meChamp = c.teams[c.champ].me; c.viewed = true;
-      msg = meChamp ? '<div class="cup-trophy">🏆</div><h3>VÔ ĐỊCH Cúp Hax mùa ' + c.season + '!</h3><p class="sub">Danh hiệu thứ ' + c.titles + ' của bạn.' + cupReward(c) + '</p>' : '<p class="sub">😢 Đội bạn đã bị loại. Nhà vô địch mùa ' + c.season + ': <b>' + esc(c.teams[c.champ].name) + '</b>.' + cupReward(c) + '</p>';
+      msg = meChamp ? '<div class="cup-trophy">🏆</div><h3>VÔ ĐỊCH ' + T.name + ' mùa ' + c.season + '!</h3><p class="sub">Danh hiệu thứ ' + c.titles + ' của bạn.' + cupReward(c) + '</p>' : '<p class="sub">😢 Đội bạn đã bị loại' + (T.groups && cupReached(c) === 0 ? ' ngay từ vòng bảng' : '') + '. Nhà vô địch mùa ' + c.season + ': <b>' + esc(c.teams[c.champ].name) + '</b>.' + cupReward(c) + '</p>';
       btn = '<button type="button" class="btn btn-primary" id="cupNew">🔁 Mùa giải mới</button>';
       cupSave(c);
+    } else if (c.stage === 'group') {
+      const g = c.groups.findIndex((grp) => grp.includes(0)), grp = c.groups[g], mi = grp.indexOf(0), f = FIX[c.md].find((x) => x.includes(mi)), foe = c.teams[grp[f[0] === mi ? f[1] : f[0]]];
+      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · <b>Vòng bảng ' + GROUP[g] + '</b> lượt ' + (c.md + 1) + '/3 · Gặp <b>' + esc(foe.name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó'][Math.min(2, c.md)] + '). Thắng 3 điểm, hoà 1 điểm (không có bàn thắng vàng), nhất nhì bảng vào tứ kết.</p>';
+      btn = '<button type="button" class="btn btn-primary" id="cupPlay">▶ Đá lượt ' + (c.md + 1) + '</button><button type="button" class="btn btn-ghost" id="cupReset">Bỏ mùa này</button>';
     } else {
       const l = c.rounds[c.round], k = l.findIndex((t) => c.teams[t].me), foe = l[k % 2 ? k - 1 : k + 1];
-      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · Đối thủ ' + ROUND[c.round].toLowerCase() + ': <b>' + esc(c.teams[foe].name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó'][c.round] + '). Hoà hết giờ thì đá bàn thắng vàng.</p>';
+      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · Đối thủ ' + ROUND[c.round].toLowerCase() + ': <b>' + esc(c.teams[foe].name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó'][Math.min(2, c.round + (T.groups ? 1 : 0))] + '). Hoà hết giờ thì đá bàn thắng vàng.</p>';
       btn = '<button type="button" class="btn btn-primary" id="cupPlay">▶ Đá ' + ROUND[c.round] + '</button><button type="button" class="btn btn-ghost" id="cupReset">Bỏ mùa này</button>';
     }
-    open('<div class="hax-lobby"><h3>🏆 Cúp Hax</h3>' + msg + '<div class="cup-br">' + col(0) + col(1) + col(2) + '</div><p class="p-sub">Thưởng (nếu đang sống một cuộc đời): vào bán kết 3 triệu · vào chung kết 8 triệu · vô địch 20 triệu.</p><div class="btnrow">' + btn + '<button type="button" class="btn btn-ghost" id="cupBack">← Menu</button></div></div>');
-    document.getElementById('cupBack').onclick = () => menu();
-    const nb = document.getElementById('cupNew'); if (nb) nb.onclick = () => { cupSave(cupNew(c)); cupScreen(); };
-    const rb = document.getElementById('cupReset'); if (rb) rb.onclick = () => { cupSave(cupNew(c)); cupScreen(); };
+    const pr = T.prizes.map((v) => Math.round(v * T.mult / 1e6));
+    const prizeTxt = T.groups ? 'vào tứ kết ' + pr[1] + ' triệu · bán kết ' + pr[2] + ' · chung kết ' + pr[3] + ' · vô địch ' + pr[4] : 'vào bán kết ' + pr[1] + ' triệu · vào chung kết ' + pr[2] + ' · vô địch ' + pr[3];
+    open('<div class="hax-lobby"><h3>' + T.icon + ' ' + T.name + '</h3>' + msg + groupsHtml + '<div class="cup-br">' + col(0) + col(1) + col(2) + '</div><p class="p-sub">Thưởng (nếu đang sống một cuộc đời): ' + prizeTxt + '.</p><div class="btnrow">' + btn + '<button type="button" class="btn btn-ghost" id="cupBack">← Các giải</button></div></div>');
+    void top;
+    document.getElementById('cupBack').onclick = () => cupMenu();
+    const nb = document.getElementById('cupNew'); if (nb) nb.onclick = () => { cupSave(cupNew(type, c)); cupScreen(type); };
+    const rb = document.getElementById('cupReset'); if (rb) rb.onclick = () => { cupSave(cupNew(type, c)); cupScreen(type); };
     const pb = document.getElementById('cupPlay'); if (pb) pb.onclick = () => cupPlay(c);
   }
   function cupPlay(c) {
-    const l = c.rounds[c.round], k = l.findIndex((t) => c.teams[t].me), foe = c.teams[l[k % 2 ? k - 1 : k + 1]];
-    const n = c.size || 3, lvl = c.round, roster = [{ team: 0, name: myName() }], owners = ['me'];
+    let foe, label, lvl, noGolden = false;
+    if (c.stage === 'group') {
+      const grp = c.groups.find((x) => x.includes(0)), mi = grp.indexOf(0), f = FIX[c.md].find((x) => x.includes(mi));
+      foe = c.teams[grp[f[0] === mi ? f[1] : f[0]]]; label = 'Vòng bảng · lượt ' + (c.md + 1); lvl = Math.min(2, c.md); noGolden = true;
+    } else {
+      const l = c.rounds[c.round], k = l.findIndex((t) => c.teams[t].me); foe = c.teams[l[k % 2 ? k - 1 : k + 1]]; label = ROUND[c.round]; lvl = Math.min(2, c.round + (CUPS[c.type].groups ? 1 : 0));
+    }
+    const n = c.size || 3, roster = [{ team: 0, name: myName() }], owners = ['me'];
     for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội' }); owners.push(1); }
     for (let i = 0; i < n; i++) { roster.push({ team: 1, name: foe.name.split(' ').pop() }); owners.push(lvl); }
-    const m = newMatch({ dur: 120, map: c.map || 'classic', roster }); m.players[0].human = true;
-    open(pitchHtml('🏆 ' + ROUND[c.round] + ' · ' + foe.name + ' · ' + MP.icon + ' ' + MP.name));
+    const m = newMatch({ dur: 120, map: c.map || 'classic', roster, noGolden }); m.players[0].human = true;
+    open(pitchHtml(CUPS[c.type].icon + ' ' + label + ' · ' + foe.name + ' · ' + MP.icon + ' ' + MP.name));
     document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Esc: menu';
-    runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { cupEnd: (gf, ga) => { cupAdvance(c, gf, ga); setTimeout(cupScreen, 1200); }, onQuit: () => cupScreen() });
+    runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { cupEnd: (gf, ga) => { cupAdvance(c, gf, ga); setTimeout(() => cupScreen(c.type), 1200); }, onQuit: () => cupScreen(c.type) });
   }
   // 📋 HLV XEM TRẬN: 2 đội toàn máy (4 đấu 4), sức mạnh từng cầu thủ theo chỉ số; HLV chỉ đạo dâng/lùi, lối chơi, tua nhanh hoặc xem luôn kết quả
   function watch(o) {
@@ -951,7 +1013,7 @@
       settingsHtml(false) +
       '<div class="hax-name"><span>Tên của bạn</span><input id="hxName" maxlength="14" placeholder="Nhập tên để bạn bè nhận ra" autocomplete="off" value="' + esc(cfg.name || '') + '"></div>' +
       '<div class="hax-menu"><button type="button" class="btn btn-primary" id="hxAI">🤖 Đấu với máy</button>' +
-      '<button type="button" class="btn btn-primary" id="hxCup">🏆 Cúp Hax · 8 đội đấu loại trực tiếp</button>' +
+      '<button type="button" class="btn btn-primary" id="hxCup">🏆 Các giải đấu Hax · 4 giải, có vòng bảng</button>' +
       '<button type="button" class="btn btn-soft" id="hxLocal">👥 2 người 1 máy</button>' +
       '<div class="hax-srv"><b>🖥️ Online qua máy chủ riêng</b><small>Không bị mạng trường/công ty chặn · tối đa ' + MAX_PLAYERS + ' người · mỗi người một máy</small>' +
       '<button type="button" class="btn btn-primary" id="hxQuick">⚡ Vào phòng chung (tự ghép trận)</button>' +
@@ -965,7 +1027,7 @@
     bindSettings(menu);
     document.getElementById('hxName').oninput = (e) => { cfg.name = e.target.value.replace(/[<>]/g, '').trim().slice(0, 14); saveCfg(); };
     document.getElementById('hxAI').onclick = playAI;
-    document.getElementById('hxCup').onclick = cupScreen;
+    document.getElementById('hxCup').onclick = () => cupMenu();
     document.getElementById('hxLocal').onclick = playLocal2;
     document.getElementById('hxHost').onclick = host;
     document.getElementById('hxQuick').onclick = () => serverPlay('quick');
@@ -977,5 +1039,5 @@
     document.getElementById('hxCode').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('hxJoin').click(); };
     document.getElementById('hxClose').onclick = () => close();
   }
-  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _sim: { newMatch, step, aiInput, applyMap, draw, vecOf, snapshot } };
+  KN.Hax = { open: menu, close, playCareer, watch, MAPS, _cup: { load: cupLoad, advance: cupAdvance, screen: cupScreen }, _sim: { newMatch, step, aiInput, applyMap, draw, vecOf, snapshot } };
 })();

@@ -149,7 +149,7 @@
     bongchuyen: { title: 'Cầu thủ bóng chuyền', icon: '🏐', minAge: 16, maxStart: 22, retireAt: 33, sport: true, injury: 0.1, req: { minStat: { health: 70 } }, levels: [['Cầu thủ trẻ CLB', 6], ['Cầu thủ chính VĐQG', 15], ['Chủ công trụ cột', 30], ['Tuyển thủ quốc gia', 45]], prize: [[0, 8], [10, 80], [40, 250], [100, 800]], selfFund: 0, loc: 'court', style: 'jersey', fame: true },
     hoasi: { title: 'Họa sĩ', icon: '🎨', minAge: 18, volatile: true, req: { minStat: { smarts: 50 } }, levels: [['Họa sĩ vẽ thuê', 5], ['Họa sĩ có triển lãm', 14], ['Họa sĩ nổi tiếng', 40], ['Danh họa', 110]], loc: 'studio', style: 'shirt', fame: true },
     nhaccong: { title: 'Nhạc công', icon: '🎸', minAge: 16, req: { minStat: { smarts: 45 } }, levels: [['Nhạc công quán bar', 6], ['Nhạc công ban nhạc', 13], ['Nhạc công dàn nhạc giao hưởng', 22], ['Nhạc sĩ nổi tiếng', 60]], loc: 'karaoke', style: 'jacket', fame: true },
-    hlv: { title: 'Huấn luyện viên thể thao', icon: '📋', minAge: 20, req: { flag: 'ex_athlete' }, levels: [['Trợ lý huấn luyện viên', 15], ['HLV trưởng câu lạc bộ', 40], ['HLV đội tuyển quốc gia', 90]], loc: 'stadium', style: 'polo' },
+    hlv: { title: 'Huấn luyện viên thể thao', icon: '📋', minAge: 20, levels: [['Trợ lý huấn luyện viên', 15], ['HLV trưởng câu lạc bộ', 40], ['HLV đội tuyển quốc gia', 90]], loc: 'stadium', style: 'polo' },
     dienvien: { title: 'Diễn viên', icon: '🎬', minAge: 16, req: { minStat: { looks: 50 } }, levels: [['Diễn viên quần chúng', 4], ['Diễn viên phụ', 15], ['Diễn viên chính', 55], ['Ngôi sao màn bạc', 120]], loc: 'studio', style: 'shirt', fame: true },
     nguoimau: { title: 'Người mẫu', icon: '📸', minAge: 16, maxStart: 26, retireAt: 40, req: { minStat: { looks: 75 } }, levels: [['Người mẫu ảnh', 6], ['Người mẫu sàn diễn', 25], ['Siêu mẫu', 90]], loc: 'studio', style: 'suit', fame: true },
     tiepvien: { title: 'Tiếp viên hàng không', icon: '🛫', minAge: 18, maxStart: 30, req: { hs: true, minStat: { looks: 65, health: 60 } }, levels: [['Tiếp viên', 18], ['Tiếp viên trưởng', 30], ['Quản lý đoàn tiếp viên', 45]], loc: 'airport', style: 'suit' },
@@ -278,7 +278,7 @@
     bongchuyen: ['Bật nhảy, đập bóng, đội hình ăn ý. Giải nghệ khoảng 33 tuổi.', ['Chấn thương cổ chân', 'Được gọi lên tuyển', 'Sang Thái Lan thi đấu', 'Giải nghệ']],
     hoasi: ['Sống bằng màu vẽ: có năm bán tranh đắt như tôm tươi, có năm ăn mì gói.', ['Tranh bị đạo', 'Triển lãm cá nhân', 'Đại gia mua tranh giá cao', 'Bế tắc sáng tác']],
     nhaccong: ['Đêm nào cũng chạy show, ngón tay chai sạn. Có thể nổi tiếng nhờ một bản hit.', ['Chạy show xuyên đêm', 'Bản nhạc bị đạo', 'Bài hát thành hit', 'Mất hứng sáng tác']],
-    hlv: ['Dẫn dắt thế hệ sau. Chỉ dành cho vận động viên đã giải nghệ.', ['Học trò bị dụ bán độ', 'Bị sa thải sau chuỗi thua', 'Đưa đội lên ngôi vô địch']],
+    hlv: ['Dẫn dắt thế hệ sau. Ai từ 20 tuổi cũng xin được; từng là vận động viên thì được nể hơn.', ['Học trò bị dụ bán độ', 'Bị sa thải sau chuỗi thua', 'Đưa đội lên ngôi vô địch']],
     dienvien: ['Phim trường, vai diễn và ánh hào quang.', ['Bị gạ gẫm đổi vai', 'Phim bị khán giả chê', 'Vai diễn để đời']],
     nguoimau: ['Sàn diễn, ống kính, giữ dáng khắt khe. Giải nghệ khoảng 40 tuổi.', ['Bị ép giảm cân cấp tốc', 'Hợp đồng quảng cáo lớn', 'Diễn ở tuần lễ thời trang quốc tế']],
     tiepvien: ['Bay khắp nơi, phục vụ trên độ cao 10.000 m.', ['Hành khách gây rối', 'Chuyến bay gặp nhiễu động mạnh', 'Được xách hàng “nhờ”']],
@@ -791,8 +791,17 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.81', date: '23/10/2026', items: [
+      '🏆 Giải Hax mở rộng: 4 giải (Cúp Hax, Cúp Mùa Đông trên sân băng, Cúp Biển Xanh trên bãi cát, Giải Vô Địch 16 đội có VÒNG BẢNG: 4 bảng đá vòng tròn, hoà 1 điểm, nhất nhì vào tứ kết). Mỗi giải lưu tiến độ và tiền thưởng riêng.',
+      '📋 Phòng HLV có giao diện mới: header CLB với huy hiệu, thanh điều hướng, bảng Tổng quan, sân 4 người vẽ đúng sơ đồ, hồ sơ cầu thủ, thị trường chuyển nhượng có bộ lọc và hộp xác nhận, bảng xếp hạng kèm phong độ và lịch thi đấu.',
+      '📋 Nghề HLV: ai từ 20 tuổi cũng xin được (từng là vận động viên chỉ được cộng thêm tỉ lệ đậu). Các tình huống công sở (sếp, đồng nghiệp, AI thay việc…) không còn xuất hiện với HLV, VĐV, nghệ sĩ, người tự làm chủ.',
+      '💬 Minigame trò chuyện trong ca việc nay có bộ câu hỏi riêng theo nghề (HLV nói chuyện với học trò, xử lý khách, nói chuyện với học sinh, xử lý khủng hoảng…) thay vì câu hỏi chuyện gia đình chung chung.',
+      '⏩ Nút “Tua tuổi thơ” (0–9 tuổi): tự lớn tối đa 5 tuổi, gặp chuyện cần quyết định thì dừng cho bạn chọn rồi lớn tiếp.',
+      '🌍 Lời mời CLB nước ngoài có thể là bẫy lừa sang Campuchia; bấm “Kiểm tra” để dò (trí tuệ và tiếng Anh càng cao càng dễ phát hiện).',
+      '🖐️ Kéo thẻ Tinder không còn bôi đen văn bản.',
+    ] },
     { v: '1.80', date: '23/10/2026', items: [
-      '📋 Huấn luyện viên thể thao: vận động viên đã giải nghệ có thể xin làm HLV từ 20 tuổi (trước phải đủ 28), và sự kiện học bằng HLV cũng mở từ 20 tuổi.',
+      '📋 Huấn luyện viên thể thao: vận động viên đã giải nghệ có thể xin làm HLV từ 20 tuổi (trước phải đủ 28), và sự kiện học bằng HLV cũng mở từ 20 tuổi. (Từ 1.81: ai cũng xin được.)',
     ] },
     { v: '1.79', date: '23/10/2026', items: [
       '🏅 Đăng ký ngoại khóa lúc 7 tuổi giờ có đủ môn: bóng đá, võ, cầu lông, bơi, và thêm bóng rổ, điền kinh, bóng chuyền (trước đây phải 8–10 tuổi mới thấy).',

@@ -72,7 +72,7 @@
     m.season = year; m.round = 0; m.teams = makeTeams(m);
     const all = [m.club].concat(m.teams.map((t) => t.name));
     m.table = all.map((name) => ({ name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }));
-    m.fixtures = fixturesFor(all.length, !m.national); m.log = []; m.lastMatch = null; m.done = false;
+    m.fixtures = fixturesFor(all.length, !m.national); m.log = []; m.results = []; m.news = []; m.lastMatch = null; m.done = false;
     m.goal = m.national ? (m.level >= 2 ? 'title' : 'top4') : m.board < 40 ? 'avoid' : m.squadStr > 66 ? 'title' : m.squadStr > 58 ? 'top4' : 'mid';
     m.market = marketList(m); m.window = true;
     m.squad.forEach((p) => { p.goals = 0; p.apps = 0; });
@@ -184,6 +184,8 @@
   // kỳ chuyển nhượng: 2 vòng đầu mùa và 2 vòng giữa mùa (giữa mùa có danh sách cầu thủ mới)
   function updWindow(m) { const h = Math.floor(m.fixtures.length / 2); if (m.round === h) m.market = marketList(m); m.window = m.round < 2 || m.round === h || m.round === h + 1; }
   function afterMatch(m, gf, ga) {
+    const fx0 = m.fixtures[m.round] && m.fixtures[m.round].find(([x, y]) => x === 0 || y === 0);
+    if (fx0) { const hm = fx0[0] === 0; (m.results = m.results || []).push({ r: m.round + 1, opp: m.teams[(hm ? fx0[1] : fx0[0]) - 1].name, home: hm, gf, ga }); }
     const res = gf > ga ? 1 : gf < ga ? -1 : 0;
     m.squad.forEach((p) => { if (p.inj > 0) p.inj--; });
     lineup(m).forEach((p) => { p.apps++; p.morale = U.clamp(p.morale + res * 4, 30, 100); });
@@ -191,70 +193,215 @@
     m.board = U.clamp(m.board + res * 2, 0, 100);
   }
 
-  // ------------------------------------------------------------------ giao diện
-  let root = null, tab = 'squad';
+  // ------------------------------------------------------------------ giao diện (thiết kế mới: header CLB · thanh điều hướng · sân 4 người · ngăn kéo hồ sơ)
+  let root = null, tab = 'home';
   const st = () => (G() && G().mgrState ? G().mgrState() : null);
-  function close() { if (root) { root.remove(); root = null; } try { KN.UI && KN.UI.render && KN.UI.render(); } catch (e) { /* */ } }
-  function open(t) {
-    const m = st(); if (!m) return;
-    if (t) tab = t;
-    if (!root) { root = document.createElement('div'); root.className = 'hax mgr'; document.body.appendChild(root); root.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') close(); }); }
-    const pos = myPos(m), n = m.table.length;
-    root.innerHTML = '<div class="hax-box mgr-box"><div class="mgr-top"><div><b>📋 ' + esc(m.club) + '</b><small>' + (m.national ? 'AFF Cup ' : 'V-League ') + m.season + ' · vòng ' + Math.min(m.round + 1, m.fixtures.length) + '/' + m.fixtures.length + ' · hạng ' + pos + '/' + n + ' · 🏆×' + m.trophies + '</small></div>' +
-      '<div class="mgr-kpi"><span>💰 ' + (m.national ? '—' : money(m.budget)) + '</span><span>👔 Ban lãnh đạo ' + Math.round(m.board) + '%</span><span>🎯 ' + GOAL_TXT[m.goal] + '</span></div><button type="button" class="icon-btn" data-x>✕</button></div>' +
-      '<div class="cm-tabs mgr-tabs">' + [['squad', '👥 Đội hình'], ['tactic', '🧠 Chiến thuật'], ['market', m.national ? '📝 Triệu tập' : '💸 Chuyển nhượng'], ['league', '🏆 Giải đấu']].map(([k, l]) => '<button type="button" data-tab="' + k + '" class="' + (tab === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div><div class="mgr-body" id="mgrBody">' + body(m) + '</div></div>';
-    root.querySelector('[data-x]').onclick = close;
-    root.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => { sfx('click'); open(b.dataset.tab); }));
-    bind(m);
+  const ui = { sel: null, ctx: 'squad', q: '', pos: 'all', sort: 'ovr', mq: '', mpos: 'all', mage: 99, mmin: 0, mmax: 0, list: false, saved: null };
+  const GOAL_NEED = (m) => ({ title: 1, top4: 4, mid: 6, avoid: m.table.length - 2 }[m.goal]);
+  const ICON = {
+    home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    squad: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M16 14.2c3 .2 5 2.3 5 5.3"/>',
+    tactic: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><circle cx="12" cy="12" r="2.6"/>',
+    market: '<path d="M4 8h13l-2.5-3M20 16H7l2.5 3"/><path d="M17 8l3 3-3 3M7 16l-3-3 3-3" opacity=".0"/>',
+    league: '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 20h8"/>',
+    club: '<path d="M4 20V9l8-5 8 5v11M9 20v-6h6v6"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    play: '<path d="M7 4l13 8-13 8z"/>', fast: '<path d="M4 5l8 7-8 7zM13 5l8 7-8 7z"/>', search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', check: '<path d="M5 12l5 5 9-10"/>',
+  };
+  const ic = (n, s) => '<svg class="mx-ic" width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[n] || '') + '</svg>';
+  const hue = (s) => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; };
+  const initials = (s) => { const w = String(s).replace(/[^\p{L}\s]/gu, '').split(/\s+/).filter(Boolean); return ((w.length > 1 ? w[0][0] + w[w.length - 1][0] : (w[0] || '?').slice(0, 2))).toUpperCase(); };
+  // huy hiệu CLB (tự vẽ theo tên) và chân dung cầu thủ (tự vẽ theo tên) — không dùng hình bản quyền
+  const badge = (name, s) => { const h = hue(name); return '<svg class="mx-badge" width="' + (s || 44) + '" height="' + (s || 44) + '" viewBox="0 0 48 52" aria-hidden="true"><path d="M24 2l19 6v18c0 11-8 19-19 24C13 45 5 37 5 26V8z" fill="hsl(' + h + ' 55% 32%)" stroke="#FFB547" stroke-width="2"/><path d="M24 2l19 6v8H5V8z" fill="hsl(' + h + ' 60% 44%)" opacity=".55"/><text x="24" y="35" text-anchor="middle" font-size="16" font-weight="800" fill="#fff" font-family="inherit">' + esc(initials(name)) + '</text></svg>'; };
+  const avatar = (p, s) => { const h = hue(p.name), skin = ['#f1c7a0', '#e0a97c', '#c98e63', '#f5d4b3'][h % 4], hair = ['#1c1410', '#3a2415', '#0e0e12', '#5a3a1c'][(h >> 2) % 4]; return '<svg class="mx-av' + (p.inj ? ' inj' : '') + '" width="' + (s || 36) + '" height="' + (s || 36) + '" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="20" fill="hsl(' + h + ' 40% 24%)"/><path d="M6 36c1-8 7-11 14-11s13 3 14 11a20 20 0 0 1-28 0z" fill="hsl(' + ((h + 40) % 360) + ' 55% 42%)"/><circle cx="20" cy="16" r="7" fill="' + skin + '"/><path d="M13 15c0-5 3-8 7-8s7 3 7 8c-2-3-5-4-7-4s-5 1-7 4z" fill="' + hair + '"/></svg>'; };
+  const ovrCls = (v) => (v >= 75 ? 'o-top' : v >= 65 ? 'o-good' : v >= 55 ? 'o-mid' : 'o-low');
+  const moodTxt = (v) => (v >= 75 ? 'Rất tốt' : v >= 55 ? 'Ổn định' : 'Thấp');
+  const bar = (v, cls) => '<span class="mx-bar ' + (cls || '') + '"><i style="width:' + Math.max(0, Math.min(100, v)) + '%"></i></span>';
+  const findP = (m, id) => m.squad.find((x) => x.id === id) || m.market.find((x) => x.id === id);
+  const myFix = (m, r) => { const rd = m.fixtures[r]; const f = rd && rd.find(([a, b]) => a === 0 || b === 0); if (!f) return null; const home = f[0] === 0; return { home, opp: m.teams[(home ? f[1] : f[0]) - 1] }; };
+  const resOf = (m) => (m.results || []).slice();
+  const wdl = (r) => (r.gf > r.ga ? 'W' : r.gf < r.ga ? 'L' : 'D');
+  const formDots = (m, n) => '<span class="mx-form" title="Phong độ các trận gần nhất">' + (resOf(m).slice(-(n || 5)).map((r) => '<i class="f' + wdl(r) + '">' + ({ W: 'T', D: 'H', L: 'B' })[wdl(r)] + '</i>').join('') || '<small>Chưa đá trận nào</small>') + '</span>';
+  const avgOvr = (m) => { const xi = lineup(m); return xi.length ? Math.round(xi.reduce((s, p) => s + p.ovr, 0) / xi.length) : 0; };
+  const moodAvg = (m) => Math.round(m.squad.reduce((s, p) => s + p.morale, 0) / Math.max(1, m.squad.length));
+  const save = () => { try { G().mgrSave(); ui.saved = new Date(); const e = root && root.querySelector('#mxSaved'); if (e) e.textContent = savedTxt(); } catch (e) { /* */ } };
+  const savedTxt = () => (ui.saved ? 'Đã lưu ' + String(ui.saved.getHours()).padStart(2, '0') + ':' + String(ui.saved.getMinutes()).padStart(2, '0') : 'Tự động lưu');
+  function news(m, t) { m.news = (m.news || []); m.news.unshift({ t, s: m.season, r: m.round }); m.news.length = Math.min(m.news.length, 12); try { G().mgrNews(t); } catch (e) { /* */ } }
+
+  function toast(t, kind) {
+    if (!root) return; const box = root.querySelector('.mx-toasts'); if (!box) return;
+    const d = document.createElement('div'); d.className = 'mx-toast ' + (kind || ''); d.setAttribute('role', 'status'); d.textContent = t; box.appendChild(d); setTimeout(() => d.remove(), 3600);
   }
-  function pRow(p, xi, extra) {
-    const inXi = xi && xi.includes(p);
-    return '<tr class="' + (inXi ? 'xi' : '') + (p.inj ? ' inj' : '') + '"><td>' + POS_IC[p.pos] + ' ' + p.pos + '</td><td class="nm">' + esc(p.name) + (p.foreign ? ' 🌍' : '') + (p.inj ? ' 🩼' + p.inj : '') + '</td><td><b class="ovr o' + Math.floor(p.ovr / 10) + '">' + p.ovr + '</b></td><td>' + p.age + '</td><td>' + (p.pot > p.ovr + 3 ? '↗' + p.pot : '') + '</td><td>' + (p.morale >= 75 ? '😄' : p.morale >= 55 ? '🙂' : '😟') + '</td><td>' + money(p.val) + '</td><td>' + (p.goals || '') + '</td><td>' + (extra || '') + '</td></tr>';
+  function confirmBox(title, text, okLabel, fn, danger) {
+    const w = document.createElement('div'); w.className = 'mx-dlg'; w.innerHTML = '<div class="mx-dlg-box" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p><div class="mx-dlg-act"><button type="button" class="mx-btn" data-no>Huỷ</button><button type="button" class="mx-btn ' + (danger ? 'danger' : 'pri') + '" data-ok>' + esc(okLabel) + '</button></div></div>';
+    const done = (ok) => { w.remove(); if (ok) fn(); };
+    w.querySelector('[data-no]').onclick = () => done(false); w.querySelector('[data-ok]').onclick = () => done(true);
+    w.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } });
+    root.appendChild(w); w.querySelector('[data-no]').focus();
   }
-  const TH = '<tr><th>VT</th><th>Tên</th><th>CS</th><th>Tuổi</th><th>Tiềm năng</th><th>TT</th><th>Giá trị</th><th>⚽</th><th></th></tr>';
+
+  // --- sân 4 người (Haxball): các hàng dọc theo sơ đồ, tấn công về bên phải
+  function pitchHtml(m, form, xi, opts) {
+    opts = opts || {}; const f = FORMS[form], rows = [1, 2, 3].filter((i) => f.n[i] > 0), sorted2 = xi.slice().sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos));
+    const slots = []; rows.forEach((ri, k) => { for (let j = 0; j < f.n[ri]; j++) slots.push({ pos: POS[ri], x: 22 + (rows.length === 1 ? 28 : (k * 56) / (rows.length - 1)), y: ((j + 1) * 100) / (f.n[ri] + 1) }); });
+    const marks = sorted2.slice(0, slots.length).map((p, i) => { const s = slots[i], off = p.pos !== s.pos && p.pos !== 'GK';
+      return '<button type="button" class="mx-pm' + (off ? ' off' : '') + (ui.sel === p.id ? ' sel' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-act="sel" data-id="' + p.id + '" data-ctx="squad" title="' + esc(p.name) + ' · ' + POS_VN[p.pos] + (off ? ' (đang đá lệch vị trí)' : '') + '">' + '<span class="mx-pm-c ' + ovrCls(p.ovr) + '">' + p.ovr + '</span><span class="mx-pm-n">' + esc(p.name.split(' ').slice(-1)[0]) + '</span><span class="mx-pm-p">' + p.pos + '</span></button>'; }).join('');
+    return '<div class="mx-pitch' + (opts.mini ? ' mini' : '') + '"><svg viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="194" height="94" rx="4" class="pl"/><path d="M100 3v94" class="pl"/><circle cx="100" cy="50" r="13" class="pl"/><path d="M3 30h14v40H3M197 30h-14v40h14" class="pl"/><rect x="0" y="40" width="3" height="20" class="gl"/><rect x="197" y="40" width="3" height="20" class="gl"/></svg><span class="mx-pitch-g">Thủ môn tự động: người lùi sâu nhất</span>' + marks + '<span class="mx-pitch-d">Tấn công →</span></div>';
+  }
+  const rowHtml = (m, p, xi, ctx) => '<button type="button" class="mx-row' + (xi && xi.includes(p) ? ' xi' : '') + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="' + ctx + '">' + avatar(p, 30) + '<span class="mx-rn"><b>' + esc(p.name) + '</b><small>' + POS_VN[p.pos] + (p.foreign ? ' · ngoại binh' : '') + (xi ? (xi.includes(p) ? ' · <u>Đá chính</u>' : ' · Dự bị') : '') + (p.inj ? ' · chấn thương ' + p.inj + ' vòng' : '') + '</small></span><span class="mx-n ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span><span class="mx-n" title="Tuổi">' + p.age + '</span><span class="mx-n" title="Tiềm năng">' + (p.pot > p.ovr + 3 ? '<em>' + p.pot + '</em>' : p.pot) + '</span><span class="mx-n" title="Tinh thần: ' + p.morale + '">' + bar(p.morale, p.morale >= 75 ? 'g' : p.morale >= 55 ? '' : 'r') + '</span><span class="mx-n val" title="Giá trị">' + money(p.val) + '</span></button>';
+  const rowHead = '<div class="mx-row-h"><span></span><span class="mx-rn">Cầu thủ</span><span title="Chỉ số tổng">CS</span><span>Tuổi</span><span title="Tiềm năng">TN</span><span title="Tinh thần">TT</span><span>Giá trị</span></div>';
+  function sortBy(a, b) { const k = ui.sort; return k === 'age' ? a.age - b.age : k === 'val' ? b.val - a.val : k === 'pot' ? b.pot - a.pot : b.ovr - a.ovr; }
+  function squadListHtml(m) {
+    const xi = lineup(m), q = ui.q.trim().toLowerCase();
+    const arr = m.squad.filter((p) => (ui.pos === 'all' || p.pos === ui.pos) && (!q || p.name.toLowerCase().includes(q))).sort(sortBy);
+    if (!arr.length) return '<p class="mx-empty">Không có cầu thủ phù hợp bộ lọc.</p>';
+    return rowHead + POS.filter((pos) => arr.some((p) => p.pos === pos)).map((pos) => '<div class="mx-grp">' + POS_VN[pos] + '</div>' + arr.filter((p) => p.pos === pos).map((p) => rowHtml(m, p, xi, 'squad')).join('')).join('');
+  }
+  function marketRows(m) {
+    const q = ui.mq.trim().toLowerCase();
+    return m.market.filter((p) => (ui.mpos === 'all' || p.pos === ui.mpos) && p.age <= ui.mage && p.ovr >= ui.mmin && (!ui.mmax || p.val <= ui.mmax) && (!q || p.name.toLowerCase().includes(q)) && !(m.national && m.squad.some((x) => x.name === p.name))).sort(sortBy);
+  }
+  function marketListHtml(m) {
+    const arr = marketRows(m);
+    if (!arr.length) return '<p class="mx-empty">Không có cầu thủ nào khớp bộ lọc.</p>';
+    return arr.map((p) => '<div class="mx-card' + (ui.sel === p.id ? ' sel' : '') + '">' + '<button type="button" class="mx-card-main" data-act="sel" data-id="' + p.id + '" data-ctx="market">' + avatar(p, 44) + '<span class="mx-rn"><b>' + esc(p.name) + '</b><small>' + POS_VN[p.pos] + ' · ' + p.age + ' tuổi' + (p.foreign ? ' · ngoại binh' : '') + '</small></span><span class="mx-n big ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span></button>' +
+      '<div class="mx-card-m"><span title="Tiềm năng">TN <b>' + p.pot + '</b></span><span title="Tinh thần">TT <b>' + moodTxt(p.morale) + '</b></span><span class="val">' + (m.national ? 'Triệu tập' : money(p.val)) + '</span></div>' +
+      '<div class="mx-card-a">' + (m.national ? '<button type="button" class="mx-btn pri sm" data-act="call" data-id="' + p.id + '">Triệu tập</button>' : m.window ? '<button type="button" class="mx-btn pri sm" data-act="buy" data-id="' + p.id + '">Mua</button><button type="button" class="mx-btn sm" data-act="bid" data-id="' + p.id + '" title="Trả giá thấp hơn 20%, có thể bị từ chối">Trả giá −20%</button>' : '<span class="mx-closed">Kỳ chuyển nhượng đóng</span>') + '</div></div>').join('');
+  }
+
+  // --- ngăn kéo hồ sơ cầu thủ
+  function drawerHtml(m) {
+    const p = ui.sel && findP(m, ui.sel); if (!p) return '';
+    const inSq = m.squad.includes(p), xi = lineup(m), on = inSq && xi.includes(p);
+    const dev = p.age <= 23 && p.pot > p.ovr + 2 ? 'Đang phát triển — còn khoảng +' + (p.pot - p.ovr) + ' chỉ số' : p.age >= 31 ? 'Đang xuống sức theo tuổi, giá trị giảm dần' : 'Ở độ chín, ít thay đổi';
+    const act = inSq ? '<button type="button" class="mx-btn' + (p.lock === 'start' ? ' pri' : '') + '" data-act="lock" data-id="' + p.id + '" data-v="start">' + (p.lock === 'start' ? 'Đang ghim đá chính' : 'Ghim đá chính') + '</button><button type="button" class="mx-btn' + (p.lock === 'bench' ? ' pri' : '') + '" data-act="lock" data-id="' + p.id + '" data-v="bench">' + (p.lock === 'bench' ? 'Đang cho dự bị' : 'Cho dự bị') + '</button>' + (m.national ? '<button type="button" class="mx-btn danger" data-act="drop" data-id="' + p.id + '">Loại khỏi đội</button>' : '<button type="button" class="mx-btn danger" data-act="sell" data-id="' + p.id + '">Rao bán</button>')
+      : m.national ? '<button type="button" class="mx-btn pri" data-act="call" data-id="' + p.id + '">Triệu tập</button>' : m.window ? '<button type="button" class="mx-btn pri" data-act="buy" data-id="' + p.id + '">Mua ' + money(p.val) + '</button><button type="button" class="mx-btn" data-act="bid" data-id="' + p.id + '">Trả giá −20%</button>' : '<span class="mx-closed">Kỳ chuyển nhượng đang đóng</span>';
+    return '<div class="mx-dr-h">' + avatar(p, 56) + '<div><h3>' + esc(p.name) + '</h3><small>' + POS_VN[p.pos] + ' · ' + p.age + ' tuổi' + (p.foreign ? ' · ngoại binh' : '') + '</small></div><button type="button" class="mx-x" data-act="drx" aria-label="Đóng hồ sơ">' + ic('close', 18) + '</button></div>' +
+      '<div class="mx-dr-ovr"><div><small>Chỉ số tổng</small><b class="' + ovrCls(p.ovr) + '">' + p.ovr + '</b></div><div><small>Tiềm năng</small><b>' + p.pot + '</b></div></div>' +
+      '<dl class="mx-dl"><dt title="Tinh thần ảnh hưởng sức mạnh thi đấu">Tinh thần</dt><dd>' + bar(p.morale, p.morale >= 75 ? 'g' : p.morale >= 55 ? '' : 'r') + ' ' + moodTxt(p.morale) + ' (' + p.morale + ')</dd><dt>Thể trạng</dt><dd>' + (p.inj ? '<span class="bad">Chấn thương, nghỉ ' + p.inj + ' vòng</span>' : 'Sẵn sàng thi đấu') + '</dd><dt>Giá trị</dt><dd>' + money(p.val) + '</dd><dt>Mùa này</dt><dd>' + (p.goals || 0) + ' bàn · ' + (p.apps || 0) + ' trận</dd><dt>Phát triển</dt><dd>' + dev + '</dd>' + (inSq ? '<dt>Vai trò</dt><dd>' + (on ? 'Đá chính' : 'Dự bị') + (p.lock ? ' (do bạn chọn)' : ' (tự chọn theo chỉ số)') + '</dd>' : '') + '</dl><div class="mx-dr-act">' + act + '</div>';
+  }
+  function drawer() { const d = root.querySelector('#mxDrawer'); if (!d) return; const m = st(); d.innerHTML = m ? drawerHtml(m) : ''; d.classList.toggle('open', !!(m && ui.sel && findP(m, ui.sel))); }
+
+  // --- các màn hình
+  const statCard = (label, val, sub, tip) => '<div class="mx-stat" title="' + esc(tip || '') + '"><small>' + label + '</small><b>' + val + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>';
+  function fixtureCard(m, r, hl) {
+    const fx = myFix(m, r), res = (m.results || []).find((x) => x.r === r + 1); if (!fx) return '';
+    return '<div class="mx-fx' + (hl ? ' next' : '') + '"><small>Vòng ' + (r + 1) + (fx.home ? ' · Sân nhà' : ' · Sân khách') + '</small><div>' + badge(fx.opp.name, 26) + '<b>' + esc(fx.opp.name) + '</b>' + (res ? '<span class="mx-sc ' + wdl(res) + '">' + res.gf + '–' + res.ga + '</span>' : '<em>sức mạnh ~' + Math.round(fx.opp.str) + '</em>') + '</div></div>';
+  }
+  function tableHtml(m, full) {
+    const rows = sorted(m); const my = resOf(m);
+    return '<div class="mx-scroll"><table class="mx-tb"><thead><tr><th>#</th><th>Đội</th><th title="Số trận">Tr</th><th title="Thắng">T</th><th title="Hoà">H</th><th title="Thua">B</th><th title="Hiệu số bàn thắng">HS</th><th title="Điểm">Đ</th>' + (full ? '<th>Phong độ</th>' : '') + '</tr></thead><tbody>' + rows.slice(0, full ? 99 : 6).map((r, k) => '<tr class="' + (r.i === 0 ? 'me' : '') + (k < 4 ? ' top' : '') + '"><td>' + (k + 1) + '</td><td class="nm">' + badge(r.name, 18) + ' ' + esc(r.name) + '</td><td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td><td>' + (r.gf - r.ga > 0 ? '+' : '') + (r.gf - r.ga) + '</td><td><b>' + r.pts + '</b></td>' + (full ? '<td>' + (r.i === 0 ? formDots(m, 5) : '') + '</td>' : '') + '</tr>').join('') + '</tbody></table></div>';
+  }
+  const matchBtns = (m) => (m.round < m.fixtures.length ? '<button type="button" class="mx-btn pri lg" data-act="play">' + ic('play', 18) + ' Vào trận (Haxball 4v4)</button><button type="button" class="mx-btn" data-act="quick" title="Đá nhanh vòng này, chỉ xem kết quả">' + ic('fast', 16) + ' Xem kết quả</button>' : '<button type="button" class="mx-btn pri lg" data-act="cont">' + ic('check', 18) + ' Tiếp tục sự nghiệp</button>');
   function body(m) {
+    const xi = lineup(m), pos = myPos(m), n = m.table.length, need = GOAL_NEED(m), left = m.fixtures.length - m.round;
+    if (tab === 'home') {
+      const fx = myFix(m, m.round), last = resOf(m).slice(-5).reverse();
+      return '<div class="mx-hero"><div class="mx-hero-bg" aria-hidden="true"></div><div class="mx-hero-in">' + badge(m.club, 72) + '<div><small>' + (m.national ? 'AFF Cup ' : 'V-League ') + m.season + '</small><h2>' + esc(m.club) + '</h2><p>Hạng <b>' + pos + '/' + n + '</b> · mục tiêu: ' + GOAL_TXT[m.goal] + ' · còn ' + left + ' vòng</p></div></div></div>' +
+        '<div class="mx-grid g2"><section class="mx-panel"><h4>Trận tiếp theo</h4>' + (fx ? '<div class="mx-next"><div class="mx-vs">' + badge(m.club, 40) + '<b>VS</b>' + badge(fx.opp.name, 40) + '</div><div><b>' + esc(fx.opp.name) + '</b><small>Vòng ' + (m.round + 1) + ' · ' + (fx.home ? 'sân nhà' : 'sân khách') + ' · lối chơi ' + STYLES[fx.opp.style].name + '</small>' + (BEATS[m.tactic.style] === fx.opp.style ? '<span class="mx-tag g">Lối chơi của bạn khắc chế họ</span>' : BEATS[fx.opp.style] === m.tactic.style ? '<span class="mx-tag r">Họ khắc chế lối chơi của bạn</span>' : '') + '</div></div>' : '<p class="mx-empty">Mùa giải đã đá xong. Bấm tiếp tục để tổng kết và sang mùa mới.</p>') + '<div class="mx-acts">' + matchBtns(m) + '</div></section>' +
+        '<section class="mx-panel"><h4>Kết quả gần đây</h4>' + (last.length ? '<ul class="mx-res">' + last.map((r) => '<li><i class="f' + wdl(r) + '">' + ({ W: 'T', D: 'H', L: 'B' })[wdl(r)] + '</i><span>' + (r.home ? 'Nhà' : 'Khách') + ' · ' + esc(r.opp) + '</span><b>' + r.gf + '–' + r.ga + '</b></li>').join('') + '</ul>' + formDots(m, 5) : '<p class="mx-empty">Chưa có trận nào trong mùa này.</p>') + '</section></div>' +
+        '<div class="mx-stats">' + statCard('Ngân sách', m.national ? '—' : money(m.budget), m.national ? 'Đội tuyển không mua bán' : m.window ? 'Kỳ chuyển nhượng đang mở' : 'Kỳ chuyển nhượng đóng', 'Tiền dùng để mua cầu thủ') + statCard('Ban lãnh đạo', Math.round(m.board) + '%', bar(m.board, m.board < 35 ? 'r' : 'g'), 'Dưới 20% có nguy cơ bị sa thải cuối mùa') + statCard('Sức mạnh đội hình', squadStr(m), 'CS trung bình ' + avgOvr(m), 'Tính từ 4 cầu thủ đá chính và tinh thần') + statCard('Tinh thần toàn đội', moodAvg(m) + '', moodTxt(moodAvg(m)), 'Thắng tăng, thua giảm tinh thần') + '</div>' +
+        '<div class="mx-grid g2"><section class="mx-panel"><h4>Bảng xếp hạng</h4>' + tableHtml(m, false) + '</section><section class="mx-panel"><h4>Tin tức CLB</h4>' + (((m.news || []).length) ? '<ul class="mx-news">' + m.news.slice(0, 5).map((x) => '<li>' + esc(x.t) + '</li>').join('') + '</ul>' : '<p class="mx-empty">Chưa có tin mới. Mua bán cầu thủ và kết quả trận đấu sẽ xuất hiện ở đây.</p>') + (m.lastMatch ? '<p class="mx-last">' + m.lastMatch + '</p>' : '') + '</section></div>';
+    }
     if (tab === 'squad') {
-      const xi = lineup(m), pw = power(m);
-      return '<p class="p-sub">Đá 4 người như Haxball · sơ đồ <b>' + m.tactic.form + '</b> · đá chính ' + xi.length + '/4 người · tấn công <b>' + Math.round(pw.att) + '</b> · phòng ngự <b>' + Math.round(pw.def) + '</b>. Hàng sáng là đá chính (tự chọn người tốt nhất theo chỉ số + tinh thần). Bấm 📌 để luôn cho đá chính, 💺 để cho dự bị.</p>' +
-        '<div class="mgr-scroll"><table class="mgr-t">' + TH + m.squad.slice().sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos) || b.ovr - a.ovr).map((p) => pRow(p, xi, '<button type="button" class="mini-b' + (p.lock === 'start' ? ' on' : '') + '" data-lock="' + p.id + '" data-v="start" title="Luôn đá chính">📌</button><button type="button" class="mini-b' + (p.lock === 'bench' ? ' on' : '') + '" data-lock="' + p.id + '" data-v="bench" title="Cho dự bị">💺</button>' + (m.national ? '' : '<button type="button" class="mini-b" data-sell="' + p.id + '" title="Bán">💸</button>'))).join('') + '</table></div>';
+      const bench = m.squad.filter((p) => !xi.includes(p)).sort(sortBy);
+      return '<div class="mx-split"><div class="mx-left"><section class="mx-panel"><h4>Đội hình ' + m.tactic.form + ' <small>· đá chính ' + xi.length + '/4</small></h4>' + pitchHtml(m, m.tactic.form, xi) + '<h5>Dự bị (' + bench.length + ')</h5><div class="mx-bench">' + (bench.map((p) => '<button type="button" class="mx-bp' + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="squad">' + avatar(p, 28) + '<span><b>' + esc(p.name.split(' ').slice(-1)[0]) + '</b><small>' + p.pos + ' · ' + p.ovr + '</small></span></button>').join('') || '<p class="mx-empty">Không có dự bị.</p>') + '</div><p class="mx-hint">Chọn một cầu thủ để xem hồ sơ, ghim đá chính hoặc cho dự bị. Hệ thống tự chọn người tốt nhất theo chỉ số và tinh thần cho các vị trí còn lại.</p></section></div>' +
+        '<div class="mx-right"><button type="button" class="mx-btn mx-listtog" data-act="listtog">' + ic('squad', 16) + ' Danh sách cầu thủ (' + m.squad.length + ')</button><section class="mx-panel mx-list' + (ui.list ? ' open' : '') + '"><div class="mx-filters"><label class="mx-search">' + ic('search', 16) + '<input type="search" data-q placeholder="Tìm cầu thủ" value="' + esc(ui.q) + '" aria-label="Tìm cầu thủ"></label><select data-sort aria-label="Sắp xếp">' + [['ovr', 'Chỉ số'], ['age', 'Tuổi'], ['val', 'Giá trị'], ['pot', 'Tiềm năng']].map(([k, l]) => '<option value="' + k + '"' + (ui.sort === k ? ' selected' : '') + '>Xếp theo ' + l + '</option>').join('') + '</select></div><div class="mx-chips">' + [['all', 'Tất cả']].concat(POS.slice(1).map((p) => [p, POS_VN[p]])).map(([k, l]) => '<button type="button" class="' + (ui.pos === k ? 'on' : '') + '" data-act="pos" data-v="' + k + '">' + l + '</button>').join('') + '</div><div class="mx-rows" id="mxList">' + squadListHtml(m) + '</div></section></div></div>';
     }
     if (tab === 'tactic') {
-      const t = m.tactic;
-      return '<div class="mgr-tac"><h4>Sơ đồ</h4><div class="hax-set">' + Object.keys(FORMS).map((f) => '<button type="button" data-form="' + f + '" class="' + (t.form === f ? 'on' : '') + '" title="' + FORMS[f].desc + '">' + f + '</button>').join('') + '</div><p class="p-sub">' + FORMS[t.form].desc + '</p>' +
-        '<h4>Lối chơi</h4><div class="hax-set">' + Object.keys(STYLES).map((s) => '<button type="button" data-style="' + s + '" class="' + (t.style === s ? 'on' : '') + '">' + STYLES[s].name + '</button>').join('') + '</div>' +
-        '<p class="p-sub">Khắc chế: 🔥 Pressing thắng 🎯 Kiểm soát bóng · 🎯 Kiểm soát thắng 🚌 Xe buýt · 🚌 Xe buýt thắng ⚡ Phản công · ⚡ Phản công thắng 🔥 Pressing. Xem lối chơi của đối thủ trước trận ở tab Giải đấu.</p>' +
-        '<h4>Cường độ pressing: <b id="mgrPv">' + t.press + '</b></h4><input type="range" min="10" max="95" value="' + t.press + '" id="mgrPress" class="mgr-range"><p class="p-sub">Pressing cao: tấn công mạnh hơn nhưng hở phía sau và dễ chấn thương.</p></div>';
+      const t = m.tactic, pw = power(m), fx = myFix(m, m.round);
+      const info = { balanced: ['Ổn định, ít bị khắc chế', 'Không có điểm nhấn'], possession: ['Giữ nhịp trận, phòng ngự tốt hơn bình thường', 'Dễ bị Gegenpressing ép sân'], press: ['Tấn công mạnh nhất', 'Hở sau lưng, dễ chấn thương, kém khi bị phản công'], counter: ['Hàng thủ chắc, tận dụng khoảng trống', 'Ít chủ động tấn công, bị Xe buýt bóp nghẹt'], park: ['Phòng ngự chắc nhất', 'Gần như không tấn công, hay bị Kiểm soát bóng áp đảo'] };
+      const counterOf = (s) => Object.keys(BEATS).find((k) => BEATS[k] === s);
+      return '<div class="mx-split t"><div class="mx-left"><section class="mx-panel"><h4>Sơ đồ ' + t.form + '</h4>' + pitchHtml(m, t.form, xi) + '<p class="mx-hint">' + FORMS[t.form].desc + '</p><div class="mx-forms">' + Object.keys(FORMS).map((f) => '<button type="button" class="mx-fm' + (t.form === f ? ' on' : '') + '" data-act="form" data-v="' + f + '" aria-pressed="' + (t.form === f) + '" title="' + FORMS[f].desc + '"><b>' + f + '</b><small>công ' + (FORMS[f].att >= 0 ? '+' : '') + FORMS[f].att + ' · thủ ' + (FORMS[f].def >= 0 ? '+' : '') + FORMS[f].def + '</small></button>').join('') + '</div></section></div>' +
+        '<div class="mx-right"><section class="mx-panel"><h4>Lối chơi</h4><div class="mx-styles">' + Object.keys(STYLES).map((s) => { const S2 = STYLES[s]; return '<button type="button" class="mx-sty' + (t.style === s ? ' on' : '') + '" data-act="style" data-v="' + s + '" aria-pressed="' + (t.style === s) + '"><b>' + S2.name.replace(/^\S+\s/, '') + '</b><span><small>Công</small>' + bar(50 + S2.att * 8, 'a') + '<small>Thủ</small>' + bar(50 + S2.def * 8, 'g') + '</span><small class="s">+ ' + info[s][0] + '</small><small class="w">− ' + info[s][1] + '</small><small>' + (BEATS[s] ? 'Khắc chế: ' + STYLES[BEATS[s]].name.replace(/^\S+\s/, '') + ' · Bị khắc chế bởi: ' + STYLES[counterOf(s)].name.replace(/^\S+\s/, '') : 'Không khắc chế và không bị khắc chế bởi lối chơi nào') + '</small></button>'; }).join('') + '</div>' +
+        '<h4>Cường độ pressing: <b id="mgrPv">' + t.press + '</b></h4><input type="range" min="10" max="95" value="' + t.press + '" id="mgrPress" class="mx-range" aria-label="Cường độ pressing" title="Cao: tấn công mạnh hơn, hở phía sau, dễ chấn thương"><p class="mx-hint">Pressing cao: tấn công mạnh hơn nhưng hở phía sau và dễ chấn thương.</p>' +
+        '<div class="mx-pw"><span>Tấn công <b id="pwA">' + Math.round(pw.att) + '</b></span><span>Phòng ngự <b id="pwD">' + Math.round(pw.def) + '</b></span>' + (fx ? '<span>Đối thủ tới: ' + esc(fx.opp.name) + ' · ' + STYLES[fx.opp.style].name + '</span>' : '') + '</div></section></div></div>';
     }
     if (tab === 'market') {
-      const xi = lineup(m);
-      if (m.national) return '<p class="p-sub">Đội tuyển không mua bán. Triệu tập những cầu thủ Việt Nam đang có phong độ tốt nhất (tối đa 12 người) — loại bớt người trong đội hình ở tab Đội hình bằng nút ❌.</p><div class="mgr-scroll"><table class="mgr-t">' + TH + m.market.filter((p) => !m.squad.some((q) => q.name === p.name)).map((p) => pRow(p, null, '<button type="button" class="btn btn-soft btn-sm" data-call="' + p.id + '">Triệu tập</button>')).join('') + '</table></div><h4>Đang trong đội (' + m.squad.length + '/12)</h4><div class="mgr-scroll"><table class="mgr-t">' + TH + m.squad.map((p) => pRow(p, xi, '<button type="button" class="mini-b" data-drop="' + p.id + '">❌</button>')).join('') + '</table></div>';
-      return '<p class="p-sub">' + (m.window ? '🟢 Kỳ chuyển nhượng đang mở' : '🔴 Kỳ chuyển nhượng đóng (mở lại đầu mùa và giữa mùa)') + ' · Ngân sách ' + money(m.budget) + ' · Đội hình ' + m.squad.length + '/14. Trả giá thấp hơn 20% có thể bị từ chối.</p>' +
-        '<div class="mgr-scroll"><table class="mgr-t">' + TH + m.market.map((p) => pRow(p, null, m.window ? '<button type="button" class="btn btn-primary btn-sm" data-buy="' + p.id + '">Mua</button><button type="button" class="btn btn-soft btn-sm" data-bid="' + p.id + '">Trả giá −20%</button>' : '')).join('') + '</table></div><p class="cm-err" id="mgrErr"></p>';
+      const pills = '<div class="mx-chips">' + [['all', 'Tất cả']].concat(POS.slice(1).map((p) => [p, POS_VN[p]])).map(([k, l]) => '<button type="button" class="' + (ui.mpos === k ? 'on' : '') + '" data-act="mpos" data-v="' + k + '">' + l + '</button>').join('') + '</div>';
+      return '<div class="mx-stats s3">' + statCard('Ngân sách', m.national ? '—' : money(m.budget), '', 'Tiền còn lại để chiêu mộ') + statCard('Kỳ chuyển nhượng', m.national ? 'Triệu tập' : m.window ? 'Đang mở' : 'Đóng', m.national ? 'Tối đa 12 người' : 'Mở đầu mùa và giữa mùa', '') + statCard('Đội hình', m.squad.length + '/' + (m.national ? 12 : 14), 'Tối thiểu 6 người', '') + '</div>' +
+        '<section class="mx-panel"><div class="mx-filters wide"><label class="mx-search">' + ic('search', 16) + '<input type="search" data-mq placeholder="Tìm cầu thủ" value="' + esc(ui.mq) + '" aria-label="Tìm cầu thủ"></label><select data-sort aria-label="Sắp xếp">' + [['ovr', 'Chỉ số'], ['age', 'Tuổi'], ['val', 'Giá'], ['pot', 'Tiềm năng']].map(([k, l]) => '<option value="' + k + '"' + (ui.sort === k ? ' selected' : '') + '>Xếp theo ' + l + '</option>').join('') + '</select><select data-mage aria-label="Tuổi tối đa">' + [[99, 'Mọi tuổi'], [23, '≤ 23 tuổi'], [28, '≤ 28 tuổi'], [31, '≤ 31 tuổi']].map(([v, l]) => '<option value="' + v + '"' + (ui.mage === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select><select data-mmin aria-label="Chỉ số tối thiểu">' + [[0, 'Mọi chỉ số'], [60, 'CS ≥ 60'], [70, 'CS ≥ 70'], [80, 'CS ≥ 80']].map(([v, l]) => '<option value="' + v + '"' + (ui.mmin === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>' + (m.national ? '' : '<select data-mmax aria-label="Giá tối đa">' + [[0, 'Mọi mức giá'], [5e8, '≤ 500 triệu'], [2e9, '≤ 2 tỷ'], [5e9, '≤ 5 tỷ']].map(([v, l]) => '<option value="' + v + '"' + (ui.mmax === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>') + '</div>' + pills + '<div class="mx-cards" id="mxList">' + marketListHtml(m) + '</div></section>';
     }
-    // giải đấu
-    const rd = m.fixtures[m.round], mine = rd && rd.find(([a, b]) => a === 0 || b === 0), home = mine && mine[0] === 0, opp = mine && m.teams[(home ? mine[1] : mine[0]) - 1];
-    return (m.lastMatch ? '<div class="mgr-last">' + m.lastMatch + '</div>' : '') +
-      (opp ? '<div class="mgr-next"><b>Trận tới (vòng ' + (m.round + 1) + '):</b> ' + (home ? esc(m.club) + ' 🆚 ' + esc(opp.name) + ' (sân nhà)' : esc(opp.name) + ' 🆚 ' + esc(m.club) + ' (sân khách)') + '<br><small>Đối thủ: sức mạnh ~' + Math.round(opp.str) + ' · lối chơi ' + STYLES[opp.style].name + (BEATS[m.tactic.style] === opp.style ? ' · ✅ lối chơi của bạn đang khắc chế họ' : BEATS[opp.style] === m.tactic.style ? ' · ⚠️ họ đang khắc chế lối chơi của bạn' : '') + '</small><div class="btnrow"><button type="button" class="btn btn-primary" id="mgrPlay">▶ Xem & chỉ đạo trận (Haxball 4 đấu 4)</button><button type="button" class="btn btn-soft" id="mgrQuick">⏩ Chỉ xem kết quả</button><button type="button" class="btn btn-ghost" id="mgrSeason">⏭️ Đá hết mùa</button></div></div>' : '<div class="mgr-next">✅ Mùa giải đã đá xong. Sang năm mới (bấm +1 tuổi) để tổng kết và bắt đầu mùa sau.</div>') +
-      '<table class="mgr-t mgr-tab"><tr><th>#</th><th>Đội</th><th>Tr</th><th>T</th><th>H</th><th>B</th><th>HS</th><th>Đ</th></tr>' + sorted(m).map((r, k) => '<tr class="' + (r.i === 0 ? 'me' : '') + '"><td>' + (k + 1) + '</td><td class="nm">' + esc(r.name) + '</td><td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td><td>' + (r.gf - r.ga) + '</td><td><b>' + r.pts + '</b></td></tr>').join('') + '</table>' +
-      (m.history.length ? '<p class="p-sub">Lịch sử: ' + m.history.slice(-5).map((h) => h.season + ': hạng ' + h.pos + (h.champ ? ' 🏆' : '')).join(' · ') + '</p>' : '');
+    if (tab === 'league') {
+      const h = m.fixtures.length, cur = m.round;
+      return '<div class="mx-split lg"><section class="mx-panel"><h4>Bảng xếp hạng ' + (m.national ? 'AFF Cup ' : 'V-League ') + m.season + '</h4>' + tableHtml(m, true) + '<p class="mx-hint">Xếp theo điểm, hiệu số, rồi số bàn thắng. Tô sáng là CLB của bạn; 4 đội đầu là nhóm dẫn đầu.</p></section>' +
+        '<div class="mx-right"><section class="mx-panel"><h4>Tiến trình mùa giải</h4><div class="mx-time" role="list">' + Array.from({ length: h }, (_, r) => { const res = (m.results || []).find((x) => x.r === r + 1); return '<span role="listitem" class="' + (res ? 'f' + wdl(res) : r === cur ? 'now' : '') + '" title="Vòng ' + (r + 1) + (res ? ': ' + res.gf + '–' + res.ga : '') + '">' + (r + 1) + '</span>'; }).join('') + '</div><div class="mx-acts">' + matchBtns(m) + '</div></section>' +
+        '<section class="mx-panel"><h4>Lịch thi đấu</h4><div class="mx-fxs">' + [cur - 2, cur - 1, cur, cur + 1, cur + 2].filter((r) => r >= 0 && r < h).map((r) => fixtureCard(m, r, r === cur)).join('') + '</div></section></div></div>';
+    }
+    // quản lý CLB
+    const hist = m.history.slice().reverse();
+    return '<div class="mx-stats">' + statCard('Ban lãnh đạo', Math.round(m.board) + '%', bar(m.board, m.board < 35 ? 'r' : 'g'), 'Đạt mục tiêu cuối mùa thì tăng, không đạt thì giảm mạnh') + statCard('Mục tiêu mùa', GOAL_TXT[m.goal], 'Hiện hạng ' + pos + ' · cần ≤ ' + need, '') + statCard('Danh hiệu', '×' + m.trophies, '', '') + statCard('Ngân sách', m.national ? '—' : money(m.budget), '', '') + '</div>' +
+      '<div class="mx-grid g2"><section class="mx-panel"><h4>Tiến độ mục tiêu</h4>' + bar(pos <= need ? 100 : Math.max(5, 100 - ((pos - need) / Math.max(1, n - need)) * 100), pos <= need ? 'g' : 'r') + '<p class="mx-hint">' + (pos <= need ? 'Bạn đang đạt mục tiêu của ban lãnh đạo.' : 'Bạn đang kém mục tiêu ' + (pos - need) + ' bậc.') + ' Còn ' + left + ' vòng.</p><div class="mx-acts"><button type="button" class="mx-btn danger" data-act="season"' + (left ? '' : ' disabled') + '>' + ic('fast', 16) + ' Đá hết mùa</button></div><p class="mx-hint">Đá hết mùa sẽ mô phỏng toàn bộ vòng còn lại, bạn không điều khiển trận nào.</p></section>' +
+      '<section class="mx-panel"><h4>Lịch sử các mùa</h4>' + (hist.length ? '<div class="mx-scroll"><table class="mx-tb"><thead><tr><th>Mùa</th><th>Hạng</th><th>Mục tiêu</th><th>Kết quả</th></tr></thead><tbody>' + hist.map((x) => '<tr><td>' + x.season + '</td><td>' + x.pos + '</td><td>' + GOAL_TXT[x.goal] + '</td><td>' + (x.champ ? 'Vô địch' : x.ok ? 'Đạt' : 'Không đạt') + '</td></tr>').join('') + '</tbody></table></div>' : '<p class="mx-empty">Chưa kết thúc mùa nào.</p>') + '</section></div>';
   }
-  function bind(m) {
-    const $ = (s) => root.querySelector(s), all = (s) => root.querySelectorAll(s), err = (t) => { const e = $('#mgrErr'); if (e) e.textContent = t; };
-    all('[data-lock]').forEach((b) => (b.onclick = () => { const p = m.squad.find((x) => x.id === b.dataset.lock); p.lock = p.lock === b.dataset.v ? null : b.dataset.v; open(); }));
-    all('[data-sell]').forEach((b) => (b.onclick = () => { const p = m.squad.find((x) => x.id === b.dataset.sell); if (!m.window) { alert('Kỳ chuyển nhượng đang đóng.'); return; } if (m.squad.length <= 6) { alert('Đội hình tối thiểu 6 người.'); return; } const price = Math.round(p.val * R(0.8, 1.1) / 1e6) * 1e6; if (!confirm('Bán ' + p.name + ' (' + p.ovr + ') với giá ' + money(price) + '?')) return; m.squad = m.squad.filter((x) => x !== p); m.budget += price; sfx('coin'); open(); }));
-    const buy = (p, price) => { if (m.squad.length >= 14) return err('Đội hình đã đủ 14 người, bán bớt trước.'); if (m.budget < price) return err('Không đủ ngân sách (cần ' + money(price) + ').'); m.budget -= price; m.market = m.market.filter((x) => x !== p); p.morale = 75; m.squad.push(p); sfx('cheer'); try { G().mgrNews('✍️ ' + m.club + ' chiêu mộ ' + p.name + ' (' + POS_VN[p.pos] + ', chỉ số ' + p.ovr + ') với giá ' + money(price) + '.'); } catch (e) { /* */ } open(); };
-    all('[data-buy]').forEach((b) => (b.onclick = () => { const p = m.market.find((x) => x.id === b.dataset.buy); buy(p, p.val); }));
-    all('[data-bid]').forEach((b) => (b.onclick = () => { const p = m.market.find((x) => x.id === b.dataset.bid); if (Math.random() < 0.45) buy(p, Math.round(p.val * 0.8 / 1e6) * 1e6); else { m.market = m.market.filter((x) => x !== p); err('❌ CLB chủ quản từ chối lời đề nghị, ' + p.name + ' đã sang đội khác.'); open(); err('❌ CLB chủ quản từ chối, ' + p.name + ' đã sang đội khác.'); } }));
-    all('[data-call]').forEach((b) => (b.onclick = () => { if (m.squad.length >= 12) { alert('Tối đa 12 người, loại bớt trước.'); return; } const p = m.market.find((x) => x.id === b.dataset.call); m.squad.push(Object.assign({}, p, { id: pid() })); open(); }));
-    all('[data-drop]').forEach((b) => (b.onclick = () => { if (m.squad.length <= 6) { alert('Cần ít nhất 6 người.'); return; } m.squad = m.squad.filter((x) => x.id !== b.dataset.drop); open(); }));
-    all('[data-form]').forEach((b) => (b.onclick = () => { m.tactic.form = b.dataset.form; open(); }));
-    all('[data-style]').forEach((b) => (b.onclick = () => { m.tactic.style = b.dataset.style; open(); }));
-    const pr = $('#mgrPress'); if (pr) { pr.oninput = () => { $('#mgrPv').textContent = pr.value; }; pr.onchange = () => { m.tactic.press = +pr.value; }; }
-    const pl = $('#mgrPlay'); if (pl) pl.onclick = () => (KN.Hax && KN.Hax.watch ? watchHax(m) : live(m));
-    const qk = $('#mgrQuick'); if (qk) qk.onclick = () => { const before = m.table[0].pts, gf0 = m.table[0].gf, ga0 = m.table[0].ga; quickRound(m); const d = m.table[0].pts - before; m.lastMatch = 'Vòng ' + m.round + ': ' + (d === 3 ? '✅ Thắng' : d === 1 ? '🤝 Hoà' : '❌ Thua') + ' ' + (m.table[0].gf - gf0) + '–' + (m.table[0].ga - ga0); save(); open(); };
-    const ss = $('#mgrSeason'); if (ss) ss.onclick = () => { if (!confirm('Đá nhanh toàn bộ các vòng còn lại?')) return; while (m.round < m.fixtures.length) quickRound(m); m.lastMatch = 'Đã đá hết mùa: hạng ' + myPos(m) + '/' + m.table.length + '.'; save(); open(); };
+  const TABS = [['home', 'Tổng quan'], ['squad', 'Đội hình'], ['tactic', 'Chiến thuật'], ['market', 'Chuyển nhượng'], ['league', 'Giải đấu'], ['club', 'Quản lý CLB']];
+  function open(t) {
+    const m = st(); if (!m) return;
+    if (t) { if (t !== tab) ui.sel = null; tab = t; }
+    const old = root && root.querySelector('.mx-main'), sc = old ? old.scrollTop : 0;
+    if (!root) { root = document.createElement('div'); root.className = 'hax mgr mx'; document.body.appendChild(root); root.addEventListener('keydown', onKey); root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange); }
+    const pos = myPos(m), n = m.table.length, need = GOAL_NEED(m), okNow = pos <= need;
+    root.innerHTML = '<div class="mx-shell"><header class="mx-head">' + badge(m.club, 46) + '<div class="mx-id"><h1>' + esc(m.club) + '</h1><small>' + (m.national ? 'AFF Cup ' : 'V-League ') + m.season + ' · vòng ' + Math.min(m.round + 1, m.fixtures.length) + '/' + m.fixtures.length + ' · hạng ' + pos + '/' + n + '</small></div>' +
+      '<div class="mx-kpis"><span title="Ngân sách chuyển nhượng"><small>Ngân sách</small><b>' + (m.national ? '—' : money(m.budget)) + '</b></span><span title="Độ tin tưởng của ban lãnh đạo"><small>Ban lãnh đạo</small><b>' + Math.round(m.board) + '%</b></span><span class="obj" title="Mục tiêu mùa: ' + GOAL_TXT[m.goal] + '"><small>Mục tiêu · ' + GOAL_TXT[m.goal] + '</small>' + bar(okNow ? 100 : Math.max(5, 100 - ((pos - need) / Math.max(1, n - need)) * 100), okNow ? 'g' : 'r') + '</span></div>' +
+      '<div class="mx-tools"><small id="mxSaved">' + savedTxt() + '</small><button type="button" class="mx-x" data-act="close" aria-label="Đóng phòng HLV">' + ic('close', 20) + '</button></div></header>' +
+      '<nav class="mx-nav" role="tablist" aria-label="Phòng huấn luyện">' + TABS.map(([k, l]) => '<button type="button" role="tab" aria-selected="' + (tab === k) + '" class="' + (tab === k ? 'on' : '') + '" data-act="tab" data-v="' + k + '">' + ic(k === 'tactic' ? 'tactic' : k === 'market' ? 'market' : k, 18) + '<span>' + (m.national && k === 'market' ? 'Triệu tập' : l) + '</span></button>').join('') + '</nav>' +
+      '<main class="mx-main" id="mgrBody">' + body(m) + '</main><aside class="mx-drawer" id="mxDrawer" aria-label="Hồ sơ cầu thủ"></aside><div class="mx-toasts" aria-live="polite"></div></div>';
+    const mn = root.querySelector('.mx-main'); if (mn) mn.scrollTop = sc;
+    drawer();
   }
-  const save = () => { try { G().mgrSave(); } catch (e) { /* */ } };
+  function close() { if (root) { root.remove(); root = null; } try { KN.UI && KN.UI.render && KN.UI.render(); } catch (e) { /* */ } }
+  function onKey(e) { e.stopPropagation(); if (e.key !== 'Escape') return; if (root.querySelector('.mx-dlg')) return; if (ui.sel) { ui.sel = null; drawer(); root.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); } else close(); }
+  function refreshList() { const m = st(), l = root && root.querySelector('#mxList'); if (m && l) l.innerHTML = tab === 'market' ? marketListHtml(m) : squadListHtml(m); }
+  function onInput(e) {
+    const m = st(), t = e.target; if (!m) return;
+    if (t.matches('[data-q]')) { ui.q = t.value; refreshList(); } else if (t.matches('[data-mq]')) { ui.mq = t.value; refreshList(); }
+    else if (t.id === 'mgrPress') { root.querySelector('#mgrPv').textContent = t.value; const keep = m.tactic.press; m.tactic.press = +t.value; const pw = power(m); m.tactic.press = keep; root.querySelector('#pwA').textContent = Math.round(pw.att); root.querySelector('#pwD').textContent = Math.round(pw.def); }
+  }
+  function onChange(e) {
+    const m = st(), t = e.target; if (!m) return;
+    if (t.id === 'mgrPress') { m.tactic.press = +t.value; save(); toast('Pressing ' + t.value + ' đã áp dụng cho các trận tới'); return; }
+    if (t.matches('[data-sort]')) ui.sort = t.value; else if (t.matches('[data-mage]')) ui.mage = +t.value; else if (t.matches('[data-mmin]')) ui.mmin = +t.value; else if (t.matches('[data-mmax]')) ui.mmax = +t.value; else return;
+    refreshList();
+  }
+  function buy(m, p, price, label) {
+    if (!p || !m.market.includes(p) || m.squad.includes(p)) return toast('Cầu thủ này không còn trên thị trường.', 'bad');
+    if (!m.window) return toast('Kỳ chuyển nhượng đang đóng.', 'bad');
+    if (m.squad.length >= 14) return toast('Đội hình đã đủ 14 người, hãy bán bớt trước.', 'bad');
+    if (m.budget < price) return toast('Không đủ ngân sách: cần ' + money(price) + ', còn ' + money(m.budget) + '.', 'bad');
+    m.budget -= price; m.market = m.market.filter((x) => x !== p); p.morale = 75; m.squad.push(p); sfx('cheer');
+    news(m, 'Chiêu mộ ' + p.name + ' (' + POS_VN[p.pos] + ', chỉ số ' + p.ovr + ') với giá ' + money(price) + (label || '') + '.'); ui.sel = null; save(); open(); toast('Ký hợp đồng thành công: ' + p.name + ' (' + money(price) + ')', 'ok');
+  }
+  function onClick(e) {
+    const el = e.target.closest('[data-act]'); if (!el) return; const m = st(); if (!m) return; const a = el.dataset.act, id = el.dataset.id, v = el.dataset.v, p = id && findP(m, id);
+    if (a === 'close') return close();
+    if (a === 'tab') { sfx('click'); return open(v); }
+    if (a === 'sel') { ui.sel = id; ui.ctx = el.dataset.ctx; root.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); root.querySelectorAll('[data-id="' + id + '"]').forEach((x) => (x.closest('.mx-row,.mx-card,.mx-bp,.mx-pm') || x).classList.add('sel')); return drawer(); }
+    if (a === 'drx') { ui.sel = null; root.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); return drawer(); }
+    if (a === 'listtog') { ui.list = !ui.list; return root.querySelector('.mx-list').classList.toggle('open', ui.list); }
+    if (a === 'pos') { ui.pos = v; root.querySelectorAll('[data-act=pos]').forEach((x) => x.classList.toggle('on', x.dataset.v === v)); return refreshList(); }
+    if (a === 'mpos') { ui.mpos = v; root.querySelectorAll('[data-act=mpos]').forEach((x) => x.classList.toggle('on', x.dataset.v === v)); return refreshList(); }
+    if (a === 'lock' && p) { p.lock = p.lock === v ? null : v; save(); return open(); }
+    if (a === 'form') { m.tactic.form = v; save(); return open(); }
+    if (a === 'style') { m.tactic.style = v; save(); return open(); }
+    if (a === 'sell' && p) {
+      if (!m.window) return toast('Kỳ chuyển nhượng đang đóng.', 'bad');
+      if (m.squad.length <= 6) return toast('Đội hình tối thiểu 6 người.', 'bad');
+      const price = Math.round(p.val * R(0.8, 1.1) / 1e6) * 1e6;
+      return confirmBox('Rao bán ' + p.name + '?', 'Một CLB đồng ý trả ' + money(price) + ' (chỉ số ' + p.ovr + ', ' + p.age + ' tuổi). Đây là giá cuối cùng.', 'Đồng ý bán', () => { if (!m.squad.includes(p)) return; m.squad = m.squad.filter((x) => x !== p); m.budget += price; sfx('coin'); news(m, 'Bán ' + p.name + ' cho CLB khác với giá ' + money(price) + '.'); ui.sel = null; save(); open(); toast('Đã bán ' + p.name + ' ' + money(price), 'ok'); }, true);
+    }
+    if (a === 'buy' && p) return confirmBox('Mua ' + p.name + '?', POS_VN[p.pos] + ' · chỉ số ' + p.ovr + ' · ' + p.age + ' tuổi. Giá ' + money(p.val) + ' (ngân sách còn ' + money(m.budget) + ').', 'Ký hợp đồng', () => buy(m, p, p.val));
+    if (a === 'bid' && p) return confirmBox('Trả giá ' + p.name + '?', 'Bạn đề nghị ' + money(Math.round(p.val * 0.8 / 1e6) * 1e6) + ' (thấp hơn 20%). CLB chủ quản có thể từ chối, khi đó cầu thủ sẽ sang đội khác.', 'Gửi đề nghị', () => {
+      if (!m.market.includes(p)) return;
+      if (Math.random() < 0.45) buy(m, p, Math.round(p.val * 0.8 / 1e6) * 1e6, ' (trả giá thành công)');
+      else { m.market = m.market.filter((x) => x !== p); ui.sel = null; save(); open(); toast('CLB chủ quản từ chối đề nghị, ' + p.name + ' đã sang đội khác.', 'bad'); }
+    });
+    if (a === 'call' && p) { if (m.squad.length >= 12) return toast('Tối đa 12 người, hãy loại bớt trước.', 'bad'); if (m.squad.some((x) => x.name === p.name)) return toast('Cầu thủ này đã có trong đội.', 'bad'); m.squad.push(Object.assign({}, p, { id: pid() })); ui.sel = null; save(); open(); return toast('Đã triệu tập ' + p.name, 'ok'); }
+    if (a === 'drop' && p) { if (m.squad.length <= 6) return toast('Cần ít nhất 6 người.', 'bad'); return confirmBox('Loại ' + p.name + ' khỏi đội?', 'Cầu thủ sẽ rời danh sách triệu tập.', 'Loại', () => { m.squad = m.squad.filter((x) => x.id !== p.id); ui.sel = null; save(); open(); }, true); }
+    if (a === 'play') return KN.Hax && KN.Hax.watch ? watchHax(m) : (open('league'), live(m));
+    if (a === 'quick') { const before = m.table[0].pts, gf0 = m.table[0].gf, ga0 = m.table[0].ga; quickRound(m); const d = m.table[0].pts - before; m.lastMatch = 'Vòng ' + m.round + ': ' + (d === 3 ? 'Thắng' : d === 1 ? 'Hoà' : 'Thua') + ' ' + (m.table[0].gf - gf0) + '–' + (m.table[0].ga - ga0); save(); return open(); }
+    if (a === 'season') return confirmBox('Đá hết mùa?', 'Mô phỏng nhanh toàn bộ ' + (m.fixtures.length - m.round) + ' vòng còn lại. Bạn sẽ không điều khiển trận nào.', 'Đá hết mùa', () => { while (m.round < m.fixtures.length) quickRound(m); m.lastMatch = 'Đã đá hết mùa: hạng ' + myPos(m) + '/' + m.table.length + '.'; save(); open(); }, true);
+    if (a === 'cont') { close(); const b = document.getElementById('btnAge'); if (b && !b.disabled) b.click(); }
+  }
 
   // trận đấu trực tiếp: dòng bình luận chạy theo phút, nghỉ giữa hiệp được đổi lối chơi
   function live(m) {

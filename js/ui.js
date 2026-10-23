@@ -315,7 +315,7 @@
   function render() {
     if (S.mode !== 'play' && S.mode !== 'death') return;
     const v = G().view(); if (!v) return;
-    renderHud(v);
+    renderHud(v); setAgeBtn();
     if (S.mode === 'play') { renderStats(v); renderTabs(v); renderTab(v); }
   }
   function renderHud(v) {
@@ -591,7 +591,8 @@
         } else { if (r) toast('Chưa được', r.reason, '⛔', 'err'); busy = false; render(); }
       }, 300);
     };
-    stack.addEventListener('pointerdown', (e) => { const c = top(); if (busy || !c || !c.contains(e.target)) return; drag = { x: e.clientX, id: e.pointerId, dx: 0 }; c.style.transition = 'none'; try { stack.setPointerCapture(e.pointerId); } catch (x) { /* */ } });
+    stack.addEventListener('selectstart', (e) => e.preventDefault()); stack.addEventListener('dragstart', (e) => e.preventDefault());
+    stack.addEventListener('pointerdown', (e) => { const c = top(); if (busy || !c || !c.contains(e.target)) return; e.preventDefault(); try { const sel = window.getSelection(); if (sel) sel.removeAllRanges(); } catch (x) { /* */ } drag = { x: e.clientX, id: e.pointerId, dx: 0 }; c.style.transition = 'none'; try { stack.setPointerCapture(e.pointerId); } catch (x) { /* */ } });
     stack.addEventListener('pointermove', (e) => { if (!drag || e.pointerId !== drag.id) return; const c = top(); drag.dx = e.clientX - drag.x; c.style.transform = 'translateX(' + drag.dx + 'px) rotate(' + drag.dx / 18 + 'deg)'; stamps(c, drag.dx); });
     const up = (e) => { if (!drag || e.pointerId !== drag.id) return; const dx = drag.dx, c = top(); drag = null; if (Math.abs(dx) > 90) fly(dx > 0); else if (c) { c.style.transition = 'transform .25s'; c.style.transform = ''; stamps(c, 0); c.style.transform = 'scale(1)'; } };
     stack.addEventListener('pointerup', up); stack.addEventListener('pointercancel', up);
@@ -887,7 +888,29 @@
     let guard = 0;
     while (G().pending().length && !G().isDead() && guard++ < 12) await presentEvent(G().pending()[0]);
   }
-  function setAgeBtn() { const b = $('#btnAge'); b.disabled = S.busy; }
+  function setAgeBtn() {
+    const b = $('#btnAge'); b.disabled = S.busy;
+    const f = $('#btnFF'); if (!f) return;
+    const v = S.mode === 'play' ? safe(() => G().view()) : null;
+    f.hidden = !(v && v.age < 10 && !v.dead && !G().pending().length); f.disabled = S.busy;
+  }
+  // tuổi thơ lặp lại nhiều: tự lớn tối đa 5 tuổi; gặp tình huống cần quyết định thì dừng cho bạn chọn rồi lớn tiếp; tới 10 tuổi thì thôi
+  async function onFastForward() {
+    if (S.busy || S.mode !== 'play') return;
+    unlockAudio(); S.busy = true; setAgeBtn();
+    try {
+      let n = 0, stopped = false;
+      for (; n < 5; n++) {
+        const a = G().view().age; if (a >= 10 || G().pending().length) break;
+        const r = safe(() => G().ageUp());
+        if (!r || r.ok === false) break;
+        if (r.died) { render(); await presentResult(r); await deathFlow(); return; }
+        if (G().pending().length) { stopped = true; render(); playScene(r.scene); toast(r.title, r.text, '🎂'); await sleep(reduced ? 0 : 700); await runPending(); if (G().isDead()) { await deathFlow(); return; } }
+      }
+      sfx('age'); S.tab = 'log'; render(); mood('happy');
+      toast('⏩ Tua tuổi thơ', 'Bạn đã lớn thêm ' + n + ' tuổi' + (stopped ? ' (có chuyện cần bạn quyết định trên đường)' : '') + '. Xem lại nhật ký để biết đã xảy ra gì.', '⏩');
+    } finally { S.busy = false; setAgeBtn(); render(); onlineSync(); }
+  }
   // chơi minigame trước (nếu có) rồi mới thực hiện hành động với điểm số đó; bỏ qua = như cũ
   async function withMini(plan, fn) {
     if (S.busy || S.mode !== 'play') return;
@@ -1213,6 +1236,7 @@
       updateSoundBtn(); if (on) sfx('click');
     };
     $('#btnAge').onclick = () => onAgeUp();
+    $('#btnFF').onclick = () => onFastForward();
     document.addEventListener('pointerdown', unlockAudio, { once: true });
     document.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;

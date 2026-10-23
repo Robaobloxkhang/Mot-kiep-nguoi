@@ -576,7 +576,7 @@
     rollEff({ health: [1, 4] }, 1, deltas);
     return { ok: false, text: 'Bệnh ' + illLabel(i).toLowerCase() + ' cần điều trị lâu dài. Bác sĩ kê đơn, bệnh đã thuyên giảm phần nào — nhớ tái khám, đừng bỏ dở.' + paid };
   }
-  const FIELD_JOBS = new Set(['streamer', 'casi', 'dienvien', 'nguoimau', 'nongdan', 'kinhdoanh', 'shipper', 'taixe', 'giangho', 'luadao']);
+  const FIELD_JOBS = new Set(['streamer', 'casi', 'dienvien', 'nguoimau', 'nongdan', 'kinhdoanh', 'shipper', 'taixe', 'giangho', 'luadao', 'hlv']);
   function fieldJob(id) { const c = D.CAREERS[id]; return !!(c && (c.sport || FIELD_JOBS.has(id))); }
   function hire(id) {
     const c = D.CAREERS[id]; if (!c) return;
@@ -991,7 +991,16 @@
     const last = S.usedEvents[def.id];
     if (last != null) { if (def.once !== false) return false; if (S.year - last < (def.cooldown || 3)) return false; }
     if (!checkReq(def.req)) return false;
+    // tình huống mang màu công sở (sếp, đồng nghiệp, phòng họp…) mà không gắn với nghề cụ thể → không áp cho VĐV, HLV, nghệ sĩ, người tự làm chủ
+    if (S.job && fieldJob(S.job.id) && officeFlavored(def)) return false;
     return true;
+  }
+  function officeFlavored(def) {
+    if (def._office != null) return def._office;
+    const r = def.req || {};
+    let o = false;
+    if (!r.jobId && !r.job && !r.camp && !r.jail && !def.noOffice) { const t = (def.text || '') + ' ' + (def.title || ''); o = (def.scene && (def.scene.loc === 'office' || (def.scene.npcs || []).some((n) => n.role === 'boss' || n.role === 'colleague'))) || /(sếp|đồng nghiệp|phòng họp|văn phòng|KPI|công ty của bạn|tăng ca)/i.test(t); }
+    return (def._office = !!o);
   }
   function pickEvents(n) {
     const list = (KN.EVENTS || []).filter((e) => eligible(e, P().age));
@@ -3188,18 +3197,32 @@
     if (!ok.length || Math.random() > 0.1 + lv * 0.04 + (perf - 60) / 200) return;
     const t = ok[ok.length - 1];
     S.flags.foreignAsked = S.year;
-    S.flags.foreignOffer = { club: U.pick(t.clubs), country: t.country, mult: t.mult };
+    S.flags.foreignOffer = { club: U.pick(t.clubs), country: t.country, mult: t.mult, fake: !S.flags.campGuard && P().age >= 18 && Math.random() < (/Thái Lan/.test(t.country) ? 0.22 : /Singapore|Đông Nam Á|ABL|VBA/.test(t.country) ? 0.12 : 0.05) };
     queueMilestone('ms_foreign_offer');
+  }
+  function foreignSign() {
+    const o = S.flags.foreignOffer;
+    if (o.fake) { // bẫy: sân bay không phải nơi hứa hẹn, chuyến xe đi thẳng qua biên giới
+      campCapture('offer');
+      return { text: 'Một chiếc xe đón bạn ngay ở sân bay “để về đội cho kịp tập”. Xe chạy rất lâu, băng qua mấy chốt vắng vẻ và dừng trước một cổng sắt cao. Không có sân tập, không có huấn luyện viên, chỉ có đám người lạ giật hộ chiếu và điện thoại của bạn. Bạn đã bị lừa sang Campuchia. Toàn bộ tiền bạc bị tịch thu ngay đêm đầu tiên.', effects: { happy: -20, health: -6 }, scene: { loc: 'street', time: 'night', anim: 'scared', expr: 'scared', npcs: [{ role: 'thug', anim: 'angry', say: 'Vào!' }, { role: 'thug', anim: 'point' }], fx: 'exclaim', shot: 'dramatic' }, tone: 'bad' };
+    }
+    S.job.club = { name: o.club, country: o.country, mult: o.mult }; S.abroad = { country: o.country, since: S.year, sport: true }; unlock('abroad');
+    if (S.social) S.social.followers = Math.round(S.social.followers * 1.5 + 50000 * o.mult);
+    const en = S.english || 0;
+    return { text: 'Bạn chính thức khoác áo ' + o.club + '! Báo chí trong nước gọi đây là “cột mốc lịch sử”.' + (en < 40 ? ' Tiếng Anh còn yếu, mọi buổi họp chiến thuật bạn phải nhờ phiên dịch, hòa nhập sẽ khó.' : ' Tiếng Anh tốt giúp bạn hòa nhập nhanh với đồng đội.'), effects: { happy: 15 }, scene: { loc: 'airport', anim: 'wave', fx: 'confetti', npcs: [{ role: 'crowd', anim: 'cheer' }] }, tone: 'good' };
   }
   ms({ id: 'ms_foreign_offer', title: 'Lời mời từ nước ngoài', icon: '🌍', age: [16, 40],
     text: 'Người đại diện gọi lúc nửa đêm, giọng run run: “{fo.club} ({fo.country}) muốn ký với bạn!” Thu nhập gấp nhiều lần hiện tại, nhưng phải sang đó một mình, tranh suất với những người giỏi nhất thế giới.',
     scene: { loc: 'airport', anim: 'phone', expr: 'surprised', fx: 'sparkle', shot: 'close' },
     choices: [
-      { label: '✈️ Ký hợp đồng, sang thi đấu', fn: () => {
-        const o = S.flags.foreignOffer; S.job.club = { name: o.club, country: o.country, mult: o.mult }; S.abroad = { country: o.country, since: S.year, sport: true }; unlock('abroad');
-        if (S.social) S.social.followers = Math.round(S.social.followers * 1.5 + 50000 * o.mult);
-        const en = S.english || 0;
-        return { text: 'Bạn chính thức khoác áo ' + o.club + '! Báo chí trong nước gọi đây là “cột mốc lịch sử”.' + (en < 40 ? ' Tiếng Anh còn yếu, mọi buổi họp chiến thuật bạn phải nhờ phiên dịch, hòa nhập sẽ khó.' : ' Tiếng Anh tốt giúp bạn hòa nhập nhanh với đồng đội.'), effects: { happy: 15 }, scene: { loc: 'airport', anim: 'wave', fx: 'confetti' }, tone: 'milestone' };
+      { label: '✈️ Ký hợp đồng, sang thi đấu', fn: () => foreignSign() },
+      { label: '🔍 Hỏi liên đoàn và người quen về CLB này trước', hint: 'Mất thêm ít ngày nhưng an toàn hơn', fn: () => {
+        const o = S.flags.foreignOffer, p = U.clamp(0.45 + S.stats.smarts / 200 + (S.english || 0) / 400, 0.3, 0.85);
+        if (o.fake) {
+          if (Math.random() < p) { S.flags.campGuard = S.year; return { text: 'Bạn hỏi liên đoàn và vài người từng đá nước ngoài: không ai nghe nói đến “' + o.club + '”, địa chỉ CLB trên hợp đồng là một căn nhà thuê, số điện thoại chuyển qua nhiều đầu số lạ. Đó là đường dây dụ người sang Campuchia làm việc cho tổ chức lừa đảo. Bạn chặn số và báo công an. Thoát trong gang tấc.', effects: { happy: 2, smarts: 3, karma: 4 }, scene: { loc: 'office', anim: 'think', fx: 'idea' } }; }
+          return foreignSign();
+        }
+        return Object.assign(foreignSign(), { text: 'Bạn hỏi kỹ qua liên đoàn: CLB hoàn toàn có thật và có lịch sử thi đấu rõ ràng. Yên tâm hơn, bạn ký hợp đồng. ' });
       } },
       { label: '🏠 Ở lại trong nước', fn: () => ({ text: 'Bạn từ chối. Người hâm mộ quê nhà treo băng rôn cảm ơn, nhưng đôi lúc bạn vẫn tự hỏi “nếu như…”.', effects: { happy: -2, karma: 2 }, scene: { anim: 'nod', fx: 'hearts' } }) }
     ] });
@@ -4923,7 +4946,7 @@
     const talent = S.flags['talent_' + id] ? 0.35 : 0;
     const status = c.fame || id === 'kinhdoanh' ? Math.min(0.12, prestige() * 0.01) : 0;
     const sportFit = c.sport ? (S.stats.health - 70) / 120 : 0;
-    const fitBonus = (id === 'dienvien' && S.edu.major === 'dienanh' ? 0.3 : 0) + (S.flags.veteran && ['canhsat', 'cuuhoa', 'chinhtri'].includes(id) ? 0.2 : 0) + (S.flags.duhoc || S.flags.master ? 0.12 : 0) + (careerFit(id) ? 0.1 : 0) + (S.flags.route && D.INTERESTS[S.flags.route].careers.includes(id) ? 0.12 : 0) + (S.flags['voc_' + id] ? 0.4 : 0);
+    const fitBonus = (id === 'dienvien' && S.edu.major === 'dienanh' ? 0.3 : 0) + (S.flags.veteran && ['canhsat', 'cuuhoa', 'chinhtri'].includes(id) ? 0.2 : 0) + (S.flags.duhoc || S.flags.master ? 0.12 : 0) + (careerFit(id) ? 0.1 : 0) + (S.flags.route && D.INTERESTS[S.flags.route].careers.includes(id) ? 0.12 : 0) + (S.flags['voc_' + id] ? 0.4 : 0) + (id === 'hlv' && S.flags.ex_athlete ? 0.25 : 0);
     const record = S.flags.tienan && id !== 'giangho' && id !== 'luadao' ? (S.flags.hocnghe_tu && ['congnhan', 'nongdan', 'phucvu', 'shipper'].includes(id) ? -0.05 : -0.2) : 0; // có tiền án thì khó xin việc
     return U.clamp((c.fame ? 0.25 : 0.55) + (S.stats.smarts - 50) / 150 + (S.stats.looks - 50) / (c.fame ? 120 : 300) + (S.edu.perf - 50) / 300 + talent + status + sportFit + fitBonus + record + (S.flags.phd ? 0.08 : 0) + jmHire(id), 0.08, 0.95);
   }

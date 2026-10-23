@@ -93,7 +93,7 @@
     if (type === 'penalty' && KN.Hax && !/(penalty|phat den|panenka|luan luu|da phat)/.test(fold(ev.title + ' ' + choice.label))) type = 'hax';
     if (type === 'drive' && GAMES.race && /(dua xe|dua voi|dua mo to|dua toc do)/.test(fold(ev.title + ' ' + choice.label))) type = 'race';
     if (type === 'fight' && !foe) foe = ctx.jobId === 'vdv_vo' && /^s_job_vdv/.test(ev.id) ? 'vo' : ctx.age < 14 ? 'kid' : 'thug';
-    return { type, foe, need: odds.need, ctx, title: ev.title, label: choice.label, level: quizLevel(ev, ctx), field: fieldOf(ctx.jobId), mode: 'event' };
+    return { type, foe, need: odds.need, ctx, evId: ev.id, title: ev.title, label: choice.label, level: quizLevel(ev, ctx), field: fieldOf(ctx.jobId), mode: 'event' };
   }
   function quizLevel(ev, ctx) {
     if (ev.id === 'ms_grade10') return 2;
@@ -830,8 +830,46 @@
       end: ['Bài phát biểu chạm đến mọi người.', 'Bài phát biểu tròn vai.', 'Bài phát biểu khá vụng về.'], tip: 'Chọn câu chân thành, ngắn gọn, đúng hoàn cảnh.',
       qs: [['Mở đầu thế nào?', 'Cảm ơn ngắn gọn rồi kể một câu chuyện thật', 'Đọc nguyên văn bài chuẩn bị sẵn', 'Đùa một câu nhạy cảm cho vui'], ['Bị hỏi câu khó trước đám đông?', 'Thừa nhận điều chưa làm được và nói hướng sửa', 'Hứa sẽ trả lời sau', 'Lảng sang chuyện khác'], ['Khán giả có người phản đối?', 'Lắng nghe, cảm ơn góp ý và trả lời bằng sự thật', 'Lờ đi', 'Mỉa mai người phản đối'], ['Kết thúc bài nói?', 'Nhắc lại thông điệp chính và cảm ơn', 'Nói “Hết rồi” rồi đi xuống', 'Nói thêm thật dài cho đủ giờ']] },
   };
+  // bộ câu hỏi riêng cho từng loại ca việc (tránh dùng chung câu hỏi chuyện gia đình cho mọi tình huống)
+  const mk = (title, face, tip, end, qs) => ({ title, face, tip, end, qs, good: ['Đối phương gật đầu, dịu hẳn.', '“Ừ, vậy cũng hợp lý.”', 'Không khí nhẹ đi trông thấy.'], mid: ['“Ừm… để tôi nghĩ đã.”', 'Họ im lặng cân nhắc.'], bad: ['Họ nhíu mày, khó chịu.', 'Không khí căng thẳng hơn…', '“Anh/chị nói vậy mà nghe được à?”'] });
+  Object.assign(IV_CTX, {
+    coach: mk('🗣️ Nói chuyện với học trò', '🧢', 'Công bằng, rõ ràng, tôn trọng cầu thủ nhưng giữ kỷ luật chung.', ['Cậu ấy hiểu ra, phòng thay đồ yên ắng trở lại.', 'Cậu ấy tạm nghe, chuyện chưa hẳn xong.', 'Cuộc nói chuyện đổ bể, cầu thủ bỏ ra ngoài.'], [
+      ['“Em đá hay nhất đội mà phải ngồi dự bị?”', 'Nêu rõ tiêu chí chọn đội hình và chỉ ra điều em cần cải thiện', 'Hứa lần sau sẽ cho đá', '“HLV quyết định, không bàn cãi.”'],
+      ['“Không được đá chính thì em xin sang CLB khác.”', 'Bình tĩnh hỏi lý do thật sự, đưa lộ trình và mốc thời gian cụ thể', 'Bảo em về suy nghĩ thêm', 'Doạ cắt hợp đồng ngay tại chỗ'],
+      ['Cả đội xì xào nghi bạn thiên vị?', 'Họp đội, công khai quy tắc áp dụng cho tất cả kể cả ngôi sao', 'Mặc kệ, thắng rồi sẽ yên', 'Chỉ mặt người đồn thổi mắng trước cả đội'],
+      ['Cậu ấy gắt: “Ban huấn luyện không công bằng!”', 'Lắng nghe hết, ghi nhận phần đúng rồi trao đổi cụ thể', 'Bảo cậu ấy ra ngoài bình tĩnh lại', '“Không thích thì đi!”'],
+      ['Chốt buổi nói chuyện thế nào?', 'Giao mục tiêu rõ ràng, cuối tháng đánh giá lại', 'Hẹn mai nói tiếp', 'Cho đá chính luôn cho khỏi rắc rối']]),
+    customer: mk('💬 Xử lý khách hàng', '😠', 'Giữ bình tĩnh, xin lỗi vì sự bất tiện, tìm giải pháp hợp lý.', ['Khách dịu xuống, còn cảm ơn bạn.', 'Khách tạm chấp nhận, vẫn còn ấm ức.', 'Khách bỏ đi và để lại lời chê.'], [
+      ['Khách lớn tiếng giữa chỗ đông người?', 'Giữ giọng nhẹ, xin lỗi vì bất tiện rồi hỏi rõ vấn đề', 'Mời khách sang góc khác nói chuyện', 'Cãi lại cho ra lẽ'],
+      ['Khách đòi bồi thường quá mức?', 'Giải thích chính sách, đề xuất phương án hợp lý', 'Chuyển cho quản lý xử lý', 'Từ chối thẳng thừng'],
+      ['Khách doạ đăng lên mạng?', 'Ghi nhận, cam kết xử lý trong thời hạn cụ thể', 'Nói “anh/chị cứ đăng”', 'Giả vờ không nghe thấy'],
+      ['Khách đã bớt giận, bạn kết thúc thế nào?', 'Cảm ơn góp ý, hứa cải thiện và kiểm tra lại sau', 'Nói “vậy nhé” rồi quay đi', 'Nhắc khách lần sau đừng làm vậy nữa']]),
+    student: mk('🗣️ Nói chuyện với học trò', '🧒', 'Kiên nhẫn, tìm hiểu nguyên nhân trước khi phán xét.', ['Em mở lòng, chịu kể hết mọi chuyện.', 'Em kể một phần rồi lại im lặng.', 'Em đóng sập lòng, ngồi khóc một mình.'], [
+      ['Em im lặng, không chịu kể vì sao nghỉ học?', 'Ngồi xuống ngang tầm, hỏi nhẹ và hứa giữ bí mật', 'Bảo em cứ nghĩ rồi nói', 'Doạ báo phụ huynh nếu không nói'],
+      ['Em bảo: “Cô/thầy đừng gọi bố mẹ em.”', 'Hỏi vì sao và cùng tìm cách để gia đình biết mà không bị la', 'Đồng ý không gọi', 'Nói bắt buộc phải gọi, hết chuyện'],
+      ['Em nói thẳng: “Em học dốt, bỏ cho rồi.”', 'Chỉ ra một điểm em làm tốt và đề nghị kèm thêm', '“Cố gắng lên em.”', '“Dốt thì đừng đến lớp.”'],
+      ['Cuối buổi, bạn dặn em điều gì?', 'Hẹn lịch gặp lại và cho em cách liên lạc khi cần', 'Dặn em đi học đều', 'Bảo em đừng để chuyện này xảy ra nữa']]),
+    crisis: mk('🕊️ Xử lý khủng hoảng', '😰', 'Hạ nhiệt trước, lắng nghe, đừng hứa điều không làm được.', ['Tình hình hạ nhiệt, mọi người an toàn.', 'Căng thẳng giảm bớt nhưng chưa dứt.', 'Tình hình xấu đi nhanh chóng.'], [
+      ['Đối phương đang rất kích động?', 'Hạ giọng, gọi tên, lắng nghe và nhắc lại điều họ nói', 'Giữ khoảng cách, chờ họ bình tĩnh', 'Quát lớn bắt họ im'],
+      ['Họ đòi bạn hứa một điều bạn không chắc làm được?', 'Nói thật những gì có thể làm ngay và những gì cần thời gian', 'Hứa tạm cho yên', 'Từ chối, không bàn thêm'],
+      ['Có người xung quanh la ó, thêm dầu vào lửa?', 'Nhờ người phụ trách đưa mọi người ra xa, giữ một người nói chuyện', 'Mặc kệ tiếng ồn', 'Quay sang quát đám đông'],
+      ['Họ bắt đầu dịu xuống, bạn làm gì tiếp?', 'Cảm ơn, đề xuất bước tiếp theo cụ thể và ai chịu trách nhiệm', 'Giữ im lặng chờ họ nói', 'Nhắc lại lỗi của họ cho đúng sai rõ ràng']]),
+    work: mk('💼 Xử lý công việc', '🧑‍💼', 'Rõ ràng, có căn cứ, giữ đúng chuẩn mực nghề nghiệp.', ['Đối phương đồng ý, công việc êm xuôi.', 'Đối phương tạm chấp nhận, cần theo dõi thêm.', 'Cuộc trao đổi không đi đến đâu.'], [
+      ['Cấp trên đưa yêu cầu trái với quy định?', 'Giải thích rủi ro bằng số liệu và đề xuất cách làm hợp lệ', 'Xin thêm thời gian để cân nhắc', 'Làm theo rồi tính sau'],
+      ['Đối tác gây áp lực phải quyết ngay?', 'Nói rõ điều kiện bạn chấp nhận và hẹn mốc trả lời cụ thể', 'Xin báo lại sau', 'Đồng ý luôn cho xong'],
+      ['Bị chất vấn về một sai sót?', 'Nhận phần trách nhiệm, trình bày cách khắc phục cụ thể', 'Giải thích hoàn cảnh', 'Đẩy trách nhiệm sang người khác'],
+      ['Kết thúc cuộc trao đổi thế nào?', 'Tóm tắt thoả thuận, ai làm gì và khi nào', 'Hẹn họp lại', 'Rời đi trước khi bị hỏi thêm']]),
+  });
+  const JT_CTX = { hlv: 'coach', giaovien: 'student', canhsat: 'crisis', cuuhoa: 'crisis', chinhtri: 'crisis', bacsi: 'customer', duocsi: 'customer' };
   function ivKind(p) {
     const t = fold((p.title || '') + ' ' + (p.label || ''));
+    // ca việc của từng nghề: bộ câu hỏi theo nghề, không dùng câu hỏi gia đình hay phỏng vấn xin việc
+    if (/^jt_/.test(p.evId || '') && !/(phong van|ung tuyen)/.test(t)) {
+      if (/(toa|kien|luat su|doi chat|bang chung)/.test(t)) return 'argue';
+      if (/(phat bieu|hop bao|cong bo)/.test(t)) return 'speech';
+      const jid = String(p.evId).replace(/^jt_/, '').replace(/_\d+$/, ''), f = fieldOf(jid);
+      return JT_CTX[jid] || (f === 'sales' || f === 'health' ? 'customer' : f === 'teach' ? 'student' : f === 'uniform' ? 'crisis' : 'work');
+    }
     if (p.mode === 'job' || /(phong van|ung tuyen|tuyen dung|xin viec|nha tuyen dung|tang luong|giam luong|o lai|shark|goi von|pitch|thang chuc)/.test(t)) return 'job';
     if (/(toa|kien|luat su|doi chat|to cao|cong an|thanh tra|giai trinh|chung minh|bang chung)/.test(t)) return 'argue';
     if (/(phat bieu|nhan giai|livestream|live |cong bo|hop bao|truoc dam dong|san khau)/.test(t)) return 'speech';
