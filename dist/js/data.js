@@ -791,6 +791,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.78', date: '23/10/2026', items: [
+      '⚡ Haxball online bớt lag: máy chủ gửi trạng thái 60 lần/giây (trước là 30), lệnh điều khiển gửi ngay khi bạn đổi hướng/sút thay vì chờ nhịp, và bù trễ cho bóng + cầu thủ khác theo ping thật (hiển thị vị trí đã đẩy tới trước theo nửa vòng ping).',
+      '📶 Ping hiện màu: 🟢 dưới 80ms · 🟡 dưới 160ms · 🔴 từ 160ms trở lên.',
+    ] },
     { v: '1.77', date: '23/10/2026', items: [
       '💘 App hẹn hò đổi sang kiểu quẹt thật: một chồng thẻ hồ sơ, kéo thẻ sang phải để thích, sang trái để bỏ qua (hoặc bấm nút, hoặc phím ← →). Có dấu THÍCH / BỎ QUA hiện theo hướng kéo, hiệu ứng “It’s a match!”, và thông tin khoảng cách.',
     ] },

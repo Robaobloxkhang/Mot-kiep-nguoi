@@ -23,7 +23,7 @@ function loadSim() {
 }
 const { sim: S, maps: MAPS } = loadSim();
 
-const MAX_PLAYERS = 8, HZ = 60, SEND_EVERY = 2; // gửi trạng thái 30 lần/giây
+const MAX_PLAYERS = 8, HZ = 60, SEND_EVERY = 1; // gửi trạng thái 60 lần/giây (mỗi nhịp) để giảm độ trễ cảm nhận
 const PUBLIC = 'SANH', AUTO_START = 8;
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rooms = new Map();

@@ -874,8 +874,8 @@
       document.getElementById('hxBack').onclick = () => menu();
       showPing();
     };
-    let rtt = 0;
-    const showPing = () => { const el = document.getElementById('hxPing'); if (el && rtt) el.textContent = '· 📶 ' + rtt + 'ms'; };
+    let rtt = 0, rttS = 0;
+    const showPing = () => { const el = document.getElementById('hxPing'); if (el && rtt) el.textContent = '· ' + (rtt < 80 ? '🟢' : rtt < 160 ? '🟡' : '🔴') + ' ' + rtt + 'ms'; };
     // ván đấu phía người vào phòng: tự chạy vật lý (dự đoán) rồi khớp dần với trạng thái chủ phòng gửi về
     const startGame = (d) => {
       playing = true; me = d.me; snap = null; lastScore = '0-0';
@@ -886,7 +886,9 @@
       cv = document.getElementById('hxCv'); ctx = cv.getContext('2d'); bindKeys();
       document.getElementById('hxQuit').onclick = () => menu();
       let tick = 0, last = performance.now(), acc = 0;
-      const sendIn = () => send({ t: 'i', i: inAny() });
+      // gửi lệnh ngay khi thay đổi (không đợi nhịp) và nhắc lại mỗi 100ms phòng gói tin rơi
+      let lastIn = '', sentAt = 0;
+      const sendIn = () => { const v = inAny(), j = JSON.stringify(v), t0 = performance.now(); if (j !== lastIn || t0 - sentAt > 100) { lastIn = j; sentAt = t0; send({ t: 'i', i: v }); } };
       keyHook = sendIn;
       ticker(60, () => {
         if (!playing) return;
@@ -896,7 +898,7 @@
           const ins = m.players.map((p, i) => (i === me ? inAny() : snap && snap.p[i] ? { jx: snap.p[i][6], jy: snap.p[i][7], k: !!snap.p[i][4] } : {}));
           step(m, ins);
         }
-        if (++tick % 2 === 0) sendIn();
+        tick++; sendIn();
       });
       const loop = () => { if (!playing) return; playEvents(m); draw(ctx, m, me); hud(m); raf = requestAnimationFrame(loop); };
       raf = requestAnimationFrame(loop);
@@ -907,17 +909,21 @@
       if (d.ph !== m.phase) m.phase = d.ph;
       const sc = d.sc.join('-'); if (sc !== lastScore) { lastScore = sc; sfx('cheer'); }
       // khớp dần: của mình thì chỉnh nhẹ (đã dự đoán trước), của người khác chỉnh mạnh hơn; lệch quá xa thì nhảy luôn
-      const fix = (o, x, y, vx, vy, k, own) => { const ex = x - o.x, ey = y - o.y, e = Math.hypot(ex, ey); if (e > 70) { o.x = x; o.y = y; o.vx = vx; o.vy = vy; return; } o.x += ex * k; o.y += ey * k; if (!own) { o.vx = vx; o.vy = vy; } else { o.vx += (vx - o.vx) * 0.2; o.vy += (vy - o.vy) * 0.2; } };
-      d.p.forEach((a, i) => { const p = m.players[i]; if (!p) return; fix(p, a[0], a[1], a[2], a[3], i === me ? 0.12 : 0.45, i === me); if (i !== me) p.kicking = !!a[4]; p.flash = a[5] ? Math.max(p.flash, 1) : p.flash; p.stun = a[8] ? Math.max(p.stun || 0, 2) : 0; p.out = !!a[9]; p.card = a[10] || 0; if (i !== me) p.slide = a[11] ? 2 : 0; });
+      // bù trễ: trạng thái máy chủ đã “cũ” khoảng nửa vòng ping khi tới nơi → đẩy tới trước theo vận tốc để khớp với hiện tại
+      if (KN.Hax._dbg) KN.Hax._dbg.m = m;
+      const lt = dc.server && !KN.Hax._noLagComp ? Math.max(0, Math.min(10, rttS / 2 / 16.7)) : 0, dbg = KN.Hax._dbg;
+      const fix = (o, x, y, vx, vy, k, own) => { const ex = x - o.x, ey = y - o.y, e = Math.hypot(ex, ey); if (own && dbg) { dbg.sum += e; dbg.n++; } if (e > 70) { o.x = x; o.y = y; o.vx = vx; o.vy = vy; return; } o.x += ex * k; o.y += ey * k; if (!own) { o.vx = vx; o.vy = vy; } else { o.vx += (vx - o.vx) * 0.2; o.vy += (vy - o.vy) * 0.2; } };
+      d.p.forEach((a, i) => { const p = m.players[i]; if (!p) return; const l2 = i === me ? 0 : lt * 0.85; fix(p, a[0] + a[2] * l2, a[1] + a[3] * l2, a[2], a[3], i === me ? 0.12 : 0.45, i === me); if (i !== me) p.kicking = !!a[4]; p.flash = a[5] ? Math.max(p.flash, 1) : p.flash; p.stun = a[8] ? Math.max(p.stun || 0, 2) : 0; p.out = !!a[9]; p.card = a[10] || 0; if (i !== me) p.slide = a[11] ? 2 : 0; });
       const b = d.b, mine = m.players[me], near = mine && Math.hypot(mine.x - m.ball.x, mine.y - m.ball.y) < 60;
-      fix(m.ball, b[0], b[1], b[2], b[3], near ? 0.25 : 0.5, false); if (!near) m.ball.spin = b[4] || 0;
+      const bd = (MP && MP.bd) || 0.985, bs = lt ? (1 - Math.pow(bd, lt)) / (1 - bd) : 0;
+      fix(m.ball, b[0] + b[2] * bs, b[1] + b[3] * bs, b[2], b[3], near ? 0.25 : 0.5, false); if (!near) m.ball.spin = b[4] || 0;
       if (d.ch) d.ch.forEach((v, i) => { if (i !== me && m.players[i]) m.players[i].charge = v; });
     };
     dc.onmessage = (e) => {
       lastSeen = performance.now();
       let d; try { d = JSON.parse(e.data); } catch (x) { return; }
       if (d.t === 's') applySnap(d);
-      else if (d.t === 'pong') { if (d.c) { rtt = Math.round(performance.now() - d.c); showPing(); } }
+      else if (d.t === 'pong') { if (d.c) { rtt = Math.round(performance.now() - d.c); rttS = rttS ? rttS * 0.7 + rtt * 0.3 : rtt; showPing(); } }
       else if (d.t === 'lobby') showLobby(d);
       else if (d.t === 'start') startGame(d);
       else if (d.t === 'end') { playing = false; stopTicker(); keyHook = null; if (m) { m.score = d.sc; finish(m, { myTeam: m.players[me].team, online: true, againLabel: null }); } }
