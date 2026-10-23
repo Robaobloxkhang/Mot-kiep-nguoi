@@ -792,6 +792,8 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '⚽ Cầu thủ bóng đá: mọi cấp (kể cả đội trẻ, dự bị) đều có mùa giải và bảng xếp hạng mỗi năm; không còn kẹt mãi ở “học viên lò đào tạo” — đá đều và giữ phong độ là được đôn lên.',
+      '🎨 Giao diện trong game đổi theo phong cách Phòng HLV: ô chỉ số có icon, thanh tab icon nét mảnh, tiêu đề condensed, thẻ hoạt động, tình huống và nhật ký đồng nhất màu navy – hổ phách. Sửa thanh quan hệ ở tab Quan hệ bị phình to.',
       '⭐ Chấm điểm cầu thủ sau mỗi trận Hax (thang 10, theo bàn thắng, kiến tạo, cú sút, số lần chạm bóng, kết quả) và chọn MVP của trận. Trong Phòng HLV điểm ảnh hưởng tinh thần, lưu điểm gần đây và số lần được chọn MVP.',
       '🏟️ Đá 4v4 mặc định dùng Sân lớn (không còn chật); bạn vẫn tự chọn bản đồ khác được.',
       '🏅 Thêm giải đấu nhiều đội: Cúp Quốc Gia (16 đội, 4 vòng) và Siêu Cúp 32 đội (5 vòng, thưởng lớn). Có thêm hơn 30 tên đội mới, bảng đấu cuộn ngang được.',

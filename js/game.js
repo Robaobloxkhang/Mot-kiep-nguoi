@@ -2161,7 +2161,9 @@
     if (S.job) {
       S.job.years++; S.job.levelYears = (S.job.levelYears || 0) + 1; S.job.perf = r100(S.job.perf + U.rand(-9, 5) + (S.stats.smarts - 55) / 25);
       if (S.flags.firstjob_pending) { delete S.flags.firstjob_pending; unlock('first_job'); queueMilestone('ms_firstpay'); }
-      if (S.job.perf > 75 && promoGate() && Math.random() < 0.25) { if (promote()) { L('Bạn được thăng chức: ' + D.CAREERS[S.job.id].levels[S.job.level].title + '!', 'milestone', '📈'); addStat('happy', 6, deltas); } }
+      // vận động viên đá đều đặn mỗi mùa thì không thể kẹt mãi ở đội trẻ: đủ năm và phong độ khá là được đôn lên
+      if (D.CAREERS[S.job.id].sport && S.job.perf >= 50 && (S.job.levelYears || 0) >= 2 + S.job.level && S.job.level < D.CAREERS[S.job.id].levels.length - 2 && Math.random() < 0.6) { if (promote()) { L('Sau những mùa giải đều đặn, bạn được đôn lên ' + D.CAREERS[S.job.id].levels[S.job.level].title + '!', 'milestone', '📈'); addStat('happy', 6, deltas); } }
+      else if (S.job.perf > 75 && promoGate() && Math.random() < 0.25) { if (promote()) { L('Bạn được thăng chức: ' + D.CAREERS[S.job.id].levels[S.job.level].title + '!', 'milestone', '📈'); addStat('happy', 6, deltas); } }
       else if (S.job.perf < 22 && Math.random() < 0.5) {
         if (!S.flags.perfWarn) { S.flags.perfWarn = S.year; queueMilestone('ms_job_warn'); }
         else if (S.year - S.flags.perfWarn >= 1) { L('Sau lần cảnh cáo năm ngoái, hiệu suất vẫn không khá hơn. Bạn bị cho thôi việc.', 'bad', '📦'); if (D.CAREERS[S.job.id].sport) S.flags.ex_athlete = S.flags.ex_athlete || S.year; S.job = null; S.flags.perfWarn = 0; addStat('happy', -10, deltas); }
@@ -2385,8 +2387,8 @@
     'châu Âu': ['Sint-Truiden', 'Real Sociedad', 'Feyenoord', 'Ajax', 'Celtic', 'Porto', 'Club Brugge', 'Benfica'],
   };
   const LEAGUE_ROUNDS = 10, LEAGUE_HAX = 3;
-  const leagueOn = () => !!(S && S.job && S.job.id === 'cauthu' && S.job.level >= 1 && !S.jail);
-  function leagueName() { const c = S.job.club; if (!c) return 'V-League 1'; return { 'Thái Lan': 'Thai League 1', 'Nhật Bản / Hàn Quốc': 'J-League / K-League', 'châu Âu': 'Giải VĐQG châu Âu' }[c.country] || 'Giải VĐQG ' + c.country; }
+  const leagueOn = () => !!(S && S.job && S.job.id === 'cauthu' && !S.jail); // mọi cấp (kể cả đội trẻ / dự bị) đều có mùa giải mỗi năm
+  function leagueName() { const c = S.job.club; if (!c) return S.job.level < 1 ? 'Giải Hạng Nhất' : 'V-League 1'; return { 'Thái Lan': 'Thai League 1', 'Nhật Bản / Hàn Quốc': 'J-League / K-League', 'châu Âu': 'Giải VĐQG châu Âu' }[c.country] || 'Giải VĐQG ' + c.country; }
   function myClub() { if (S.job.club) return S.job.club.name; if (!S.job.clubName) S.job.clubName = U.pick(VN_CLUBS); return S.job.clubName; }
   const myStr = () => U.clamp(42 + S.job.perf * 0.32 + S.job.level * 3 + (S.stats.health - 60) / 8, 35, 90);
   function ensureLeague() {

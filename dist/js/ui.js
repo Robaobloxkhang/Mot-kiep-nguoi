@@ -14,14 +14,28 @@
   const savePrefs = () => KN.store.set(PREFS, prefs);
   const S = { mode: 'title', busy: false, tab: prefs.tab || 'log', worldOk: false, demoN: U.randi(0, 15), demoTimer: null, seenLog: 0, prevStats: null, prevAge: null, primary: null, choiceFns: [], create: null, moneyShown: null, coachShown: {}, sceneSeq: 0 };
 
+  // bộ icon nét mảnh dùng chung cho chỉ số và thanh mục (thay emoji để giao diện đồng nhất)
+  const SVGI = {
+    happy: '<circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.6 2.4 2.4 4 2.4s3-.8 4-2.4M9 9.5h.01M15 9.5h.01"/>',
+    health: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+    smarts: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+    looks: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18 16l.8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8z"/>',
+    log: '<path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6zM6 4v16M10 9h6M10 13h6"/>',
+    act: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+    people: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M16 14.2c3 .2 5 2.3 5 5.3"/>',
+    career: '<path d="M2 9l10-5 10 5-10 5zM6 11.5V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5"/>',
+    money: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/>',
+    social: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  };
+  const svgIc = (k, s) => '<svg class="gi" width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (SVGI[k] || '') + '</svg>';
   const STAT_META = [
-    { k: 'happy', label: 'Hạnh phúc', icon: '😊', c: 'var(--c-happy)' },
-    { k: 'health', label: 'Sức khỏe', icon: '❤️', c: 'var(--c-health)' },
-    { k: 'smarts', label: 'Trí tuệ', icon: '🧠', c: 'var(--c-smarts)' },
-    { k: 'looks', label: 'Ngoại hình', icon: '✨', c: 'var(--c-looks)' },
+    { k: 'happy', label: 'Hạnh phúc', icon: svgIc('happy', 16), c: 'var(--c-happy)' },
+    { k: 'health', label: 'Sức khỏe', icon: svgIc('health', 16), c: 'var(--c-health)' },
+    { k: 'smarts', label: 'Trí tuệ', icon: svgIc('smarts', 16), c: 'var(--c-smarts)' },
+    { k: 'looks', label: 'Ngoại hình', icon: svgIc('looks', 16), c: 'var(--c-looks)' },
   ];
   const DELTA_META = { happy: ['😊', 'Hạnh phúc'], health: ['❤️', 'Sức khỏe'], smarts: ['🧠', 'Trí tuệ'], looks: ['✨', 'Ngoại hình'], karma: ['☯️', 'Đức'], money: ['💰', ''] };
-  const TABS = [{ id: 'log', icon: '📜', label: 'Nhật ký' }, { id: 'act', icon: '🎯', label: 'Hoạt động' }, { id: 'people', icon: '❤️', label: 'Quan hệ' }, { id: 'career', icon: '🎓', label: 'Học/Làm' }, { id: 'money', icon: '💰', label: 'Tài sản' }, { id: 'social', icon: '📱', label: 'MXH' }];
+  const TABS = [{ id: 'log', icon: svgIc('log', 20), label: 'Nhật ký' }, { id: 'act', icon: svgIc('act', 20), label: 'Hoạt động' }, { id: 'people', icon: svgIc('people', 20), label: 'Quan hệ' }, { id: 'career', icon: svgIc('career', 20), label: 'Học/Làm' }, { id: 'money', icon: svgIc('money', 20), label: 'Tài sản' }, { id: 'social', icon: svgIc('social', 20), label: 'MXH' }];
 
   // ------------------------------------------------------------------ audio
   function sfx(n) { try { if (prefs.sfx && KN.Audio) KN.Audio.sfx(n); } catch (e) { /* */ } }
@@ -344,7 +358,7 @@
   function renderStats(v) {
     const box = $('#stats');
     if (!box.children.length) {
-      box.innerHTML = STAT_META.map((m) => '<div class="stat" data-s="' + m.k + '" style="--c:' + m.c + '"><div class="stat-top"><span>' + m.icon + ' ' + m.label + '</span><b>0</b></div><div class="stat-bar"><div class="stat-fill"></div></div></div>').join('');
+      box.innerHTML = STAT_META.map((m) => '<div class="stat" data-s="' + m.k + '" style="--c:' + m.c + '" title="' + m.label + '"><span class="stat-ic">' + m.icon + '</span><div class="stat-body"><div class="stat-top"><span>' + m.label + '</span><b>0</b></div><div class="stat-bar"><div class="stat-fill"></div></div></div></div>').join('');
     }
     STAT_META.forEach((m) => {
       const el = box.querySelector('[data-s="' + m.k + '"]'), val = v.stats[m.k];
