@@ -787,6 +787,11 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.72', date: '23/10/2026', items: [
+      '🚨 Mới: bị lừa sang Campuchia khi đi du lịch nước ngoài hoặc đang du học — lời mời “việc nhẹ lương cao”, người bạn mới quen, đến lúc nhận ra thì đã muộn. Hỏi kỹ và cảnh giác thì có thể thoát.',
+      '💸 Bị bắt là mất sạch tiền, hộ chiếu, điện thoại. Bọn có lương tâm đòi chuộc: chỉ tiền của bố mẹ, người thân mới chuộc được, bạn không được trả bằng tiền mình.',
+      '💻 Bọn không có lương tâm ép bạn làm lừa đảo người khác, mỗi năm phải chọn: làm theo, chống đối, lén báo tin hoặc liều mạng bỏ trốn — cho đến khi được giải cứu.',
+    ] },
     { v: '1.71', date: '22/10/2026', items: [
       '👶 Tuổi 0–2 hết chán: thêm 17 tình huống mới ở công viên, biển, quê ngoại, chùa, đám cưới, sân bay, studio, nhà trẻ…; năm nào cũng có chuyện xảy ra, cảnh thường ngày đổi chỗ liên tục.',
       '💸 Âm tiền: dưới 18 tuổi bố mẹ phải trả thay (và mắng); từ 18 tuổi bắt buộc vay ngân hàng, vay người thân, bán tài sản hoặc vay app để lấp.',

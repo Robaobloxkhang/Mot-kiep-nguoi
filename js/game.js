@@ -1656,6 +1656,7 @@
       if (S.flags.truyna && Math.random() < 0.3) queueMilestone('ms_truyna');
       return;
     }
+    if (j.camp) return campYear(L, deltas);
     if (S.year >= j.until) { S.jail = null; L('🔓 Bạn mãn hạn tù sau ' + (S.year - j.since) + ' năm. Cánh cổng trại giam mở ra, nắng chói chang. Bạn hít một hơi thật sâu.', 'milestone', '🔓'); addStat('happy', 10, deltas); return; }
     addStat('happy', -U.rand(3, 7), deltas); addStat('health', -U.rand(0, 2), deltas); addStat('karma', 1, deltas);
     L('⛓️ Năm thứ ' + (S.year - j.since) + '/' + j.total + ' trong trại giam.', 'bad', '⛓️');
@@ -2141,7 +2142,7 @@
     try { xkYear(L, deltas); if (S.abroad && S.abroad.settled && S.year - S.abroad.since === 5 && !S.flags.citizen) queueMilestone('ms_quoctich'); } catch (e) { U.warnOnce('xk', 'xk', e); }
     try { officeYear(L); if (S.company) chainYear(L, deltas); } catch (e) { U.warnOnce('batchB2', 'office/chain', e); }
     try { groupsYear(L); familyBYear(L); rivalYear(L); } catch (e) { U.warnOnce('famB', 'family batch B', e); }
-    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
+    try { blackDebtYear(L); huiYear(L, deltas); fomoYear(L); jobMarketYear(L); debtYear(L, deltas); lowStatYear(L); campRiskYear(); } catch (e) { U.warnOnce('moneyA', 'money batch A', e); }
     // công việc tự tìm đến: mỗi năm có khả năng gặp một ca làm việc nổi bật của nghề
     try { if (S.job && !S.jail && S.pending.length < 2 && Math.random() < 0.4) { const ev = jobTaskEvent(); if (ev) S.pending.push(ev); } } catch (e) { U.warnOnce('jt', 'jobtask', e); }
     jailYear(L, deltas);
@@ -2832,6 +2833,7 @@
       if (pp) { pp.relation = r100(pp.relation + U.randi(6, 12)); text += ' Chuyến đi khiến bạn và ' + pp.firstName + ' gần nhau hơn hẳn.'; }
       else if (P().age >= 18 && P().age <= 50 && Math.random() < 0.12) { const g = U.pick(loveGenders()), np = newPerson('partner', g, U.clamp(P().age + U.randi(-4, 4), 18, 60), { relation: U.randi(55, 70) }); np.metTrip = t.name; S.people.push(np); text += ' Ở ' + t.name + ', bạn quen một người Việt cũng đi du lịch một mình: ' + np.firstName + '. Về nước hai người vẫn nhắn tin mỗi ngày… rồi thành người yêu!'; }
       if (st.fans && S.social && S.social.followers != null) S.social.followers += st.fans;
+      if (t.abroad && P().age >= 18 && P().age <= 45 && !S.jail && !S.flags.campGuard && Math.random() < (/bangkok|thái|campuchia|phnom|angkor|siem/i.test((t.id || '') + ' ' + t.name) ? 0.09 : 0.03)) queueMilestone('ms_camp_moi_trip');
       if (Math.random() < 0.04) { eff.money -= 5e6; text += ' Trước hôm về, bạn đánh rơi hộ chiếu, phải lên đại sứ quán làm lại giấy tờ, tốn thêm 5 triệu.'; }
       return { text, effects: eff, scene: { loc: t.loc, time: t.time || 'day', weather: t.weather, decor: t.decor, anim: (st.eff.happy || 0) > 0 ? 'cheer' : 'facepalm', fx: (st.eff.happy || 0) > 0 ? t.fx : null }, tone: (st.eff.happy || 0) > 0 ? 'good' : 'bad' };
     } };
@@ -3302,6 +3304,75 @@
   }
   const loanLeft = () => (S.loans || []).reduce((s, l) => s + l.left, 0);
 
+  // ------------------------------------------------------------------ BỊ BẮT SANG CAMPUCHIA (lừa đảo việc nhẹ lương cao): hỏi han kỹ + cảnh giác thì tránh được
+  function campRiskYear() {
+    if (!S || S.dead || S.jail || S.flags.campGuard || S.pending.length >= 2) return;
+    const pa = P().age;
+    if (pa < 18 || pa > 40 || !(S.edu.abroad && S.edu.inSchool) || (S.flags.campLure && S.year - S.flags.campLure < 3)) return;
+    if (Math.random() < 0.035) { S.flags.campLure = S.year; queueMilestone('ms_camp_moi_study'); }
+  }
+  function campCapture(how) {
+    const lost = Math.max(0, S.money);
+    S.money = 0; S.job = null; if (S.edu.inSchool) { S.edu.inSchool = false; S.edu.dropped = true; }
+    const kind = Math.random() < 0.45 ? 'ransom' : 'scam';
+    S.camp = { kind, since: S.year, amount: kind === 'ransom' ? Math.round(U.randi(80, 300) / 10) * 10 * 1e6 : 0, signal: 0, how };
+    S.jail = { until: S.year + 9999, since: S.year, total: 0, reason: 'bị bắt giữ ở Campuchia', camp: true };
+    S.flags.campVictim = S.year;
+    S.abroad = null;
+    addLog('🚨 Bạn bị bắt giữ ở Campuchia. Hộ chiếu, điện thoại và toàn bộ ' + (lost ? fmtMoney(lost) + ' tiền ' : 'tiền ') + 'đều bị tịch thu.', 'bad', '🚨');
+    return kind;
+  }
+  function campLureChoice(src) {
+    const where = src === 'trip' ? 'trên chuyến đi' : 'ở nơi du học';
+    return (k) => {
+      if (k === 'go') return { key: k, label: src === 'trip' ? '🚗 Đi cùng cho biết, nghe vui đấy' : '💼 Nhận lời, kiếm thêm tiền', fn: () => { campCapture('go'); return { text: 'Chiếc xe chạy rất lâu, băng qua mấy chốt kiểm soát vắng vẻ. Khi cổng sắt đóng lại sau lưng, bạn mới hiểu mình không còn ở nơi du lịch nữa. “Mày nợ tụi tao rồi, đừng có nghĩ chuyện về.” Hộ chiếu, điện thoại, toàn bộ tiền bạc bị lấy sạch ngay trong đêm đầu tiên.', effects: { happy: -15, health: -4 }, scene: { loc: 'street', time: 'night', anim: 'scared', expr: 'scared', npcs: [{ role: 'thug', anim: 'angry', say: 'Vào!' }, { role: 'thug', anim: 'point' }], fx: 'exclaim', shot: 'dramatic' }, tone: 'bad' }; } };
+      if (k === 'ask') { const p = U.clamp(0.4 + S.stats.smarts / 200 + (S.english || 0) / 400, 0.3, 0.85); return { key: k, label: '🤔 Hỏi kỹ: công ty nào, địa chỉ ở đâu, hợp đồng đâu?', hint: 'Cảnh giác tăng khả năng thoát', odds: () => p, fn: () => { if (miniWin(p)) { S.flags.campGuard = S.year; return { text: 'Càng hỏi, đối phương càng ấp úng: không có địa chỉ, không hợp đồng, chỉ có “qua biên giới là có việc”. Bạn lặng lẽ chặn số rồi báo cho người thân. Vài ngày sau tin tức đưa về một nhóm người bị lừa y như vậy. Bạn đã thoát trong gang tấc.', effects: { happy: 2, smarts: 2, karma: 1 }, scene: { anim: 'think', fx: 'idea' } }; } campCapture('ask'); return { text: 'Bạn hỏi nhiều nhưng đối phương trả lời trơn tru đến bất ngờ, còn mời bạn ly nước “cho bớt căng thẳng”. Ly nước ấy là thứ cuối cùng bạn nhớ. Khi tỉnh lại, bạn đang ở một nơi hoàn toàn xa lạ và cánh cửa đã khoá chặt từ bên ngoài.', effects: { happy: -15, health: -6 }, scene: { loc: 'street', time: 'night', anim: 'scared', expr: 'scared', npcs: [{ role: 'thug', anim: 'angry' }], fx: 'exclaim', shot: 'dramatic' }, tone: 'bad' }; } }; }
+      const p = 0.82; return { key: k, label: '🙅 Từ chối thẳng, đi chỗ khác', hint: 'Phần lớn thoát, nhưng chưa chắc', odds: () => p, fn: () => { if (miniWin(p)) { S.flags.campGuard = S.year; return { text: 'Bạn từ chối rồi bỏ đi. Người kia nhún vai, quay sang tìm “con mồi” khác. Về sau bạn mới biết nhiều người nhận lời đã không bao giờ liên lạc được nữa.', effects: { happy: 1, karma: 1 }, scene: { anim: 'shake', fx: 'sparkle' } }; } campCapture('forced'); return { text: 'Bạn từ chối, nhưng chúng không chịu thôi: một chiếc xe chặn đường, vài người đàn ông lực lưỡng lôi bạn lên xe giữa ban ngày ' + where + '. Bạn la hét nhưng chẳng ai kịp phản ứng.', effects: { happy: -18, health: -8 }, scene: { loc: 'street', time: 'night', anim: 'scared', expr: 'scared', npcs: [{ role: 'thug', anim: 'angry', say: 'Im mồm!' }], fx: 'exclaim', shot: 'dramatic' }, tone: 'bad' }; } };
+    };
+  }
+  const campLureTrip = campLureChoice('trip'), campLureStudy = campLureChoice('study');
+  ms({ id: 'ms_camp_moi_trip', title: 'Người bạn mới quen', icon: '🤝', age: [18, 60],
+    text: 'Ở quán cà phê, một người nói tiếng Việt, ăn mặc sang trọng bắt chuyện rất thân thiện. Nghe bạn đi chơi một mình, người đó cười: “Qua Campuchia chơi một chuyến đi! Bao xe, bao ăn ở, tụi anh có việc nhẹ lương 2.000 đô, rảnh thì làm, không thì thôi.”',
+    scene: { loc: 'cafe', time: 'day', anim: 'idle', npcs: [{ role: 'stranger', gender: 'm', anim: 'talk', say: 'Đi với anh, bao hết nhé!' }], fx: 'money', shot: 'close' },
+    choicesFn: () => ['go', 'ask', 'no'].map(campLureTrip), choiceByKey: campLureTrip });
+  ms({ id: 'ms_camp_moi_study', title: 'Việc làm thêm lương cao', icon: '💼', age: [18, 45],
+    text: 'Một người đồng hương trong nhóm sinh viên nhắn riêng cho bạn: “Anh có việc làm thêm cuối tuần, chỉ gõ máy tính, lương 3.000 đô một tháng, ở Campuchia, có xe đón. Cả bọn em đi rồi, ai cũng khen.”',
+    scene: { loc: 'university', time: 'day', anim: 'phone', npcs: [{ role: 'stranger', gender: 'm', anim: 'talk', say: 'Việc nhẹ lương cao, đi không?' }], fx: 'money', shot: 'close' },
+    choicesFn: () => ['go', 'ask', 'no'].map(campLureStudy), choiceByKey: campLureStudy });
+
+  // ---- sống trong khu lừa đảo
+  const campPayer = () => alive('mother').concat(alive('father'), alive('spouse'), alive('sibling'), alive('grandparent')).filter((p) => (p.relation ?? 60) >= 25).sort((a, b) => (b.relation ?? 60) - (a.relation ?? 60))[0] || null;
+  function campRelease(how) {
+    const kind = S.camp ? S.camp.kind : 'scam', yrs = S.jail ? S.year - S.jail.since : 0;
+    S.jail = null; S.camp = null; S.money = Math.max(0, S.money); S.flags.scamSurvivor = S.year; S.flags.campGuard = S.year;
+    addStat('happy', -10, {}); addStat('health', -6, {});
+    addLog((how === 'ransom' ? '🏠 Gia đình đóng tiền chuộc, bạn được thả về nước. ' : how === 'escape' ? '🏃 Bạn trốn thoát khỏi khu lừa đảo. ' : '🚁 Bạn được lực lượng chức năng giải cứu. ') + 'Sau ' + yrs + ' năm bạn trở về, gầy rộc và còn nguyên ám ảnh. Hộ chiếu, tiền bạc, quãng thời gian — tất cả đã mất.', 'milestone', '🕊️');
+    void kind;
+  }
+  function campYear(L, deltas) {
+    const c = S.camp || (S.camp = { kind: 'scam', since: S.jail.since, amount: 0, signal: 0 }), yrs = S.year - S.jail.since + 1;
+    S.money = Math.max(0, S.money); addStat('happy', -U.rand(4, 8), deltas); addStat('health', -U.rand(2, 5), deltas);
+    const base = c.kind === 'ransom' ? 0.07 : 0.05 + 0.025 * yrs, p = Math.min(0.85, base + (c.signal || 0) * 0.15 + (campPayer() ? 0.04 : 0));
+    if (Math.random() < p) { campRelease('rescue'); return; }
+    L(c.kind === 'ransom' ? '⛓️ Năm thứ ' + yrs + ' bị giam: bọn bắt cóc đòi tiền chuộc ' + fmtMoney(c.amount) + '.' : '⛓️ Năm thứ ' + yrs + ' trong khu lừa đảo: ngày nào cũng phải ngồi gõ máy, nhắn tin dụ dỗ người khác, không đạt chỉ tiêu là bị đánh.', 'bad', '⛓️');
+    if (!S.pending.some((e) => e.id === 'ms_camp')) queueMilestone('ms_camp');
+  }
+  function campChoice(k) {
+    const c = S.camp || { kind: 'scam', amount: 0 }, pay = campPayer();
+    if (k === 'ransom') return { key: k, label: '📞 Xin gia đình chuộc (' + fmtMoney(c.amount) + ')', _ok: c.kind === 'ransom' && !!pay, hint: pay ? 'Tiền của ' + (nameOf(pay)) + ', không phải tiền của bạn — bạn đã mất hết' : 'Không còn người thân nào để nhờ',
+      fn: () => { const rich = pay.role === 'spouse' ? 'hai vợ chồng' : nameOf(pay); S.flags.famDebt = (S.flags.famDebt || 0) + c.amount; addRel(pay, 6, []); campRelease('ransom'); return { text: 'Bạn run run đọc số điện thoại người thân. ' + nameOf(pay).replace(/^./, (x) => x.toUpperCase()) + ' nghe tin mà khóc nức nở, lập tức bán đất, vay mượn khắp họ hàng để gom đủ ' + fmtMoney(c.amount) + ' chuyển cho chúng. Vài ngày sau bạn được thả ở cửa khẩu. Món nợ ân tình ấy, ' + rich + ' gánh thay bạn.', effects: { happy: 3 }, scene: { loc: 'airport', anim: 'hug', npcs: [{ role: pay.role, anim: 'cry', say: 'Con về là tốt rồi…' }], fx: 'tears' } }; } };
+    if (k === 'work') return { key: k, label: '💻 Làm theo, lừa người khác cho khỏi bị đánh', hint: 'Giữ được mạng nhưng lương tâm cắn rứt', _ok: c.kind === 'scam', fn: () => { const n = U.randi(8, 40); addStat('karma', -6, {}); S.flags.scamMade = (S.flags.scamMade || 0) + n; return { text: 'Bạn buộc phải dùng ảnh đẹp, lời ngọt để dụ ' + n + ' người xa lạ chuyển tiền. Mỗi lần có người sập bẫy, bọn chúng vỗ tay còn bạn thấy buồn nôn. Không đạt chỉ tiêu là bị đánh, vậy nên bạn vẫn phải làm tiếp.', effects: { karma: -6, happy: -4, health: -1 }, scene: { loc: 'office', time: 'night', anim: 'type', expr: 'sad', npcs: [{ role: 'thug', anim: 'angry', say: 'Chỉ tiêu đâu?!' }], fx: 'sweat' }, tone: 'bad' }; } };
+    if (k === 'resist') return { key: k, label: '✊ Chống đối, không chịu lừa ai', hint: 'Giữ lương tâm nhưng bị trừng phạt nặng', fn: () => ({ text: c.kind === 'scam' ? 'Bạn nhất quyết không lừa người vô tội. Bọn chúng nhốt bạn vào phòng tối, đánh đòn, bỏ đói mấy ngày liền. Bạn kiệt sức nhưng lòng thanh thản.' : 'Bạn cãi lại bọn bắt cóc. Chúng trói bạn lại, đánh một trận nhừ tử để cảnh cáo.', effects: { health: -14, happy: -5, karma: 3 }, scene: { anim: 'fall', fx: 'dust', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }) };
+    if (k === 'signal') { const p = U.clamp(0.3 + S.stats.smarts / 300, 0.2, 0.65); return { key: k, label: '📱 Lén báo tin cho gia đình / cơ quan chức năng', hint: 'Nếu bị phát hiện sẽ bị trừng phạt rất nặng', odds: () => p, fn: () => { if (miniWin(p)) { S.camp.signal = (S.camp.signal || 0) + 1; return { text: 'Bạn lén mượn được một chiếc điện thoại trong giây lát, gửi vội vị trí và ảnh khu nhà cho người thân. Họ báo ngay cho cơ quan chức năng. Hy vọng được giải cứu lớn hơn rồi.', effects: { happy: 4, karma: 1 }, scene: { loc: 'office', time: 'night', anim: 'phone', expr: 'scared', fx: 'idea' } }; } return { text: 'Bạn bị phát hiện đang cầm điện thoại. Cả đêm bọn chúng đánh bạn đến ngất đi, điện giật, nhốt thêm một tháng không thấy ánh sáng.', effects: { health: -22, happy: -8 }, scene: { anim: 'fall', fx: 'tears', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }; } }; }
+    // escape
+    const p = U.clamp(0.12 + S.stats.health / 400 + S.stats.smarts / 600, 0.1, 0.4);
+    return { key: 'escape', label: '🏃 Liều mạng bỏ trốn', hint: 'Rất nguy hiểm: bị bắt lại sẽ bị trừng phạt nặng', odds: () => p, fn: () => { if (miniWin(p)) { campRelease('escape'); return { text: 'Giữa đêm mưa, bạn trèo qua hàng rào thép gai, chạy băng qua ruộng và rừng tới khi thấy ánh đèn của đồn biên phòng. Bạn thoát! Đôi bàn chân rớm máu, nhưng bạn đã sống.', effects: { happy: 6 }, scene: { loc: 'countryside', time: 'night', weather: 'rain', anim: 'run', fx: 'sweat' } }; } if (c.kind === 'ransom' && Math.random() < 0.3) { c.kind = 'scam'; c.amount = 0; } return { text: 'Bạn bị bắt lại ngay sát hàng rào. Chúng đánh bạn gãy xương sườn' + (c.kind === 'scam' ? ', và bán bạn sang một khu lừa đảo khác nghiêm ngặt hơn' : '') + '.', effects: { health: -25, happy: -10 }, scene: { anim: 'fall', fx: 'tears', npcs: [{ role: 'thug', anim: 'angry' }] }, tone: 'bad' }; } };
+  }
+  ms({ id: 'ms_camp', title: 'Một năm trong bóng tối', icon: '⛓️', age: [16, 120],
+    text: 'Lại thêm một năm nữa trôi qua. Cửa sổ có chấn song, cổng có lính canh, ngày nào cũng giống ngày nào. Bạn chỉ còn hai chọn lựa: chịu đựng, hoặc tìm cách thoát ra. Năm nay bạn làm gì?',
+    scene: { loc: 'office', time: 'night', anim: 'sad', expr: 'sad', npcs: [{ role: 'thug', anim: 'point', say: 'Làm việc đi!' }], fx: 'tears', shot: 'dramatic' },
+    choicesFn: () => ['ransom', 'work', 'resist', 'signal', 'escape'].map(campChoice).filter((c) => c._ok !== false), choiceByKey: campChoice });
+
   // ------------------------------------------------------------------ CHỈ SỐ QUÁ THẤP: đến ngưỡng thì xã hội, bố mẹ, thầy cô phản ứng và buộc bạn chọn cách đối mặt
   function lowStatYear(L) {
     if (!S || S.dead || S.jail || S.pending.length >= 2) return;
@@ -3367,7 +3438,7 @@
     if (S.jail) return;
     if (!S.pending.some((e) => e.id === 'ms_no_am')) queueMilestone('ms_no_am');
   }
-  function nameOf(p) { const r = { mother: 'mẹ', father: 'bố', grandparent: p.gender === 'f' ? 'bà' : 'ông', sibling: p.gender === 'f' ? 'chị' : 'anh' }[p.role]; return r || p.name; }
+  function nameOf(p) { const r = { mother: 'mẹ', father: 'bố', grandparent: p.gender === 'f' ? 'bà' : 'ông', sibling: p.gender === 'f' ? 'chị' : 'anh' }[p.role]; return r || p.firstName || p.name || 'người thân'; }
   function debtChoice(k) {
     const need = debtNeed(), payTxt = fmtMoney(need);
     if (k === 'bank') {
@@ -6200,6 +6271,7 @@
   function wasteCause(pa) {
     if ((S.overwork || 0) >= 2) return 'Kiệt sức vì làm việc quá sức';
     if (S.stats.happy < 15) return 'Suy kiệt vì trầm cảm kéo dài, không ai hay biết';
+    if (S.jail && S.jail.camp) return 'Kiệt sức, bị đánh đập trong khu lừa đảo ở Campuchia';
     if (S.money < 0) return 'Suy kiệt vì lao lực trả nợ';
     if (pa >= 75) return 'Tuổi già sức yếu, suy đa tạng';
     return U.pick(['Sức khỏe suy kiệt', 'Suy dinh dưỡng và kiệt sức', 'Cơ thể suy sụp sau nhiều năm không chăm sóc']);
@@ -6407,7 +6479,7 @@
       name: p.firstName, fullName: fullName(p), gender: p.gender, age: p.age, stage: D.stageOf(p.age), stageLabel: D.STAGES[D.stageOf(p.age)],
       city: S.city, cityName: D.cityName(S.city), stats: Object.assign({}, S.stats), karma: S.karma, money: S.money, moneyText: fmtMoney(S.money),
       occupation: occupation(), appearance: Object.assign({}, p.appearance),
-      era: eraOf(S.year).name, jail: S.jail ? { left: S.jail.until - S.year, reason: S.jail.reason, total: S.jail.total } : null, wanted: !!S.flags.truyna && !S.jail,
+      era: eraOf(S.year).name, jail: S.jail ? (S.jail.camp ? { camp: true, kind: S.camp ? S.camp.kind : 'scam', years: S.year - S.jail.since, reason: S.jail.reason } : { left: S.jail.until - S.year, reason: S.jail.reason, total: S.jail.total }) : null, wanted: !!S.flags.truyna && !S.jail,
       company: companyView(), scenario: scenarioView(),
       education: { label: eduLabel(), level: S.edu.level, grade: S.edu.grade, performance: S.edu.perf, inSchool: S.edu.inSchool, degrees: S.edu.degrees.slice(), actions: S.dead ? [] : eduActions() },
       job: S.job ? (() => { const c = D.CAREERS[S.job.id]; return { id: c.id, title: c.title, icon: c.icon, levelTitle: c.levels[S.job.level].title + (S.job.club ? ' · ' + S.job.club.name : ''), club: S.job.club ? S.job.club.name + ' (' + S.job.club.country + ', thu nhập ×' + S.job.club.mult + ')' : null, level: S.job.level, maxLevel: c.levels.length - 1, salaryText: c.prize ? payLabel(c, S.job.level, monthly()) + (S.job.lastPrize ? ' · năm qua thưởng ' + D.fmtShort(S.job.lastPrize) : '') : D.fmtShort(monthly()) + '/tháng', performance: S.job.perf, years: S.job.years, rep: repInfo(), actions: S.dead ? [] : jobActions(), incidents: c.incidents || [], desc: c.desc || '' }; })() : null,
