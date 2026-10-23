@@ -97,7 +97,15 @@
     POS.forEach((pos, i) => { const list = free.filter((p) => (p.pos === pos || (pos === 'DF' && p.pos === 'GK')) && !xi.includes(p)).sort((a, b) => score(b) - score(a)); xi.push(...list.slice(0, f.n[i])); });
     // thiếu người đúng vị trí thì lấy người tốt nhất còn lại
     free.filter((p) => !xi.includes(p)).sort((a, b) => score(b) - score(a)).forEach((p) => { if (xi.length < 4) xi.push(p); });
-    return xi.slice(0, 4);
+    const auto = xi.slice(0, 4);
+    // đội hình do bạn kéo thả: giữ đúng vị trí đã đặt; ai chấn thương / bị cho dự bị thì máy chọn người thay
+    if (m.xi && m.xi.length) {
+      const ov = m.xi.map((id) => { const p = m.squad.find((x) => x.id === id); return p && !p.inj && p.lock !== 'bench' ? p : null; });
+      const pool = auto.filter((p) => !ov.includes(p)).concat(free.filter((p) => !auto.includes(p) && !ov.includes(p)).sort((a, b) => score(b) - score(a)));
+      const out = ov.map((p) => p || pool.shift()).filter(Boolean);
+      if (out.length) return out.slice(0, 4);
+    }
+    return auto;
   }
   const avg = (a) => (a.length ? a.reduce((s, p) => s + p.ovr * (0.9 + p.morale / 500), 0) / a.length : 40);
   function squadStr(m) { const xi = lineup(m); return Math.round(avg(xi)); }
@@ -242,10 +250,10 @@
 
   // --- sân 4 người (Haxball): các hàng dọc theo sơ đồ, tấn công về bên phải
   function pitchHtml(m, form, xi, opts) {
-    opts = opts || {}; const f = FORMS[form], rows = [1, 2, 3].filter((i) => f.n[i] > 0), sorted2 = xi.slice().sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos));
+    opts = opts || {}; const f = FORMS[form], rows = [1, 2, 3].filter((i) => f.n[i] > 0), sorted2 = xi;
     const slots = []; rows.forEach((ri, k) => { for (let j = 0; j < f.n[ri]; j++) slots.push({ pos: POS[ri], x: 22 + (rows.length === 1 ? 28 : (k * 56) / (rows.length - 1)), y: ((j + 1) * 100) / (f.n[ri] + 1) }); });
     const marks = sorted2.slice(0, slots.length).map((p, i) => { const s = slots[i], off = p.pos !== s.pos && p.pos !== 'GK';
-      return '<button type="button" class="mx-pm' + (off ? ' off' : '') + (ui.sel === p.id ? ' sel' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-act="sel" data-id="' + p.id + '" data-ctx="squad" title="' + esc(p.name) + ' · ' + POS_VN[p.pos] + (off ? ' (đang đá lệch vị trí)' : '') + '">' + '<span class="mx-pm-c ' + ovrCls(p.ovr) + '">' + p.ovr + '</span><span class="mx-pm-n">' + esc(p.name.split(' ').slice(-1)[0]) + '</span><span class="mx-pm-p">' + p.pos + '</span></button>'; }).join('');
+      return '<button type="button" class="mx-pm' + (off ? ' off' : '') + (ui.sel === p.id ? ' sel' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-act="sel" data-id="' + p.id + '" data-slot="' + i + '" data-ctx="squad" title="' + esc(p.name) + ' · ' + POS_VN[p.pos] + (off ? ' (đang đá lệch vị trí)' : '') + '">' + '<span class="mx-pm-c ' + ovrCls(p.ovr) + '">' + p.ovr + '</span><span class="mx-pm-n">' + esc(p.name.split(' ').slice(-1)[0]) + '</span><span class="mx-pm-p">' + p.pos + '</span></button>'; }).join('');
     return '<div class="mx-pitch' + (opts.mini ? ' mini' : '') + '"><svg viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="194" height="94" rx="4" class="pl"/><path d="M100 3v94" class="pl"/><circle cx="100" cy="50" r="13" class="pl"/><path d="M3 30h14v40H3M197 30h-14v40h14" class="pl"/><rect x="0" y="40" width="3" height="20" class="gl"/><rect x="197" y="40" width="3" height="20" class="gl"/></svg><span class="mx-pitch-g">Thủ môn tự động: người lùi sâu nhất</span>' + marks + '<span class="mx-pitch-d">Tấn công →</span></div>';
   }
   const rowHtml = (m, p, xi, ctx) => '<button type="button" class="mx-row' + (xi && xi.includes(p) ? ' xi' : '') + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="' + ctx + '">' + avatar(p, 30) + '<span class="mx-rn"><b>' + esc(p.name) + '</b><small>' + POS_VN[p.pos] + (p.foreign ? ' · ngoại binh' : '') + (xi ? (xi.includes(p) ? ' · <u>Đá chính</u>' : ' · Dự bị') : '') + (p.inj ? ' · chấn thương ' + p.inj + ' vòng' : '') + '</small></span><span class="mx-n ' + ovrCls(p.ovr) + '" title="Chỉ số tổng">' + p.ovr + '</span><span class="mx-n" title="Tuổi">' + p.age + '</span><span class="mx-n" title="Tiềm năng">' + (p.pot > p.ovr + 3 ? '<em>' + p.pot + '</em>' : p.pot) + '</span><span class="mx-n" title="Tinh thần: ' + p.morale + '">' + bar(p.morale, p.morale >= 75 ? 'g' : p.morale >= 55 ? '' : 'r') + '</span><span class="mx-n val" title="Giá trị">' + money(p.val) + '</span></button>';
@@ -305,7 +313,7 @@
     }
     if (tab === 'squad') {
       const bench = m.squad.filter((p) => !xi.includes(p)).sort(sortBy);
-      return '<div class="mx-split"><div class="mx-left"><section class="mx-panel"><h4>Đội hình ' + m.tactic.form + ' <small>· đá chính ' + xi.length + '/4</small></h4>' + pitchHtml(m, m.tactic.form, xi) + '<h5>Dự bị (' + bench.length + ')</h5><div class="mx-bench">' + (bench.map((p) => '<button type="button" class="mx-bp' + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="squad">' + avatar(p, 28) + '<span><b>' + esc(p.name.split(' ').slice(-1)[0]) + '</b><small>' + p.pos + ' · ' + p.ovr + '</small></span></button>').join('') || '<p class="mx-empty">Không có dự bị.</p>') + '</div><p class="mx-hint">Chọn một cầu thủ để xem hồ sơ, ghim đá chính hoặc cho dự bị. Hệ thống tự chọn người tốt nhất theo chỉ số và tinh thần cho các vị trí còn lại.</p></section></div>' +
+      return '<div class="mx-split"><div class="mx-left"><section class="mx-panel"><h4>Đội hình ' + m.tactic.form + ' <small>· đá chính ' + xi.length + '/4</small></h4>' + pitchHtml(m, m.tactic.form, xi) + '<h5>Dự bị (' + bench.length + ')</h5><div class="mx-bench">' + (bench.map((p) => '<button type="button" class="mx-bp' + (p.inj ? ' inj' : '') + (ui.sel === p.id ? ' sel' : '') + '" data-act="sel" data-id="' + p.id + '" data-ctx="squad">' + avatar(p, 28) + '<span><b>' + esc(p.name.split(' ').slice(-1)[0]) + '</b><small>' + p.pos + ' · ' + p.ovr + '</small></span></button>').join('') || '<p class="mx-empty">Không có dự bị.</p>') + '</div><p class="mx-hint"><b>Kéo thả</b> cầu thủ để sắp đội hình: thả dự bị lên sân để thay người, thả hai cầu thủ lên nhau để đổi chỗ, kéo người trên sân xuống khu dự bị để cho nghỉ. Bấm vào cầu thủ để xem hồ sơ (trên điện thoại: giữ một chút rồi kéo).</p>' + (m.xi ? '<button type="button" class="mx-btn sm" data-act="autoxi">Để máy tự chọn lại</button>' : '') + '</section></div>' +
         '<div class="mx-right"><button type="button" class="mx-btn mx-listtog" data-act="listtog">' + ic('squad', 16) + ' Danh sách cầu thủ (' + m.squad.length + ')</button><section class="mx-panel mx-list' + (ui.list ? ' open' : '') + '"><div class="mx-filters"><label class="mx-search">' + ic('search', 16) + '<input type="search" data-q placeholder="Tìm cầu thủ" value="' + esc(ui.q) + '" aria-label="Tìm cầu thủ"></label><select data-sort aria-label="Sắp xếp">' + [['ovr', 'Chỉ số'], ['age', 'Tuổi'], ['val', 'Giá trị'], ['pot', 'Tiềm năng']].map(([k, l]) => '<option value="' + k + '"' + (ui.sort === k ? ' selected' : '') + '>Xếp theo ' + l + '</option>').join('') + '</select></div><div class="mx-chips">' + [['all', 'Tất cả']].concat(POS.slice(1).map((p) => [p, POS_VN[p]])).map(([k, l]) => '<button type="button" class="' + (ui.pos === k ? 'on' : '') + '" data-act="pos" data-v="' + k + '">' + l + '</button>').join('') + '</div><div class="mx-rows" id="mxList">' + squadListHtml(m) + '</div></section></div></div>';
     }
     if (tab === 'tactic') {
@@ -339,7 +347,7 @@
     const m = st(); if (!m) return;
     if (t) { if (t !== tab) ui.sel = null; tab = t; }
     const old = root && root.querySelector('.mx-main'), sc = old ? old.scrollTop : 0;
-    if (!root) { root = document.createElement('div'); root.className = 'hax mgr mx'; document.body.appendChild(root); root.addEventListener('keydown', onKey); root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange); }
+    if (!root) { root = document.createElement('div'); root.className = 'hax mgr mx'; document.body.appendChild(root); root.addEventListener('keydown', onKey); root.addEventListener('pointerdown', onPD); root.addEventListener('click', onClick); root.addEventListener('input', onInput); root.addEventListener('change', onChange); }
     const pos = myPos(m), n = m.table.length, need = GOAL_NEED(m), okNow = pos <= need;
     root.innerHTML = '<div class="mx-shell"><header class="mx-head">' + badge(m.club, 46) + '<div class="mx-id"><h1>' + esc(m.club) + '</h1><small>' + (m.national ? 'AFF Cup ' : 'V-League ') + m.season + ' · vòng ' + Math.min(m.round + 1, m.fixtures.length) + '/' + m.fixtures.length + ' · hạng ' + pos + '/' + n + '</small></div>' +
       '<div class="mx-kpis"><span title="Ngân sách chuyển nhượng"><small>Ngân sách</small><b>' + (m.national ? '—' : money(m.budget)) + '</b></span><span title="Độ tin tưởng của ban lãnh đạo"><small>Ban lãnh đạo</small><b>' + Math.round(m.board) + '%</b></span><span class="obj" title="Mục tiêu mùa: ' + GOAL_TXT[m.goal] + '"><small>Mục tiêu · ' + GOAL_TXT[m.goal] + '</small>' + bar(okNow ? 100 : Math.max(5, 100 - ((pos - need) / Math.max(1, n - need)) * 100), okNow ? 'g' : 'r') + '</span></div>' +
@@ -348,6 +356,70 @@
       '<main class="mx-main" id="mgrBody">' + body(m) + '</main><aside class="mx-drawer" id="mxDrawer" aria-label="Hồ sơ cầu thủ"></aside><div class="mx-toasts" aria-live="polite"></div></div>';
     const mn = root.querySelector('.mx-main'); if (mn) mn.scrollTop = sc;
     drawer();
+  }
+
+  // --- kéo thả sắp đội hình (chuột: kéo ngay; cảm ứng: giữ một chút rồi kéo để không cản việc cuộn danh sách)
+  const dr = { on: false, id: null, slot: -1, sx: 0, sy: 0, ghost: null, timer: 0, touch: false, last: null };
+  const noScroll = (e) => { if (dr.on) e.preventDefault(); };
+  function dragStart() {
+    const m = st(), p = m && findP(m, dr.id); if (!p) return dragEnd();
+    dr.on = true; dr.ghost = document.createElement('div'); dr.ghost.className = 'mx-ghost'; dr.ghost.innerHTML = avatar(p, 34) + '<b>' + esc(p.name.split(' ').slice(-1)[0]) + '</b><span>' + p.pos + ' · ' + p.ovr + '</span>';
+    root.appendChild(dr.ghost); root.classList.add('mx-dragging'); root.querySelectorAll('[data-id="' + dr.id + '"]').forEach((x) => x.classList.add('dragging'));
+    window.addEventListener('touchmove', noScroll, { passive: false }); dragMove({ clientX: dr.sx, clientY: dr.sy });
+  }
+  function dropTarget(x, y) {
+    const el = document.elementFromPoint(x, y); if (!el || !root.contains(el)) return null;
+    const pm = el.closest('.mx-pm'); if (pm) return { kind: 'slot', slot: +pm.dataset.slot, el: pm };
+    const pit = el.closest('.mx-pitch'); if (pit) { let best = -1, bd = 1e9; pit.querySelectorAll('.mx-pm').forEach((q) => { const r = q.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y); if (d < bd) { bd = d; best = +q.dataset.slot; } }); return best >= 0 ? { kind: 'slot', slot: best, el: pit.querySelector('.mx-pm[data-slot="' + best + '"]') } : null; }
+    const bp = el.closest('.mx-bp,.mx-row'); if (bp && bp.dataset.id) return { kind: 'bench', id: bp.dataset.id, el: bp };
+    const bz = el.closest('.mx-bench,.mx-list'); if (bz) return { kind: 'bench', id: null, el: bz };
+    return null;
+  }
+  function dragMove(e) {
+    if (!dr.on) return; dr.ghost.style.left = e.clientX + 'px'; dr.ghost.style.top = e.clientY + 'px';
+    const t = dropTarget(e.clientX, e.clientY); if (dr.last && dr.last !== (t && t.el)) dr.last.classList.remove('drop'); dr.last = t && t.el; if (dr.last) dr.last.classList.add('drop');
+  }
+  function dragEnd() {
+    clearTimeout(dr.timer); window.removeEventListener('touchmove', noScroll);
+    if (dr.ghost) dr.ghost.remove(); if (dr.last) dr.last.classList.remove('drop');
+    if (root) { root.classList.remove('mx-dragging'); root.querySelectorAll('.dragging').forEach((x) => x.classList.remove('dragging')); }
+    dr.on = false; dr.ghost = null; dr.last = null; dr.id = null;
+  }
+  function dragDrop(x, y) {
+    const m = st(), p = m && findP(m, dr.id), t = dropTarget(x, y); if (!p || !t || !m.squad.includes(p)) return;
+    const xi = lineup(m).map((q) => q.id), from = xi.indexOf(p.id); let note = '';
+    if (t.kind === 'slot') {
+      if (t.slot >= xi.length) return;
+      if (from >= 0) { if (from === t.slot) return; const tmp = xi[t.slot]; xi[t.slot] = xi[from]; xi[from] = tmp; note = 'Đã đổi chỗ hai cầu thủ trên sân.'; }
+      else {
+        if (p.inj) return toast(p.name + ' đang chấn thương, chưa thể ra sân.', 'bad');
+        const out = m.squad.find((q) => q.id === xi[t.slot]); xi[t.slot] = p.id; if (out && out.lock === 'start') out.lock = null; note = esc(p.name) + ' vào sân thay ' + (out ? esc(out.name) : 'đồng đội') + '.';
+      }
+      if (p.lock === 'bench') p.lock = null;
+    } else {
+      if (from < 0) return;
+      const tp = t.id && findP(m, t.id); let rep = tp && m.squad.includes(tp) && !xi.includes(tp.id) ? tp : null;
+      if (!rep) rep = m.squad.filter((q) => !xi.includes(q.id) && !q.inj && q.lock !== 'bench').sort((a, b) => b.ovr - a.ovr)[0];
+      if (!rep || rep.inj) return toast('Không còn dự bị khoẻ mạnh để thay người.', 'bad');
+      xi[from] = rep.id; if (rep.lock === 'bench') rep.lock = null; if (p.lock === 'start') p.lock = null; note = esc(p.name) + ' xuống dự bị, ' + esc(rep.name) + ' vào sân.';
+    }
+    m.xi = xi; save(); ui.sel = null; open(); sfx('click'); toast(note.replace(/&amp;/g, '&'), 'ok');
+  }
+  function onPD(e) {
+    if (e.button > 0 || (tab !== 'squad' && tab !== 'tactic')) return;
+    const el = e.target.closest('.mx-pm,.mx-bp,.mx-row'); if (!el || !el.dataset.id) return;
+    dr.id = el.dataset.id; dr.sx = e.clientX; dr.sy = e.clientY; dr.touch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    if (dr.touch) dr.timer = setTimeout(() => { if (dr.id) dragStart(); }, 230);
+    const mv = (ev) => {
+      if (!dr.on) { const d = Math.hypot(ev.clientX - dr.sx, ev.clientY - dr.sy); if (dr.touch) { if (d > 9) { fin(); } } else if (d > 5) dragStart(); }
+      if (dr.on) { ev.preventDefault(); dragMove(ev); }
+    };
+    const fin = (ev) => {
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', fin); window.removeEventListener('pointercancel', fin);
+      const was = dr.on; if (was && ev && ev.type === 'pointerup') { dragDrop(ev.clientX, ev.clientY); const stop = (c) => { c.stopPropagation(); c.preventDefault(); }; window.addEventListener('click', stop, { capture: true, once: true }); setTimeout(() => window.removeEventListener('click', stop, true), 80); }
+      dragEnd();
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', fin); window.addEventListener('pointercancel', fin);
   }
   function close() { if (root) { root.remove(); root = null; } try { KN.UI && KN.UI.render && KN.UI.render(); } catch (e) { /* */ } }
   function onKey(e) { e.stopPropagation(); if (e.key !== 'Escape') return; if (root.querySelector('.mx-dlg')) return; if (ui.sel) { ui.sel = null; drawer(); root.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); } else close(); }
@@ -380,7 +452,8 @@
     if (a === 'listtog') { ui.list = !ui.list; return root.querySelector('.mx-list').classList.toggle('open', ui.list); }
     if (a === 'pos') { ui.pos = v; root.querySelectorAll('[data-act=pos]').forEach((x) => x.classList.toggle('on', x.dataset.v === v)); return refreshList(); }
     if (a === 'mpos') { ui.mpos = v; root.querySelectorAll('[data-act=mpos]').forEach((x) => x.classList.toggle('on', x.dataset.v === v)); return refreshList(); }
-    if (a === 'lock' && p) { p.lock = p.lock === v ? null : v; save(); return open(); }
+    if (a === 'lock' && p) { p.lock = p.lock === v ? null : v; delete m.xi; save(); return open(); }
+    if (a === 'autoxi') { delete m.xi; save(); open(); return toast('Đã trả về tự chọn đội hình theo chỉ số và tinh thần.', 'ok'); }
     if (a === 'form') { m.tactic.form = v; save(); return open(); }
     if (a === 'style') { m.tactic.style = v; save(); return open(); }
     if (a === 'sell' && p) {

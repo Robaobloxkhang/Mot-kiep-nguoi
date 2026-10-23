@@ -792,6 +792,8 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🏅 Thêm giải đấu nhiều đội: Cúp Quốc Gia (16 đội, 4 vòng) và Siêu Cúp 32 đội (5 vòng, thưởng lớn). Có thêm hơn 30 tên đội mới, bảng đấu cuộn ngang được.',
+      '🖱️ Phòng HLV: kéo thả cầu thủ để sắp đội hình (dự bị lên sân, đổi chỗ hai cầu thủ, kéo người xuống dự bị). Chạy cả chuột và cảm ứng; đội hình bạn kéo có hiệu lực trong cả trận Haxball.',
       '🏆 Giải Hax mở rộng: 4 giải (Cúp Hax, Cúp Mùa Đông trên sân băng, Cúp Biển Xanh trên bãi cát, Giải Vô Địch 16 đội có VÒNG BẢNG: 4 bảng đá vòng tròn, hoà 1 điểm, nhất nhì vào tứ kết). Mỗi giải lưu tiến độ và tiền thưởng riêng.',
       '📋 Phòng HLV có giao diện mới: header CLB với huy hiệu, thanh điều hướng, bảng Tổng quan, sân 4 người vẽ đúng sơ đồ, hồ sơ cầu thủ, thị trường chuyển nhượng có bộ lọc và hộp xác nhận, bảng xếp hạng kèm phong độ và lịch thi đấu.',
       '📋 Nghề HLV: ai từ 20 tuổi cũng xin được (từng là vận động viên chỉ được cộng thêm tỉ lệ đậu). Các tình huống công sở (sếp, đồng nghiệp, AI thay việc…) không còn xuất hiện với HLV, VĐV, nghệ sĩ, người tự làm chủ.',

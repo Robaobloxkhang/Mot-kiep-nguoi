@@ -1225,12 +1225,12 @@ details.more.risk p { margin: 0 0 8px; }
 .mini-guide kbd, .mini-keys kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border-radius: 6px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); border-bottom-width: 2px; font: 600 12px/1.6 system-ui, sans-serif; text-align: center; color: var(--fg); }
 
 /* Cúp Hax */
-.cup-br { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: left; }
+.cup-br { display: flex; gap: 8px; text-align: left; overflow-x: auto; padding-bottom: 6px; align-items: center; } .cup-br .cup-col { flex: 1 0 150px; min-width: 150px; max-height: 520px; overflow-y: auto; }
 .cup-col { display: grid; gap: 6px; align-content: center; } .cup-col > b { text-align: center; font-size: 13px; opacity: .8; }
 .cup-m { padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, .06); font-size: 12.5px; line-height: 1.5; }
 .cup-m b { float: right; } .cup-me { color: var(--lantern); font-weight: 700; }
 .cup-trophy { font-size: 64px; animation: bootSway 2s ease-in-out infinite; }
-@media (max-width: 560px) { .cup-br { grid-template-columns: 1fr; } }
+
 
 /* cộng đồng: chat · sự kiện tuần · đám cưới online */
 .cm-dock { position: fixed; z-index: 35; left: calc(12px + env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; }
@@ -1475,3 +1475,14 @@ details.more.risk p { margin: 0 0 8px; }
 @media (max-width: 560px) { .hud-btns { gap: 5px; } .hud-btns .icon-btn { width: 34px; height: 34px; font-size: 15px; } }
 .log-filter { display: flex; gap: 6px; margin: 4px 0 10px; } .log-filter button { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--fg-2, #aab); font-size: 12.5px; cursor: pointer; } .log-filter button.on { background: rgba(255, 179, 71, .16); color: var(--lantern, #ffb347); border-color: rgba(255, 179, 71, .5); }
 @media (max-height: 860px) { .world-strip small { display: none; } .world-strip { margin: 10px 0 8px; } }
+
+/* kéo thả đội hình */
+.mx-pm, .mx-bp, .mx-row { cursor: grab; user-select: none; -webkit-user-select: none; } .mx-pm { touch-action: none; } .mx-pm svg, .mx-bp svg, .mx-row svg, .mx-av { pointer-events: none; -webkit-user-drag: none; }
+.mx-dragging, .mx-dragging * { cursor: grabbing !important; }
+.dragging { opacity: .35; }
+.mx-ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -60%) scale(1.04); display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; background: #232d40; border: 2px solid var(--mx-amber, #ffb547); box-shadow: 0 14px 34px rgba(0, 0, 0, .55); color: #f4efe6; font-size: 13px; } .mx-ghost b { font: 700 16px var(--mx-f); } .mx-ghost span { color: #93a1bb; font-size: 12px; }
+.mx-pm.drop .mx-pm-c { transform: scale(1.22); border-color: var(--mx-green, #45c486); box-shadow: 0 0 0 4px rgba(69, 196, 134, .45); }
+.mx-bp.drop, .mx-row.drop { outline: 2px dashed var(--mx-green, #45c486); outline-offset: -2px; } .mx-bench.drop, .mx-list.drop { outline: 2px dashed var(--mx-green, #45c486); outline-offset: 4px; border-radius: 10px; }
+.mx-pitch:has(.mx-pm.drop) { box-shadow: 0 0 0 2px rgba(69, 196, 134, .5); }
+.hax-lobby:has(.cup-br) { max-width: min(940px, 100%); }
+.cup-br .cup-col > b { position: sticky; top: 0; z-index: 1; background: #1c2240; padding: 2px 0; text-align: center; }
