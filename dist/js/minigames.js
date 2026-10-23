@@ -193,7 +193,7 @@
     hoops: '6 cú ném: lên rổ, tầm trung, ba điểm, ném phạt, ba điểm có hậu vệ và cú ném quyết định. Giữ Space để thanh lực dâng lên, thả tay khi vạch trắng nằm trong vùng xanh (ném càng xa càng cần nhiều lực). Có hậu vệ thì ném trước khi hắn bật nhảy!',
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
-    scamchat: 'Bạn bị ép nhắn tin cho một người lạ. Gõ tin nhắn tự do (hoặc bấm câu gợi ý) rồi bấm Enter. Làm quen để tăng niềm tin rồi mới nhắc chuyện tiền thì đủ chỉ tiêu. Hoặc lén cảnh báo họ đây là lừa đảo: cứu được người nhưng quản lý sẽ nổi nóng nếu bị phát hiện. 8 lượt, 90 giây.',
+    scamchat: 'Giao diện nhiều cửa sổ: Điện thoại (nhắn tin với nạn nhân), Hồ sơ giao dịch, Camera quản lý và Chỉ tiêu cuộc gọi. Gõ tin nhắn tự do hoặc bấm câu gợi ý. Làm quen để tăng niềm tin rồi mới nhắc chuyện tiền, khi nạn nhân đồng ý thì ghi đúng số tiền họ nói vào cửa sổ Hồ sơ. Quản lý luôn nhìn camera: bấm nút 📞 ở cửa sổ Chỉ tiêu để họ bớt nghi ngờ. Hoặc lén cảnh báo nạn nhân đây là lừa đảo, cứu được họ nhưng sẽ làm quản lý nổi giận.',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
   // màn giới thiệu: giải thích rõ cách chơi (mục tiêu · từng bước · phím) rồi mới cho chơi; có nút chơi thử không tính điểm
@@ -1396,65 +1396,109 @@
   };
   function scamchat(p) {
     return new Promise((res) => {
-      const st = p.ctx.stats, V = pick(SC_VICTIMS), MAXT = 8, DUR = 90;
-      let trust = 18 + Math.max(0, (st.looks - 50) / 5), boss = 8, turns = 0, t = 0, done = false, warned = false, scammed = false, caught = false, blocked = false, lastRaw = '';
-      const box = open('<div class="mini-head"><b>💬 Nhắn tin dụ nạn nhân</b><small id="scH"></small></div>' +
-        '<div class="sc-meters"><div><span>🤝 Niềm tin của ' + esc(V.n) + '</span><div class="mini-bar"><i id="scT" style="width:0"></i></div></div><div><span>👁️ Quản lý đang xem</span><div class="mini-bar sc-boss"><i id="scB" style="width:0"></i></div></div></div>' +
-        '<div class="sc-chat" id="scC"></div>' +
-        '<div class="sc-chips" id="scK"></div>' +
-        '<form class="sc-in" id="scF"><input id="scI" maxlength="140" autocomplete="off" placeholder="Gõ tin nhắn của bạn rồi bấm Enter…"><button type="submit" class="btn btn-primary" id="scS">Gửi</button></form>' +
-        '<p class="mini-keys">⌨️ Gõ tự do hoặc bấm câu gợi ý · <kbd>Enter</kbd> gửi · Bạn bị ép làm việc này: quản lý theo dõi từng tin nhắn.</p>');
-      const chat = box.querySelector('#scC'), inp = box.querySelector('#scI');
+      const st = p.ctx.stats, V = pick(SC_VICTIMS), MAXT = 10, DUR = 110;
+      let trust = 18 + Math.max(0, (st.looks - 50) / 5), boss = 6, turns = 0, t = 0, done = false, warned = false, scammed = false, caught = false, blocked = false, lastRaw = '';
+      let calls = 0, power = 1, helpers = 0, phase = 'chat', formLeft = 0, amount = 0, talk = 0, earned = 0;
+      const box = open('<div class="sc-desk">' +
+        // cửa sổ trái: bấm để làm bộ hồ sơ chỉ tiêu (giữ cho quản lý bớt nghi ngờ)
+        '<section class="sc-win sc-clk"><header><span>🖱️ Chỉ tiêu cuộc gọi</span></header><div class="sc-wb"><button type="button" class="sc-big" id="scBig" aria-label="Gọi thêm">📞</button><div class="sc-cnt"><b id="scCalls">0</b> cuộc gọi · <span id="scRate">+1/lần bấm</span></div>' +
+        '<p class="sc-hint">Bấm liên tục để quản lý thấy bạn đang làm việc. Đổi cuộc gọi lấy “trợ thủ” cho chạy tự động.</p>' +
+        '<button type="button" class="sc-up" id="scU1"><b>👤 Đàn em gọi hộ</b><small id="scU1c"></small></button><button type="button" class="sc-up" id="scU2"><b>🎧 Tai nghe xịn</b><small id="scU2c"></small></button></div></section>' +
+        // cửa sổ giữa: điện thoại
+        '<section class="sc-win sc-phone"><header><span>📞 Điện thoại</span><em id="scH"></em></header><div class="sc-wb"><div class="sc-trust"><span>NIỀM TIN NGƯỜI NHẬN</span><b id="scTL">NGHI NGỜ</b></div><div class="mini-bar"><i id="scT" style="width:0"></i></div>' +
+        '<div class="sc-who"><div class="sc-face" id="scFace">' + V.face + '</div><div><b>' + esc(V.n) + '</b><small>' + V.age + ' tuổi · ' + esc(V.job) + '</small><div class="sc-wave" id="scW"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>' +
+        '<div class="sc-chat" id="scC"></div><div class="sc-chips" id="scK"></div>' +
+        '<form class="sc-in" id="scF"><input id="scI" maxlength="140" autocomplete="off" placeholder="Gõ tin nhắn rồi Enter…"><button type="submit" class="btn btn-primary btn-sm" id="scS">Gửi</button></form>' +
+        '<div class="sc-calls"><button type="button" class="sc-hang" id="scHang">☎️ Cúp máy</button></div></div></section>' +
+        // cửa sổ phải trên: hồ sơ nạn nhân
+        '<section class="sc-win sc-form"><header><span>🧾 Hồ sơ giao dịch</span></header><div class="sc-wb"><p class="sc-ok" id="scFS">Đang chờ nạn nhân đồng ý chuyển tiền…</p><label for="scAmt">Số tiền nạn nhân đồng ý chuyển (triệu đồng)</label><input id="scAmt" inputmode="numeric" maxlength="4" autocomplete="off" disabled placeholder="???"><button type="button" class="btn btn-soft btn-sm" id="scVer" disabled>Xác nhận</button></div></section>' +
+        // cửa sổ phải dưới: camera quản lý
+        '<section class="sc-win sc-cam"><header><span>📹 Camera</span></header><div class="sc-wb"><div class="sc-boss-face" id="scBF">😐</div><div class="sc-bossbar"><span>👁️ Quản lý chú ý</span><div class="mini-bar sc-boss"><i id="scB" style="width:0"></i></div></div></div></section>' +
+        '</div><div class="sc-pop" id="scPop"></div>');
+      box.querySelector('.mini-box').classList.add('wide');
+      const $ = (q) => box.querySelector(q), chat = $('#scC'), inp = $('#scI');
       const bub = (who, text) => { const d = document.createElement('div'); d.className = 'sc-b ' + who; d.textContent = text; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; };
-      const meters = () => { box.querySelector('#scT').style.width = clamp(trust, 0, 100) + '%'; box.querySelector('#scB').style.width = clamp(boss, 0, 100) + '%'; box.querySelector('#scH').textContent = 'Lượt ' + Math.min(turns + 1, MAXT) + '/' + MAXT + ' · còn ' + Math.max(0, Math.ceil(DUR - t)) + 's'; };
+      const pop = (text) => { const el = document.createElement('div'); el.className = 'sc-money'; el.textContent = text; $('#scPop').appendChild(el); setTimeout(() => el.remove(), 1800); };
+      const upCost = (n) => (n === 1 ? 15 + helpers * 20 : 25 + (power - 1) * 30);
+      const meters = () => {
+        $('#scT').style.width = clamp(trust, 0, 100) + '%'; $('#scB').style.width = clamp(boss, 0, 100) + '%';
+        $('#scTL').textContent = trust < 30 ? 'NGHI NGỜ' : trust < 60 ? 'DO DỰ' : 'TIN TƯỞNG'; $('#scTL').className = trust < 30 ? 'bad' : trust < 60 ? 'mid' : 'good';
+        $('#scH').textContent = 'Lượt ' + Math.min(turns + 1, MAXT) + '/' + MAXT + ' · ' + Math.max(0, Math.ceil(DUR - t)) + 's';
+        $('#scBF').textContent = boss < 30 ? '😐' : boss < 60 ? '🤨' : boss < 85 ? '😠' : '🤬'; $('#scBF').parentNode.parentNode.classList.toggle('alert', boss >= 70);
+        $('#scCalls').textContent = Math.floor(calls); $('#scRate').textContent = '+' + power + '/lần bấm' + (helpers ? ' · +' + helpers + '/giây' : '');
+        $('#scU1c').textContent = upCost(1) + ' cuộc gọi · đã có ' + helpers; $('#scU2c').textContent = upCost(2) + ' cuộc gọi · lực bấm ' + power;
+        $('#scU1').disabled = calls < upCost(1); $('#scU2').disabled = calls < upCost(2);
+        $('#scFace').classList.toggle('talk', talk > 0); $('#scW').classList.toggle('talk', talk > 0);
+      };
       const chips = [['👋 Chào bạn, mình làm quen được không?', 'rap'], ['💬 Dạo này bạn khoẻ không, công việc sao rồi?', 'rap'], ['💸 Mình có kèo đầu tư lãi cao, chuyển khoản trước nhé!', 'ask'], ['⚠️ Đây là lừa đảo, đừng chuyển tiền cho ai hết!', 'warn']];
-      box.querySelector('#scK').innerHTML = chips.map((c, i) => '<button type="button" data-i="' + i + '">' + esc(c[0]) + '</button>').join('');
-      bub('them', V.open); bub('sys', V.n + ' · ' + V.age + ' tuổi · ' + V.job);
+      $('#scK').innerHTML = chips.map((c, i) => '<button type="button" data-i="' + i + '">' + esc(c[0]) + '</button>').join('');
+      bub('them', V.open); talk = 15; bub('sys', 'Mục tiêu: dụ ' + V.n + ' đồng ý chuyển tiền, rồi ghi số tiền vào cửa sổ Hồ sơ. Hoặc… lén cảnh báo họ.');
       meters();
+      const say = (text) => { bub('them', text); talk = 18; };
       const reply = (kind, raw) => {
         const liked = hasAny(' ' + fold(raw), V.likes) ? 1 : 0;
         if (kind === 'warn') {
-          warned = true; boss += 42 + rnd() * 10; blocked = true;
+          warned = true; boss += 38 + rnd() * 10; blocked = true;
           return pick(['“Hả? Bị ép á? Trời ơi… cảm ơn bạn đã nói. Tôi sẽ không chuyển đồng nào và báo công an ngay!”', '“Thật hả? Vậy là lừa đảo… may mà bạn nhắn cho tôi. Tôi chặn số này rồi nhé, bạn cố giữ an toàn!”']);
         }
         if (kind === 'ask') {
-          boss = Math.max(0, boss - 6);
+          boss = Math.max(0, boss - 5);
           if (trust < 45) { trust -= 12; return pick(['“Sao chưa gì đã nói chuyện tiền bạc? Tôi thấy không ổn…”', '“Không quen không biết mà bảo chuyển khoản, nghe lạ lắm nhé.”']); }
           if (trust < 72) { trust += 3; return pick(['“Để tôi suy nghĩ đã… có chắc chắn không đấy?”', '“Nghe cũng hấp dẫn, nhưng tôi muốn hỏi người nhà trước.”']); }
-          scammed = true; return pick(['“Thôi được, tôi tin bạn. Gửi số tài khoản đi, tôi chuyển luôn!”', '“Nghe có lý đấy. Tôi chuyển bây giờ nhé!”']);
+          phase = 'form'; formLeft = 28; amount = pick([5, 8, 12, 15, 20, 30, 50]);
+          return '“Thôi được, tôi tin bạn. Tôi chuyển ' + amount + ' triệu nhé! Bạn ghi lại cho đúng số tiền đi.”';
         }
-        if (kind === 'rap') { boss = Math.max(0, boss - 4); trust += 11 + liked * 9 + (st.looks - 50) / 25; return liked ? pick(['“Ôi, sao bạn hiểu chuyện thế! Lâu lắm rồi mới có người hỏi thăm như vậy.”', '“Đúng rồi đó! Bạn nói chuyện dễ nghe thật, mình thấy quý ghê.”']) : pick(['“Cảm ơn bạn, nói chuyện với bạn vui ghê.”', '“Ừ, mình cũng thấy thoải mái khi nói với bạn.”', '“Bạn dễ thương thật đấy.”']); }
-        boss += kind === 'noise' ? 14 : 9; trust += liked ? 5 : 1;
+        if (kind === 'rap') { boss = Math.max(0, boss - 3); trust += 11 + liked * 9 + (st.looks - 50) / 25; return liked ? pick(['“Ôi, sao bạn hiểu chuyện thế! Lâu lắm rồi mới có người hỏi thăm như vậy.”', '“Đúng rồi đó! Bạn nói chuyện dễ nghe thật, mình thấy quý ghê.”']) : pick(['“Cảm ơn bạn, nói chuyện với bạn vui ghê.”', '“Ừ, mình cũng thấy thoải mái khi nói với bạn.”', '“Bạn dễ thương thật đấy.”']); }
+        boss += kind === 'noise' ? 12 : 8; trust += liked ? 5 : 1;
         return kind === 'noise' ? '“…Bạn gửi gì thế? Tôi không hiểu.”' : pick(['“Ừm… bạn nói gì tôi chưa hiểu lắm.”', '“Vậy à? Rồi sao nữa?”', '“Hả? Bạn nói lại được không?”']);
       };
       const finish = (text) => {
         if (done) return; done = true; sfx(scammed ? 'bad' : warned && !caught ? 'cheer' : 'fail');
-        const out = { scammed, warned, caught, victim: V.n, trust: Math.round(trust) };
+        const out = { scammed, warned, caught, victim: V.n, trust: Math.round(trust), amount };
         if (KN.Mini) KN.Mini.lastOut = out;
         const score = scammed ? 1 : clamp(trust / 220, 0, 0.45);
-        box.querySelector('#scF').remove(); box.querySelector('#scK').remove();
+        ['#scF', '#scK', '#scHang'].forEach((q) => { const e = $(q); e && e.remove(); }); $('#scAmt').disabled = true; $('#scVer').disabled = true;
         bub('sys', '🛡️ ' + pick(SC_TIPS));
-        setTimeout(() => res({ score, text }), 1800);
+        setTimeout(() => res({ score, text }), 2200);
       };
+      const hang = () => { if (done) return; finish('Bạn cúp máy giữa chừng. Không đủ chỉ tiêu nên bị quản lý phạt.'); };
       const send = (raw, forcedKind) => {
-        raw = String(raw || '').trim(); if (done || blocked || !raw) return;
+        raw = String(raw || '').trim(); if (done || blocked || phase === 'form' || !raw) return;
         const kind = forcedKind || scKind(raw);
-        if (raw === lastRaw) { boss += 12; } lastRaw = raw;
+        if (raw === lastRaw) boss += 12; lastRaw = raw;
         bub('me', raw); turns++; inp.value = '';
         setTimeout(() => {
           if (done) return;
-          bub('them', reply(kind, raw)); meters();
-          if (boss >= 100) { caught = true; bub('sys', '👁️ Quản lý xông tới giật điện thoại: “Mày dám làm trò gì hả?!”'); return finish(warned ? 'Quản lý phát hiện bạn lén cảnh báo nạn nhân. Bạn bị đánh một trận nhừ tử, nhưng nạn nhân đã kịp chặn số.' : 'Bạn bị quản lý phát hiện làm việc lề mề, ăn một trận đòn cảnh cáo.'); }
-          if (scammed) return finish('Nạn nhân ' + V.n + ' đã chuyển tiền. Quản lý vỗ vai bạn, còn bạn thấy buồn nôn. Một người nữa đã bị hại vì bạn bị ép.');
+          say(reply(kind, raw)); meters();
+          if (phase === 'form') { $('#scAmt').disabled = false; $('#scVer').disabled = false; $('#scAmt').focus(); $('#scFS').textContent = 'Nạn nhân đã đồng ý! Nhập số tiền và bấm Xác nhận.'; $('#scFS').className = 'sc-ok go'; }
+          if (boss >= 100) return caughtEnd();
           if (blocked) return finish('Bạn đã lén cảnh báo ' + V.n + ' và họ chặn số kịp thời. Bạn không đủ chỉ tiêu, nhưng đã cứu được một người.');
-          if (turns >= MAXT) return finish('Hết lượt mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn không đủ chỉ tiêu và bị phạt.');
+          if (turns >= MAXT && phase === 'chat') return finish('Hết lượt mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn không đủ chỉ tiêu và bị phạt.');
         }, 650);
       };
-      box.querySelector('#scK').addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (!b) return; const c = chips[+b.dataset.i]; send(c[0].replace(/^\S+\s/, ''), c[1]); });
-      box.querySelector('#scF').addEventListener('submit', (e) => { e.preventDefault(); send(inp.value); });
+      const caughtEnd = () => { caught = true; bub('sys', '👁️ Quản lý xông tới giật điện thoại: “Mày dám làm trò gì hả?!”'); finish(warned ? 'Quản lý phát hiện bạn lén cảnh báo nạn nhân. Bạn bị đánh một trận nhừ tử, nhưng nạn nhân đã kịp chặn số.' : 'Bạn bị quản lý phát hiện làm việc lề mề, ăn một trận đòn cảnh cáo.'); };
+      const verify = () => {
+        if (done || phase !== 'form') return; const v = parseInt($('#scAmt').value, 10);
+        if (v === amount) { scammed = true; earned = amount; $('#scFS').textContent = 'Hoàn tất — nạn nhân đã chuyển ' + amount + ' triệu.'; $('#scFS').className = 'sc-ok done'; pop('+' + amount + ' triệu'); finish('Nạn nhân ' + V.n + ' đã chuyển ' + amount + ' triệu. Quản lý vỗ vai bạn, còn bạn thấy buồn nôn: một người nữa đã bị hại vì bạn bị ép.'); }
+        else { boss += 10; sfx('bad'); $('#scFS').textContent = 'Sai số tiền! Nghe lại nạn nhân nói và nhập lại.'; $('#scFS').className = 'sc-ok bad'; meters(); }
+      };
+      $('#scK').addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (!b) return; const c = chips[+b.dataset.i]; send(c[0].replace(/^\S+\s/, ''), c[1]); });
+      $('#scF').addEventListener('submit', (e) => { e.preventDefault(); send(inp.value); });
+      $('#scVer').onclick = verify; $('#scAmt').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verify(); } });
+      $('#scHang').onclick = hang;
+      $('#scBig').addEventListener('pointerdown', (e) => { e.preventDefault(); if (done) return; calls += power; boss = Math.max(0, boss - 0.8 * power); sfx('click'); meters(); });
+      $('#scU1').onclick = () => { const c = upCost(1); if (calls >= c) { calls -= c; helpers++; sfx('coin'); meters(); } };
+      $('#scU2').onclick = () => { const c = upCost(2); if (calls >= c) { calls -= c; power++; sfx('coin'); meters(); } };
       setTimeout(() => inp.focus(), 80);
-      onKeys((e) => !(e.target && e.target.tagName === 'INPUT'));
-      every(() => { if (done) return; t += 0.1; boss += blocked ? 0 : 0.045; meters(); if (boss >= 100 && !done) { caught = true; finish('Quản lý thấy bạn chần chừ quá lâu và lao tới đánh bạn.'); } else if (t >= DUR) finish('Hết giờ mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn bị phạt vì không đủ chỉ tiêu.'); }, 100);
+      onKeys((e) => !(e.target && (e.target.tagName === 'INPUT')));
+      every(() => {
+        if (done) return; t += 0.1;
+        if (talk > 0) talk--;
+        calls += helpers * 0.1; boss = Math.max(0, boss + (blocked ? 0 : 0.08) - helpers * 0.05);
+        if (phase === 'form') { formLeft -= 0.1; if (formLeft <= 0) { return finish(V.n + ' đổi ý và cúp máy vì bạn ghi quá chậm. Không đủ chỉ tiêu nên bị phạt.'); } $('#scFS').dataset.left = Math.ceil(formLeft); }
+        meters();
+        if (boss >= 100) caughtEnd(); else if (t >= DUR) finish('Hết giờ mà ' + V.n + ' vẫn chưa chuyển tiền. Bạn bị phạt vì không đủ chỉ tiêu.');
+      }, 100);
     });
   }
   const GAMES = { scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
