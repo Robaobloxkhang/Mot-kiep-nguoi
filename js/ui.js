@@ -547,7 +547,7 @@
     if (dv.open) {
       h += '<div class="sec-title">💘 App hẹn hò <small>còn ' + dv.swipesLeft + ' lượt quẹt năm nay</small></div>';
       if (dv.sneak) h += '<div class="card p-sub">🤫 Bạn đang có đôi — hẹn thành công sẽ thành <b>người tình bí mật</b>. Cẩn thận bị phát hiện!</div>';
-      if (dv.deck.length) { const p = dv.deck[0]; h += '<div class="card date-card"><div class="dc-av">' + p.icon + '</div><div class="dc-info"><b>' + esc(p.name) + ', ' + p.age + '</b>' + (p.hot ? ' <span class="tag good">🔥 hot</span>' : '') + '<small>' + esc(p.job) + '</small><p>“' + esc(p.bio) + '”</p></div><div class="btnrow"><button type="button" class="btn btn-ghost btn-sm" data-swipe="' + p.id + '" data-like="0">✖ Quẹt trái</button><button type="button" class="btn btn-primary btn-sm" data-swipe="' + p.id + '" data-like="1">💗 Quẹt phải</button></div></div>'; }
+      if (dv.deck.length) h += '<div class="tn-wrap"><div class="tn-stack" id="tnStack">' + dv.deck.slice(0, 3).map((p, i) => tnCard(p, i)).reverse().join('') + '</div><div class="tn-btns"><button type="button" class="tn-b no" data-tn="0" aria-label="Bỏ qua">✖</button><button type="button" class="tn-b yes" data-tn="1" aria-label="Thích">💚</button></div><p class="p-sub tn-hint">Kéo thẻ sang phải để thích, sang trái để bỏ qua · hoặc phím ← →</p><div class="tn-match" id="tnMatch" hidden></div></div>';
       else h += '<div class="card p-sub">Hết hồ sơ năm nay. Sang năm quay lại nhé!</div>';
       if (dv.matches.length) h += '<div class="date-matches">' + dv.matches.map((m) => '<div class="card dm-match"><span>' + m.icon + ' <b>' + esc(m.name) + '</b>, ' + m.age + ' · ' + esc(m.job) + '</span>' + (m.dated ? '<small class="p-sub">✓ đã hẹn</small>' : '<span class="btnrow"><button type="button" class="btn btn-soft btn-sm" data-date="' + m.id + '" data-op="0">😂 Mở lời hài</button><button type="button" class="btn btn-soft btn-sm" data-date="' + m.id + '" data-op="1">💬 Chân thành</button><button type="button" class="btn btn-soft btn-sm" data-date="' + m.id + '" data-op="2">😏 Thả thính</button></span>') + '</div>').join('') + '</div>';
     }
@@ -568,6 +568,39 @@
     const st = subtabs('social', [['post', '📝 Đăng bài', s.postsLeft || ''], ['inter', '💬 Tương tác', unread || '']].concat(pDate ? [['date', '💘 Hẹn hò']] : []).concat(rank ? [['rank', '🏅 Xếp hạng']] : []));
     return pHead + st.html + { post: pPost0 + pOffers, inter: pInbox + h + pPosts, date: pDate, rank }[st.cur];
   }
+  // ---- app hẹn hò kiểu quẹt: kéo thẻ sang phải để thích, sang trái để bỏ qua
+  const TN_GRAD = ['#ff9a9e,#fad0c4', '#a18cd1,#fbc2eb', '#84fab0,#8fd3f4', '#fccb90,#d57eeb', '#a1c4fd,#c2e9fb', '#ffecd2,#fcb69f'];
+  function tnCard(p, i) {
+    const g = TN_GRAD[(p.name.length * 7 + p.age) % TN_GRAD.length];
+    return '<div class="tn-card" data-id="' + p.id + '" style="--g:linear-gradient(160deg,' + g + ');z-index:' + (10 - i) + ';transform:scale(' + (1 - i * 0.05) + ') translateY(' + i * 12 + 'px)"><div class="tn-photo"><span>' + p.icon + '</span><i class="tn-stamp like">THÍCH</i><i class="tn-stamp nope">BỎ QUA</i></div>' +
+      '<div class="tn-info"><b>' + esc(p.name) + ', ' + p.age + '</b>' + (p.hot ? ' <em>🔥 hot</em>' : '') + '<small>💼 ' + esc(p.job) + ' · 📍 cách bạn ' + p.km + ' km</small><p>“' + esc(p.bio) + '”</p></div></div>';
+  }
+  function bindSwipe(stack) {
+    let busy = false, drag = null;
+    const top = () => stack.querySelector('.tn-card:last-child');
+    const stamps = (c, dx) => { const k = Math.min(1, Math.abs(dx) / 90); c.querySelector('.like').style.opacity = dx > 0 ? k : 0; c.querySelector('.nope').style.opacity = dx < 0 ? k : 0; };
+    const fly = (like) => {
+      const c = top(); if (!c || busy) return; busy = true; drag = null;
+      c.style.transition = 'transform .32s ease, opacity .32s'; c.style.transform = 'translateX(' + (like ? 560 : -560) + 'px) rotate(' + (like ? 26 : -26) + 'deg)'; c.style.opacity = '0'; stamps(c, like ? 99 : -99); sfx('click');
+      const id = c.dataset.id;
+      setTimeout(() => {
+        const r = safe(() => G().datingSwipe(id, like));
+        if (r && r.ok !== false) {
+          if (r.match) { sfx('good'); const m = document.getElementById('tnMatch'); if (m) { m.hidden = false; m.innerHTML = '<div><span>💘</span><b>It’s a match!</b><small>' + esc(r.text.replace(/^It’s a match! 💘 /, '')) + '</small></div>'; } setTimeout(() => render(), 1500); }
+          else render();
+        } else { if (r) toast('Chưa được', r.reason, '⛔', 'err'); busy = false; render(); }
+      }, 300);
+    };
+    stack.addEventListener('pointerdown', (e) => { const c = top(); if (busy || !c || !c.contains(e.target)) return; drag = { x: e.clientX, id: e.pointerId, dx: 0 }; c.style.transition = 'none'; try { stack.setPointerCapture(e.pointerId); } catch (x) { /* */ } });
+    stack.addEventListener('pointermove', (e) => { if (!drag || e.pointerId !== drag.id) return; const c = top(); drag.dx = e.clientX - drag.x; c.style.transform = 'translateX(' + drag.dx + 'px) rotate(' + drag.dx / 18 + 'deg)'; stamps(c, drag.dx); });
+    const up = (e) => { if (!drag || e.pointerId !== drag.id) return; const dx = drag.dx, c = top(); drag = null; if (Math.abs(dx) > 90) fly(dx > 0); else if (c) { c.style.transition = 'transform .25s'; c.style.transform = ''; stamps(c, 0); c.style.transform = 'scale(1)'; } };
+    stack.addEventListener('pointerup', up); stack.addEventListener('pointercancel', up);
+    stack.parentNode.querySelectorAll('[data-tn]').forEach((b) => (b.onclick = () => fly(b.dataset.tn === '1')));
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('tnStack') || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { const b = document.querySelector('.tn-b.' + (e.key === 'ArrowRight' ? 'yes' : 'no')); if (b) { e.preventDefault(); b.click(); } }
+  });
   // tab con trong một tab lớn (ví dụ Tài sản → Tổng quan / Mua sắm / Nhà / Kinh doanh): nhớ tab con đang mở
   const SUB = (() => { try { return JSON.parse(localStorage.getItem('kn_subtabs') || '{}'); } catch (e) { return {}; } })();
   function subtabs(tab, list) {
@@ -703,6 +736,7 @@
     const sendCmt = (id) => { const inp = body.querySelector('[data-cmtin="' + id + '"]'); const txt = inp ? inp.value : ''; const r = safe(() => G().socialReply(id, null, txt)); if (r && r.ok) { sfx(r.tone === 'bad' ? 'fail' : 'good'); toast(r.title, r.text, r.mood === 'harsh' ? '😤' : r.mood === 'funny' ? '😂' : '💗', r.tone === 'bad' ? 'err' : undefined); render(); } else if (r) toast('Chưa gửi được', r.reason, '✍️', 'err'); };
     body.querySelectorAll('[data-cmtsend]').forEach((b) => b.onclick = () => sendCmt(b.dataset.cmtsend));
     body.querySelectorAll('[data-cmtin]').forEach((inp) => inp.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); sendCmt(inp.dataset.cmtin); } });
+    { const tn = body.querySelector('#tnStack'); if (tn) bindSwipe(tn); }
     body.querySelectorAll('[data-swipe]').forEach((b) => b.onclick = () => { const r = safe(() => G().datingSwipe(b.dataset.swipe, b.dataset.like === '1')); sfx(r && r.match ? 'good' : 'click'); if (r && r.ok !== false) { if (r.match) toast('💘 Match!', r.text, '💘'); render(); } else if (r) toast('Chưa được', r.reason, '⛔', 'err'); });
     body.querySelectorAll('[data-date]').forEach((b) => b.onclick = () => { sfx('click'); doAction(() => G().datingDate(b.dataset.date, +b.dataset.op)); });
     body.querySelectorAll('[data-grp]').forEach((b) => b.onclick = () => { sfx('click'); doAction(() => G().groupJoin(b.dataset.grp)); });

@@ -5653,9 +5653,9 @@
     if (!datingOpen()) return { open: false, reason: has('lover') ? 'Bạn đang có người tình rồi' : 'Từ 18 tuổi, cần smartphone' };
     const d = S.dating && S.dating.year === S.year ? S.dating : (S.dating = { year: S.year, swipes: 0, deck: [], matches: [] });
     if (!d.deck.length && d.swipes < 12) {
-      for (let i = 0; i < 6; i++) { const g = U.pick(loveGenders()), age = U.clamp(P().age + U.randi(-6, 6), 18, 60), nm = D.randomName(g); d.deck.push({ id: U.uid('dt'), g, age, name: nm.firstName, job: U.pick(DATE_JOBS), bio: U.pick(DATE_BIOS), looks: U.randi(30, 95), catfish: Math.random() < 0.15, scam: Math.random() < 0.08 }); }
+      for (let i = 0; i < 6; i++) { const g = U.pick(loveGenders()), age = U.clamp(P().age + U.randi(-6, 6), 18, 60), nm = D.randomName(g); d.deck.push({ id: U.uid('dt'), g, age, name: nm.firstName, job: U.pick(DATE_JOBS), bio: U.pick(DATE_BIOS), looks: U.randi(30, 95), catfish: Math.random() < 0.15, scam: Math.random() < 0.08, km: U.randi(1, 25) }); }
     }
-    return { open: true, sneak: datingSneak(), swipesLeft: Math.max(0, 12 - d.swipes), deck: d.deck.slice(0, 1).map((p) => ({ id: p.id, name: p.name, age: p.age, job: p.job, bio: p.bio, hot: p.looks >= 80, icon: p.g === 'f' ? '👩' : '👨' })), matches: d.matches.map((m) => ({ id: m.id, name: m.name, age: m.age, job: m.job, icon: m.g === 'f' ? '👩' : '👨', dated: !!m.dated })) };
+    return { open: true, sneak: datingSneak(), swipesLeft: Math.max(0, 12 - d.swipes), deck: d.deck.slice(0, 3).map((p) => ({ id: p.id, name: p.name, age: p.age, job: p.job, bio: p.bio, km: p.km || 5, hot: p.looks >= 80, icon: p.g === 'f' ? '👩' : '👨' })), matches: d.matches.map((m) => ({ id: m.id, name: m.name, age: m.age, job: m.job, icon: m.g === 'f' ? '👩' : '👨', dated: !!m.dated })) };
   }
   function datingSwipe(id, like) {
     if (!datingOpen()) return fail('Không dùng được app hẹn hò lúc này.');

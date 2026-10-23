@@ -791,6 +791,9 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.77', date: '23/10/2026', items: [
+      '💘 App hẹn hò đổi sang kiểu quẹt thật: một chồng thẻ hồ sơ, kéo thẻ sang phải để thích, sang trái để bỏ qua (hoặc bấm nút, hoặc phím ← →). Có dấu THÍCH / BỎ QUA hiện theo hướng kéo, hiệu ứng “It’s a match!”, và thông tin khoảng cách.',
+    ] },
     { v: '1.76', date: '23/10/2026', items: [
       '⚡ Minigame mới “Xử lý clutch” cho tuyển thủ eSports: 3 tình huống kẹt (1v3 bom đã cài, đồng đội gục hết, hết đạn súng chính, giành rồng, vòng bo cuối, lật kèo ván 5). Chọn hướng xử lý đúng ngữ cảnh rồi hạ từng địch dưới áp lực thời gian.',
       '🏆 Thêm ca “Clutch 1v3 hiệp quyết định” cho nghề tuyển thủ; chung kết, giải đấu mùa và leo rank cũng dùng minigame này.',
