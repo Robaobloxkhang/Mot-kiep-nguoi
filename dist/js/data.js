@@ -149,7 +149,7 @@
     bongchuyen: { title: 'Cầu thủ bóng chuyền', icon: '🏐', minAge: 16, maxStart: 22, retireAt: 33, sport: true, injury: 0.1, req: { minStat: { health: 70 } }, levels: [['Cầu thủ trẻ CLB', 6], ['Cầu thủ chính VĐQG', 15], ['Chủ công trụ cột', 30], ['Tuyển thủ quốc gia', 45]], prize: [[0, 8], [10, 80], [40, 250], [100, 800]], selfFund: 0, loc: 'court', style: 'jersey', fame: true },
     hoasi: { title: 'Họa sĩ', icon: '🎨', minAge: 18, volatile: true, req: { minStat: { smarts: 50 } }, levels: [['Họa sĩ vẽ thuê', 5], ['Họa sĩ có triển lãm', 14], ['Họa sĩ nổi tiếng', 40], ['Danh họa', 110]], loc: 'studio', style: 'shirt', fame: true },
     nhaccong: { title: 'Nhạc công', icon: '🎸', minAge: 16, req: { minStat: { smarts: 45 } }, levels: [['Nhạc công quán bar', 6], ['Nhạc công ban nhạc', 13], ['Nhạc công dàn nhạc giao hưởng', 22], ['Nhạc sĩ nổi tiếng', 60]], loc: 'karaoke', style: 'jacket', fame: true },
-    hlv: { title: 'Huấn luyện viên thể thao', icon: '📋', minAge: 28, req: { flag: 'ex_athlete' }, levels: [['Trợ lý huấn luyện viên', 15], ['HLV trưởng câu lạc bộ', 40], ['HLV đội tuyển quốc gia', 90]], loc: 'stadium', style: 'polo' },
+    hlv: { title: 'Huấn luyện viên thể thao', icon: '📋', minAge: 20, req: { flag: 'ex_athlete' }, levels: [['Trợ lý huấn luyện viên', 15], ['HLV trưởng câu lạc bộ', 40], ['HLV đội tuyển quốc gia', 90]], loc: 'stadium', style: 'polo' },
     dienvien: { title: 'Diễn viên', icon: '🎬', minAge: 16, req: { minStat: { looks: 50 } }, levels: [['Diễn viên quần chúng', 4], ['Diễn viên phụ', 15], ['Diễn viên chính', 55], ['Ngôi sao màn bạc', 120]], loc: 'studio', style: 'shirt', fame: true },
     nguoimau: { title: 'Người mẫu', icon: '📸', minAge: 16, maxStart: 26, retireAt: 40, req: { minStat: { looks: 75 } }, levels: [['Người mẫu ảnh', 6], ['Người mẫu sàn diễn', 25], ['Siêu mẫu', 90]], loc: 'studio', style: 'suit', fame: true },
     tiepvien: { title: 'Tiếp viên hàng không', icon: '🛫', minAge: 18, maxStart: 30, req: { hs: true, minStat: { looks: 65, health: 60 } }, levels: [['Tiếp viên', 18], ['Tiếp viên trưởng', 30], ['Quản lý đoàn tiếp viên', 45]], loc: 'airport', style: 'suit' },
@@ -791,6 +791,9 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.80', date: '23/10/2026', items: [
+      '📋 Huấn luyện viên thể thao: vận động viên đã giải nghệ có thể xin làm HLV từ 20 tuổi (trước phải đủ 28), và sự kiện học bằng HLV cũng mở từ 20 tuổi.',
+    ] },
     { v: '1.79', date: '23/10/2026', items: [
       '🏅 Đăng ký ngoại khóa lúc 7 tuổi giờ có đủ môn: bóng đá, võ, cầu lông, bơi, và thêm bóng rổ, điền kinh, bóng chuyền (trước đây phải 8–10 tuổi mới thấy).',
       '🎒 Mới: câu lạc bộ ngoại khóa năng khiếu (từ 6–12 tuổi, chọn tối đa 2): âm nhạc, hội hoạ, hát múa, sân khấu, cờ vua, robot & lập trình, tiếng Anh, hướng đạo, nấu ăn. Mỗi năm rèn thêm chỉ số, ba năm thì có năng khiếu và có lợi thế khi ứng tuyển nghề liên quan.',

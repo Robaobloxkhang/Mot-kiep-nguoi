@@ -365,7 +365,7 @@
       ]
     },
     {
-      id: 's_fb_bang_hlv', title: 'Học bằng huấn luyện viên', icon: '📋', age: [28, 36], weight: 1.1,
+      id: 's_fb_bang_hlv', title: 'Học bằng huấn luyện viên', icon: '📋', age: [20, 36], weight: 1.1,
       req: { jobId: FB, notFlag: 's_fb_bang_hlv' },
       text: 'Tuổi ngoài ba mươi, bạn bắt đầu thấy mình chậm hơn đàn em. LĐBĐ mở khóa học bằng HLV hạng C dành cho cầu thủ đang thi đấu, học vào những ngày nghỉ.',
       scene: { loc: 'university', anim: 'study', npcs: [{ role: 'teacher', anim: 'talk', say: 'Chiến thuật là cái đầu, không phải đôi chân.' }], fx: 'idea' },
