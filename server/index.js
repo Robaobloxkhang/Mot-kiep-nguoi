@@ -34,7 +34,7 @@ const sendTo = (c, o) => { try { if (c.ws.readyState === 1) c.ws.send(typeof o =
 const DURS = [120, 180, 300];
 
 function newRoom(code, pub) {
-  const r = { code, pub, members: [], admin: null, cfg: { map: 'classic', dur: 180, bots: true, lvl: 1 }, playing: false, m: null, owners: null, countdown: 0, endAt: 0, tick: 0 };
+  const r = { code, pub, tourMode: false, tour: null, nextAt: 0, members: [], admin: null, cfg: { map: 'classic', dur: 180, bots: true, lvl: 1 }, playing: false, m: null, owners: null, countdown: 0, endAt: 0, tick: 0 };
   rooms.set(code, r); return r;
 }
 newRoom(PUBLIC, true);
@@ -44,7 +44,43 @@ const humans = (r) => r.members.filter((c) => !c.waiting);
 function fewer(r) { const h = r.members; return h.filter((x) => x.team === 0).length <= h.filter((x) => x.team === 1).length ? 0 : 1; }
 function lobbyMsg(r, c) {
   return { t: 'lobby', server: true, code: r.code, pub: r.pub, map: r.cfg.map, dur: r.cfg.dur, bots: r.cfg.bots, lvl: r.cfg.lvl, auto: r.countdown ? Math.ceil(r.countdown / HZ) : 0, admin: r.admin === c, playing: r.playing,
-    players: r.members.map((x) => ({ id: x.id, name: x.name, team: x.team, admin: r.admin === x })), you: c.id };
+    tourMode: !!r.tourMode, tour: tourView(r), players: r.members.map((x) => ({ id: x.id, name: x.name, team: x.team, admin: r.admin === x })), you: c.id };
+}
+// ---------------------------------------------------------------- giải đấu loại trực tiếp giữa các người chơi trong một phòng (2–8 người, có bye nếu lẻ)
+function tourView(r) {
+  const t = r.tour; if (!t) return null;
+  return { names: t.names, rounds: t.rounds, scores: t.scores, round: t.round, k: t.k, champ: t.champ, tsize: t.tsize, cur: t.cur || null, nextIn: r.nextAt ? Math.max(0, Math.ceil((r.nextAt - Date.now()) / 1000)) : 0, live: !!(r.playing && t.cur) };
+}
+function tourWin(t, w, sc) {
+  t.scores[t.round][t.k] = sc; t.win.push(w); t.k++;
+  if (2 * t.k >= t.rounds[t.round].length) { if (t.round >= t.rounds.length - 1) t.champ = w || 'none'; else { t.rounds[t.round + 1] = t.win.slice(); t.round++; t.k = 0; t.win = []; } }
+}
+function tourStep(r) { // bỏ qua các trận bye / người đã rời; dừng ở trận thật tiếp theo (hoặc khi đã có nhà vô địch)
+  const t = r.tour; t.cur = null;
+  for (let guard = 0; guard < 40 && !t.champ; guard++) {
+    const l = t.rounds[t.round], a = l[2 * t.k], b = l[2 * t.k + 1], ga = !a || t.out[a], gb = !b || t.out[b];
+    if (ga || gb) { tourWin(t, ga && gb ? null : ga ? b : a, null); continue; }
+    t.cur = [a, b]; r.nextAt = Date.now() + 7000; return;
+  }
+  r.nextAt = 0;
+}
+function tourFinish(r, sc) {
+  const t = r.tour, [a, b] = t.cur; let w = sc[0] > sc[1] ? a : sc[0] < sc[1] ? b : Math.random() < 0.5 ? a : b;
+  if (t.out[a] && t.out[b]) w = null; else if (t.out[a]) w = b; else if (t.out[b]) w = a;
+  tourWin(t, w, [sc[0], sc[1]]); tourStep(r);
+}
+function startTourMatch(r) {
+  const t = r.tour, [a, b] = t.cur, A = r.members.find((x) => x.id === a), B = r.members.find((x) => x.id === b);
+  if (!A || !B) { if (!A) t.out[a] = true; if (!B) t.out[b] = true; tourFinish(r, [0, 0]); sendLobby(r); return; }
+  const n = Math.min(3, Math.max(1, t.tsize || 2)), roster = [{ team: 0, name: A.name }, { team: 1, name: B.name }], owners = [A, B];
+  for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Máy' }, { team: 1, name: 'Máy' }); owners.push(r.cfg.lvl, r.cfg.lvl); }
+  const order = roster.map((x, i) => i).sort((x, y) => roster[x].team - roster[y].team || x - y), ros = order.map((i) => roster[i]), own = order.map((i) => owners[i]);
+  const dur = +process.env.HAX_TEST_DUR || r.cfg.dur, m = S.newMatch({ dur, map: r.cfg.map, roster: ros });
+  own.forEach((o, i) => { if (typeof o === 'object') m.players[i].human = true; });
+  r.members.forEach((c) => { c.waiting = c !== A && c !== B; c.input = {}; });
+  Object.assign(r, { m, owners: own, playing: true, countdown: 0, tick: 0, endAt: 0, nextAt: 0 });
+  own.forEach((o, i) => { if (typeof o === 'object') sendTo(o, { t: 'start', map: m.map, dur: m.dur, roster: ros, me: i }); });
+  sendLobby(r);
 }
 function sendLobby(r) { r.members.forEach((c) => { if (!r.playing || c.waiting) sendTo(c, lobbyMsg(r, c)); }); }
 
@@ -64,7 +100,8 @@ function leave(c) {
   if (r.admin === c) r.admin = r.members[0] || null;
   if (r.playing && r.owners) { const i = r.owners.indexOf(c); if (i >= 0) { r.owners[i] = r.cfg.lvl; r.m.players[i].human = false; r.m.players[i].name = c.name + ' (máy)'; } }
   if (!r.pub && !r.members.length) { rooms.delete(r.code); return; }
-  if (r.playing && !humans(r).length) endMatch(r, true);
+  if (r.tour && !r.tour.champ) { r.tour.out[c.id] = true; if (!r.tour.cur && !r.playing) tourStep(r); }
+  if (r.playing && !humans(r).length) { endMatch(r, true); if (r.tour && r.tour.cur) tourFinish(r, [0, 0]); }
   sendLobby(r);
 }
 
@@ -99,6 +136,7 @@ setInterval(() => {
 function tickRoom(r) {
   if (r.backAt) { if (Date.now() < r.backAt) return; r.backAt = 0; sendLobby(r); }
   if (!r.playing) {
+    if (r.tourMode && r.tour && r.tour.cur && r.nextAt && Date.now() >= r.nextAt) { r.nextAt = 0; startTourMatch(r); return; }
     if (r.pub) {
       const n = r.members.length;
       if (n >= 2 && !r.countdown) { r.countdown = AUTO_START * HZ; sendLobby(r); }
@@ -110,7 +148,7 @@ function tickRoom(r) {
   const m = r.m; S.applyMap(m.map); // bản đồ là biến chung của bộ mô phỏng → đặt lại trước mỗi phòng
   const ins = r.owners.map((o, i) => (typeof o === 'number' ? S.aiInput(m, i, o) : o.input || {}));
   S.step(m, ins); m.events.length = 0;
-  if (m.phase === 'end') { r.members.forEach((c) => { if (!c.waiting) sendTo(c, S.snapshot(m, ins.map(S.vecOf))); }); endMatch(r); return; }
+  if (m.phase === 'end') { r.members.forEach((c) => { if (!c.waiting) sendTo(c, S.snapshot(m, ins.map(S.vecOf))); }); const sc = m.score.slice(); endMatch(r); if (r.tour && r.tour.cur) tourFinish(r, sc); return; }
   if (++r.tick % SEND_EVERY === 0) { const s = S.snapshot(m, ins.map(S.vecOf)); r.members.forEach((c) => { if (!c.waiting) sendTo(c, s); }); }
 }
 
@@ -124,13 +162,20 @@ function onMsg(c, raw) {
     case 'ping': sendTo(c, { t: 'pong', c: d.c }); break;
     case 'hello': { const nm = cleanName(d.name); if (nm !== c.name) { c.name = nm; if (r && !r.playing) sendLobby(r); } break; }
     case 'quick': c.name = cleanName(d.name); enter(c, rooms.get(PUBLIC)); break;
-    case 'create': { c.name = cleanName(d.name); if (rooms.size > 300) return sendTo(c, { t: 'err', msg: 'Máy chủ đang đông, thử lại sau' }); const nr = newRoom(makeCode(), false); applyCfg(nr, d.cfg); enter(c, nr); break; }
+    case 'create': { c.name = cleanName(d.name); if (rooms.size > 300) return sendTo(c, { t: 'err', msg: 'Máy chủ đang đông, thử lại sau' }); const nr = newRoom(makeCode(), false); nr.tourMode = !!d.tour; applyCfg(nr, d.cfg); enter(c, nr); break; }
     case 'join': { c.name = cleanName(d.name); const nr = rooms.get(String(d.code || '').trim().toUpperCase()); if (!nr) return sendTo(c, { t: 'err', msg: 'Không tìm thấy phòng (mã sai hoặc chủ phòng đã thoát)' }); enter(c, nr); break; }
     case 'leave': leave(c); break;
     case 'team': if (r && !r.playing) { c.team = 1 - c.team; sendLobby(r); } break;
     case 'swap': if (r && !r.playing && r.admin === c) { const x = r.members.find((y) => y.id === d.id); if (x) { x.team = 1 - x.team; sendLobby(r); } } break;
     case 'cfg': if (r && !r.playing && r.admin === c) { applyCfg(r, d); sendLobby(r); } break;
-    case 'start': if (r && !r.playing && !r.backAt && r.admin === c) startMatch(r); break;
+    case 'start': if (r && !r.playing && !r.backAt && r.admin === c && !r.tourMode) startMatch(r); break;
+    case 'tstart': if (r && r.tourMode && !r.playing && !r.backAt && r.admin === c && !(r.tour && !r.tour.champ) && r.members.length >= 2) {
+      const hs = r.members.slice(0, 8).sort(() => Math.random() - 0.5), ids = hs.map((x) => x.id), names = {}; hs.forEach((x) => (names[x.id] = x.name));
+      let size = 2; while (size < ids.length) size *= 2;
+      const first = []; for (let i = 0; i < size / 2; i++) first.push(ids[i] || null, ids[size - 1 - i] || null);
+      const nr = Math.log2(size); r.tour = { names, size, rounds: [first].concat(Array.from({ length: nr - 1 }, () => null)), scores: Array.from({ length: nr }, () => []), round: 0, k: 0, win: [], champ: null, tsize: Math.min(3, Math.max(1, +d.size || 2)), out: {}, cur: null };
+      hs.forEach((x) => { x.waiting = false; }); tourStep(r); sendLobby(r);
+    } break;
     default:
   }
 }

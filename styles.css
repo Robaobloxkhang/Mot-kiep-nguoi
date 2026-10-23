@@ -1562,3 +1562,7 @@ details.more.risk p { margin: 0 0 8px; }
 
 .mx-pitch .gl.own { fill: #57e08f; } .mx-pitch .gl.opp { fill: #ff6b68; }
 .mx-gl { position: absolute; top: 50%; writing-mode: vertical-rl; padding: 8px 3px; border-radius: 4px; font: 700 10.5px var(--mx-f, inherit); letter-spacing: .08em; text-transform: uppercase; background: rgba(10, 14, 24, .78); } .mx-gl.own { left: 4px; color: #57e08f; transform: translateY(-50%) rotate(180deg); } .mx-gl.opp { right: 4px; color: #ff6b68; transform: translateY(-50%); }
+
+.cup-pick { justify-content: flex-start; justify-items: start; text-align: left; align-content: start; }
+.cup-names { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; } .cup-names input { border-radius: 10px; border: 1px solid var(--line-2); background: rgba(0, 0, 0, .25); color: var(--fg); padding: 8px 10px; min-width: 0; }
+.cup-now { outline: 2px solid var(--lantern, #ffb347); } .fr-red { color: #ff8a80; } .fr-blue { color: #8ab4ff; }

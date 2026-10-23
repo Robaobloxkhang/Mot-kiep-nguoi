@@ -792,6 +792,9 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🏆 Giải đấu online loại trực tiếp cho 2–8 bạn bè: ở menu Hax bấm “Giải đấu online”, gửi mã phòng, chủ phòng bấm bắt đầu. Máy chủ chia nhánh đấu (người lẻ được miễn trận), từng trận hai người đá nhau (có thể kèm máy), người thua ngồi xem bảng đấu, hoà thì bốc thăm người đi tiếp. Cần máy chủ Hax cập nhật bản mới.',
+      '🌍 Giải đấu ngoài đời thực: World Cup (32 đội tuyển, 8 bảng), Champions League (32 CLB châu Âu), Euro, Asian Cup và AFF Cup — bạn dẫn dắt Việt Nam (hoặc đội của bạn ở Champions League). Tên đội thật, sức mạnh hư cấu; đối thủ mạnh thì máy chơi khó hơn.',
+      '👥 Đá giải với bạn bè: tick “Chơi cùng bạn bè một máy” ở mọi giải để bạn bè điều khiển một đồng đội (↑↓←→ + Enter), hoặc mở “Giải đấu với bạn bè” (2, 4 hoặc 8 người cùng một máy, loại trực tiếp, mỗi trận hai người đấu nhau).',
       '⭐ Ngôi sao nổi tiếng xuất hiện trên thị trường chuyển nhượng HLV (Ronaldo, Messi, Bellingham, Mbappé, Haaland, Yamal, De Bruyne, Salah, Quang Hải, Công Phượng, Tiến Linh, Chanathip…). Chỉ số và giá là hư cấu trong game; tìm theo biệt danh như “cr7”. CLB lớn thấy nhiều sao hơn; đội tuyển triệu tập được các ngôi sao Việt Nam.',
       '⚽ Sửa lỗi xếp ngược trong trận HLV: hậu vệ đứng lùi sâu, tiền đạo đứng trên (trước đây bị đảo). Gôn được tô màu và gắn nhãn “GÔN CỦA BẠN” / “GÔN ĐỐI THỦ” trong trận và trên sơ đồ đội hình.',
       '⚽ Trận HLV khó và nhiều biến số hơn: chỉ số cầu thủ ảnh hưởng tốc độ rõ rệt, sơ đồ và lối chơi của cả hai đội đổi chỉ số theo vai trò, lối chơi khắc chế +3, sân nhà +2, phong độ trong ngày ±3, đối thủ ra sân bốn người giỏi nhất.',
