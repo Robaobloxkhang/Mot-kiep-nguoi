@@ -792,6 +792,8 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🎮 Làm lại giao diện mọi minigame theo phong cách phòng HLV: khung navy, thanh chỉ số của bạn ngay trên đầu, ngưỡng cần đạt, màn kết quả có vòng điểm.',
+      '📝 Bài kiểm tra thành “Phòng thi”: có 3 quyền trợ giúp dùng một lần (50/50, thêm giờ, đổi câu), chuỗi đúng liên tiếp được cộng giờ. 💬 Trò chuyện/xử lý tình huống có thước đo Thiện cảm và Kiên nhẫn. 📈 Lướt sóng thành “Sàn giao dịch”: mua bán theo 25%/50%/hết, có phí, bản tin thật và tin đồn đoán xu hướng. 🏃 Chạy nước rút thêm thể lực và nút bùng nổ. 🫀 Cấp cứu đổi nền tối, có thanh hồi phục.',
       '🔤 Trả lại phông chữ cũ (Baloo 2 cho tiêu đề, Be Vietnam Pro cho nội dung) ở giao diện trong game và phòng HLV; bỏ kiểu chữ condensed viết hoa.',
       '🏆 Giải đấu online loại trực tiếp cho 2–8 bạn bè: ở menu Hax bấm “Giải đấu online”, gửi mã phòng, chủ phòng bấm bắt đầu. Máy chủ chia nhánh đấu (người lẻ được miễn trận), từng trận hai người đá nhau (có thể kèm máy), người thua ngồi xem bảng đấu, hoà thì bốc thăm người đi tiếp. Cần máy chủ Hax cập nhật bản mới.',
       '🌍 Giải đấu ngoài đời thực: World Cup (32 đội tuyển, 8 bảng), Champions League (32 CLB châu Âu), Euro, Asian Cup và AFF Cup — bạn dẫn dắt Việt Nam (hoặc đội của bạn ở Champions League). Tên đội thật, sức mạnh hư cấu; đối thủ mạnh thì máy chơi khó hơn.',

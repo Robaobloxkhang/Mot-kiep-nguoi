@@ -129,11 +129,20 @@
   };
 
   // ------------------------------------------------------------------ khung chung
-  let root = null, keyHandler = null, rafId = 0, timers = [], abortFn = null;
+  let root = null, keyHandler = null, rafId = 0, timers = [], abortFn = null, curP = null;
+  // icon nét mảnh dùng cho thanh chỉ số của mọi minigame (cùng ngôn ngữ thiết kế với phòng HLV)
+  const MI = { health: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>', smarts: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>', looks: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>', goal: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/>' };
+  const miIc = (k, c) => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + MI[k] + '</svg>';
+  function statsBar(p) {
+    if (!p || !p.ctx || !p.ctx.stats) return '';
+    const st = p.ctx.stats, chip = (k, c, v, tip) => '<span title="' + tip + '">' + miIc(k, c) + '<b>' + Math.round(v) + '</b></span>';
+    return '<div class="mini-stats">' + chip('health', '#ff6b6b', st.health, 'Sức khỏe: tốc độ, phản xạ, sức bền') + chip('smarts', '#5cc8ff', st.smarts, 'Trí tuệ: gợi ý và xử lý tình huống') + chip('looks', '#c792ff', st.looks, 'Ngoại hình: ấn tượng đầu') + (p.mode === 'duel' ? '<span class="mini-need">⚔️ Thách đấu</span>' : '<span class="mini-need" title="Điểm tối thiểu để thành công">' + miIc('goal', '#ffb547') + 'Cần ≥ <b>' + Math.round((p.need || 0) * 100) + '%</b></span>') + '</div>';
+  }
   function open(html) {
     close();
     root = document.createElement('div'); root.className = 'mini'; root.innerHTML = '<div class="mini-box">' + html + '</div>';
     document.body.appendChild(root);
+    if (abortFn && curP) { const h = root.querySelector('.mini-head'); if (h) h.insertAdjacentHTML('afterend', statsBar(curP)); }
     if (abortFn) addQuit(root);
     return root;
   }
@@ -244,7 +253,8 @@
       const pct = Math.round(score * 100), duel = p.mode === 'duel', buy = p.mode === 'buy', ok = duel || buy ? score >= 0.5 : score >= p.need;
       if (ok && !duel) (KN.Weekly && KN.Weekly.track('minigame'));
       const line = duel ? '⏳ Đang chờ kết quả của đối thủ…' : buy ? (score > 0.01 ? '✅ Được giảm ' + Math.round(score * 15) + '% giá' : '😅 Không bớt được đồng nào') : ok ? '✅ Đạt yêu cầu (' + Math.round(p.need * 100) + '%)' : '❌ Chưa đạt yêu cầu (' + Math.round(p.need * 100) + '%)';
-      const box = open('<div class="mini-result"><div class="mini-pct' + (ok ? ' ok' : ' bad') + '">' + pct + '%</div><p>' + esc(text) + '</p><p class="mini-goal">' + line + '</p><div class="mini-btns"><button type="button" class="btn btn-primary" data-ok>' + (duel ? 'Xong' : buy ? 'Xuống tiền →' : 'Xem kết quả →') + '</button></div></div>');
+      const verdict = duel ? (ok ? 'Chiến thắng' : 'Thất bại') : buy ? (score > 0.01 ? 'Mặc cả thành công' : 'Không bớt được') : ok ? (score >= 0.9 ? 'Xuất sắc' : 'Thành công') : 'Chưa đạt';
+      const box = open('<div class="mini-result"><div class="mini-ring ' + (ok ? 'ok' : 'bad') + '" style="--p:' + pct + '"><div><b>' + pct + '<small>%</small></b><span>' + verdict + '</span></div></div><p class="mini-rtext">' + esc(text) + '</p><p class="mini-goal">' + line + '</p><div class="mini-btns"><button type="button" class="btn btn-primary" data-ok>' + (duel ? 'Xong' : buy ? 'Xuống tiền 💸' : 'Tiếp tục') + '</button></div></div>');
       sfx(ok ? 'cheer' : 'fail');
       const done = () => { close(); res(score); };
       box.querySelector('[data-ok]').onclick = done;
@@ -255,7 +265,7 @@
   async function run(p) {
     if (!p) return null;
     if (root) close();
-    if (KN.Mini) KN.Mini.lastOut = null;
+    if (KN.Mini) KN.Mini.lastOut = null; curP = p;
     RNG = p.seed ? seeded(p.seed) : Math.random;
     if (p.mode !== 'duel' && KN.Weekly && KN.Weekly.bonus('mini')) p.need = Math.max(0.05, p.need - 0.05);
     try {
@@ -280,7 +290,7 @@
       abortFn = null;
       if (r && r.aborted) { close(); if (KN.Mini.onAbort) KN.Mini.onAbort.forEach((f) => { try { f(); } catch (x) { /* */ } }); return p.mode === 'duel' ? 0 : null; }
       return await finish(clamp(r.score, 0, 1), r.text, p);
-    } finally { RNG = Math.random; }
+    } finally { RNG = Math.random; curP = null; }
   }
 
   // ------------------------------------------------------------------ khung canvas dùng chung
@@ -352,34 +362,52 @@
     return new Promise((res) => {
       const smart = p.ctx.stats.smarts, lvl = p.level || 2;
       const pool = shuffle(BANK.filter((x) => x[3] <= lvl));
-      const qs = []; for (let i = 0; i < 5; i++) qs.push(i % 2 === 0 || !pool.length ? mathQ(lvl) : (() => { const b = pool.pop(); return { q: b[0], a: b[1], w: b[2].slice() }; })());
+      const mk = (n) => (n % 2 === 0 || !pool.length ? mathQ(lvl) : (() => { const b = pool.pop(); return { q: b[0], a: b[1], w: b[2].slice() }; })());
+      const qs = []; for (let k = 0; k < 8; k++) qs.push(mk(k)); // 5 câu chính + 3 câu dự phòng cho quyền “Đổi câu”
       qs.forEach((q) => (q.opts = shuffle([q.a].concat(q.w))));
-      const secs = 7 + smart / 14 + (lvl <= 1 ? 3 : 0), removeN = smart >= 85 ? 2 : smart >= 70 ? 1 : 0;
-      let i = 0, ok = 0;
-      const box = open('<div class="mini-head"><b>📝 Bài kiểm tra</b><small id="mqN"></small></div><div class="mini-bar"><i id="mqT"></i></div><p class="mini-q" id="mqQ"></p><div class="mini-ans" id="mqA"></div><p class="mini-keys">⌨️ Click vào đáp án hoặc bấm phím số <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> trước khi thanh thời gian hết.</p>');
-      let timer = null;
-      const show = () => {
-        if (i >= qs.length) { clearInterval(timer); res({ score: ok / qs.length, text: 'Bạn trả lời đúng ' + ok + '/' + qs.length + ' câu.' }); return; }
-        const q = qs[i], opts = q.opts;
-        const hide = new Set(q.w.slice(0, removeN));
-        box.querySelector('#mqN').textContent = 'Câu ' + (i + 1) + '/' + qs.length + ' · đúng ' + ok;
+      const base = 7 + smart / 14 + (lvl <= 1 ? 3 : 0), removeN = smart >= 85 ? 2 : smart >= 70 ? 1 : 0, TOTAL = 5;
+      // quyền trợ giúp: mỗi loại dùng một lần; người thông minh có thêm một quyền Đổi câu
+      const life = { half: 1, time: 1, swap: smart >= 75 ? 2 : 1 };
+      let qi = 0, spare = TOTAL, n = 0, ok = 0, streak = 0, timer = null, left = 0, secs = base, answered = false;
+      const box = open('<div class="mini-head"><b>📝 Phòng thi</b><small id="mqN"></small></div><div class="mq-grid"><div class="mq-main"><div class="mini-bar"><i id="mqT"></i></div><div class="mq-card"><small id="mqS"></small><p class="mini-q" id="mqQ"></p></div><div class="mini-ans" id="mqA"></div></div>' +
+        '<aside class="mq-side"><h5>Quyền trợ giúp</h5><button type="button" class="mq-life" data-l="half"><b>50 / 50</b><small>Loại 2 đáp án sai</small><i id="lH"></i></button><button type="button" class="mq-life" data-l="time"><b>+ Thời gian</b><small>Thêm 6 giây</small><i id="lT"></i></button><button type="button" class="mq-life" data-l="swap"><b>Đổi câu</b><small>Lấy câu khác</small><i id="lS"></i></button><div class="mq-pips" id="mqP"></div></aside></div><p class="mini-keys">⌨️ Đáp án: <kbd>1</kbd>–<kbd>4</kbd> · Trợ giúp: <kbd>5</kbd> 50/50 · <kbd>6</kbd> thêm giờ · <kbd>7</kbd> đổi câu</p>');
+      const pips = () => { box.querySelector('#mqP').innerHTML = Array.from({ length: TOTAL }, (_, k) => '<span class="' + (k < n ? (box._res[k] ? 'ok' : 'bad') : k === n ? 'cur' : '') + '"></span>').join(''); };
+      box._res = [];
+      const lifeUi = () => { box.querySelector('#lH').textContent = '×' + life.half; box.querySelector('#lT').textContent = '×' + life.time; box.querySelector('#lS').textContent = '×' + life.swap; box.querySelectorAll('.mq-life').forEach((b) => (b.disabled = answered || life[b.dataset.l] <= 0)); };
+      const draw = () => {
+        const q = qs[qi], hide = new Set(q.w.slice(0, removeN)); q.hidden = q.hidden || hide;
+        box.querySelector('#mqN').textContent = 'Câu ' + (n + 1) + '/' + TOTAL + ' · đúng ' + ok + (streak >= 2 ? ' · 🔥 chuỗi ' + streak : '');
+        box.querySelector('#mqS').textContent = q.a && /[0-9]\s*[×x+\-−÷]/.test(q.q) ? 'Toán nhanh' : 'Kiến thức';
         box.querySelector('#mqQ').textContent = q.q;
-        box.querySelector('#mqA').innerHTML = opts.map((o, k) => '<button type="button" class="mini-opt" data-o="' + esc(o) + '"' + (hide.has(o) ? ' disabled style="opacity:.25"' : '') + '><span>' + (k + 1) + '</span>' + esc(o) + '</button>').join('');
-        let left = secs; const bar = box.querySelector('#mqT'); bar.style.width = '100%';
-        clearInterval(timer);
-        let answered = false;
-        const answer = (o) => {
-          if (answered) return; answered = true;
-          clearInterval(timer);
-          const right = o === q.a; if (right) { ok++; sfx('good'); } else sfx('bad');
-          box.querySelectorAll('.mini-opt').forEach((b) => { if (b.dataset.o === q.a) b.classList.add('right'); else if (b.dataset.o === o) b.classList.add('wrong'); b.disabled = true; });
-          i++; setTimeout(show, 650);
-        };
-        timer = every(() => { left -= 0.1; bar.style.width = Math.max(0, left / secs * 100) + '%'; if (left <= 0) answer(null); }, 100);
+        box.querySelector('#mqA').innerHTML = q.opts.map((o, k) => '<button type="button" class="mini-opt" data-o="' + esc(o) + '"' + (q.hidden.has(o) ? ' disabled style="opacity:.25"' : '') + '><span>' + (k + 1) + '</span>' + esc(o) + '</button>').join('');
         box.querySelectorAll('.mini-opt').forEach((b) => (b.onclick = () => answer(b.dataset.o)));
-        onKeysOnce((e) => { const n = +e.key; if (n >= 1 && n <= 4) { const b = box.querySelectorAll('.mini-opt')[n - 1]; if (b && !b.disabled) answer(b.dataset.o); return true; } return false; });
+        pips(); lifeUi();
       };
-      show();
+      const startTimer = () => {
+        const bar = box.querySelector('#mqT'); bar.style.width = '100%'; clearInterval(timer);
+        timer = every(() => { left -= 0.1; bar.style.width = Math.max(0, left / secs * 100) + '%'; bar.style.background = left / secs < 0.3 ? '#ff5c5c' : ''; if (left <= 0) answer(null); }, 100);
+      };
+      const next = () => {
+        if (n >= TOTAL) { clearInterval(timer); res({ score: ok / TOTAL, text: 'Bạn trả lời đúng ' + ok + '/' + TOTAL + ' câu' + (ok === TOTAL ? ' — điểm tuyệt đối!' : '.') }); return; }
+        answered = false; secs = base + (streak >= 3 ? 1.5 : 0); left = secs; draw(); startTimer();
+      };
+      function answer(o) {
+        if (answered) return; answered = true; clearInterval(timer);
+        const q = qs[qi], right = o === q.a; box._res.push(right);
+        if (right) { ok++; streak++; sfx('good'); } else { streak = 0; sfx('bad'); }
+        box.querySelectorAll('.mini-opt').forEach((b) => { if (b.dataset.o === q.a) b.classList.add('right'); else if (b.dataset.o === o) b.classList.add('wrong'); b.disabled = true; });
+        n++; qi++; lifeUi(); pips(); setTimeout(next, 700);
+      }
+      const useLife = (k) => {
+        if (answered || life[k] <= 0) return; const q = qs[qi]; life[k]--; sfx('click');
+        if (k === 'half') { const w = q.w.filter((x) => !q.hidden.has(x)); shuffle(w).slice(0, 2).forEach((x) => q.hidden.add(x)); box.querySelectorAll('.mini-opt').forEach((b) => { if (q.hidden.has(b.dataset.o)) { b.disabled = true; b.style.opacity = '.25'; } }); }
+        else if (k === 'time') { left += 6; secs = Math.max(secs, left); }
+        else if (k === 'swap') { if (qi + 1 < qs.length) { qi++; left = secs; draw(); startTimer(); } }
+        lifeUi();
+      };
+      box.querySelectorAll('.mq-life').forEach((b) => (b.onclick = () => useLife(b.dataset.l)));
+      onKeys((e) => { if (e.type !== 'keydown') return false; const k = +e.key; if (k >= 1 && k <= 4) { const b = box.querySelectorAll('.mini-opt')[k - 1]; if (b && !b.disabled && !answered) answer(b.dataset.o); return true; } if (k === 5) { useLife('half'); return true; } if (k === 6) { useLife('time'); return true; } if (k === 7) { useLife('swap'); return true; } return false; });
+      next();
     });
   }
 
@@ -525,16 +553,18 @@
   function sprint(p) {
     return new Promise((res) => {
       const hp = p.ctx.stats.health;
-      const { box, cv, c, hud } = canvasGame('🏃 Chạy nước rút', '<div class="mini-pad"><button type="button" data-l>◀ TRÁI <kbd>←</kbd></button><button type="button" data-r>PHẢI ▶ <kbd>→</kbd></button></div>', 'Bấm luân phiên <kbd>←</kbd> <kbd>→</kbd> (hoặc <kbd>A</kbd> <kbd>D</kbd>) thật nhanh. Bấm một phím liên tục sẽ không chạy.');
+      const { box, cv, c, hud } = canvasGame('🏃 Chạy nước rút', '<div class="mini-pad"><button type="button" data-l>◀ TRÁI <kbd>←</kbd></button><button type="button" data-boost>💥 BÙNG NỔ <kbd>Space</kbd></button><button type="button" data-r>PHẢI ▶ <kbd>→</kbd></button></div>', '<b>Quản lý thể lực</b>: bấm quá dày sẽ cạn sức và chạy chậm lại. <kbd>Space</kbd> bùng nổ (tốn 35 thể lực, hồi chiêu 3 giây) để nước rút cuối. Bấm luân phiên <kbd>←</kbd> <kbd>→</kbd> (hoặc <kbd>A</kbd> <kbd>D</kbd>) thật nhanh. Bấm một phím liên tục sẽ không chạy.');
       const step = 2.4 + hp / 100 * 1.6; // sức khỏe cao → mỗi nhịp chân đi xa hơn
       const rivals = [0, 1, 2].map((i) => ({ x: 0, v: 7 + p.need * 6 + i * 1.0 + rand(-0.6, 0.6) }));
-      let me = 0, v = 0, last = null, t = -2.5, finished = false;
-      const press = (side) => { if (t < 0 || finished || side === last) return; last = side; v += step; sfx('click'); };
-      padBind(box, '[data-l]', () => press('l')); padBind(box, '[data-r]', () => press('r'));
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { press('l'); return true; } if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { press('r'); return true; } return false; });
+      let me = 0, v = 0, last = null, t = -2.5, finished = false, stam = 100, cd = 0, flash = 0;
+      const press = (side) => { if (t < 0 || finished || side === last) return; last = side; const gas = stam <= 0; v += step * (gas ? 0.35 : 1); stam = Math.max(0, stam - 3); sfx('click'); };
+      const boost = () => { if (t < 0 || finished || cd > 0 || stam < 35) return; stam -= 35; cd = 3; v += step * 4.5; flash = 0.5; sfx('kick'); };
+      padBind(box, '[data-l]', () => press('l')); padBind(box, '[data-r]', () => press('r')); padBind(box, '[data-boost]', boost);
+      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { press('l'); return true; } if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { press('r'); return true; } if (e.key === ' ') { boost(); return true; } return false; });
       loop((dt) => {
         t += dt;
         if (t > 0 && !finished) {
+          stam = Math.min(100, stam + 6 * dt); cd = Math.max(0, cd - dt); flash = Math.max(0, flash - dt);
           v = Math.max(0, v - v * dt * 1.8); me += v * dt;
           rivals.forEach((r) => (r.x += r.v * dt * (0.9 + Math.sin(t * 3 + r.v) * 0.1)));
           if (me >= 100) { finished = true; const place = 1 + rivals.filter((r) => r.x >= 100).length; setTimeout(() => res({ score: [1, 0.66, 0.4, 0.15][place - 1], text: 'Bạn về đích thứ ' + place + '/4.' }), 900); }
@@ -546,6 +576,10 @@
         const px = (x) => 30 + Math.min(100, x) / 100 * 560;
         rivals.forEach((r, i) => runner(c, px(r.x), 70 + (i + 1) * 75 + 40, ['#5b5fc7', '#2f9e9e', '#9b59b6'][i], 'Đối thủ', r.x));
         runner(c, px(me), 110, (p.ctx.appearance && p.ctx.appearance.top) || '#ffd23f', 'BẠN', me, p.ctx.appearance && p.ctx.appearance.skin);
+        c.fillStyle = 'rgba(8,12,22,.7)'; c.fillRect(14, 12, 300, 44); c.fillStyle = '#9fb0cc'; c.font = '700 12px sans-serif'; c.textAlign = 'left'; c.fillText('THỂ LỰC', 24, 28);
+        c.fillStyle = '#232d40'; c.fillRect(24, 34, 190, 10); c.fillStyle = stam > 50 ? '#45c486' : stam > 20 ? '#ffb547' : '#ef6a62'; c.fillRect(24, 34, 190 * stam / 100, 10);
+        c.fillStyle = cd > 0 ? '#9fb0cc' : stam >= 35 ? '#ffd23f' : '#6f7d99'; c.fillText(cd > 0 ? 'Bùng nổ: ' + cd.toFixed(1) + 's' : stam >= 35 ? '💥 Sẵn sàng bùng nổ!' : 'Chưa đủ thể lực', 224, 43);
+        if (flash > 0) { c.fillStyle = 'rgba(255,210,63,' + flash * 0.5 + ')'; c.fillRect(0, 0, 640, 400); }
         countdown(c, t, 'CHẠY!');
         hud.textContent = Math.round(Math.min(100, me)) + ' m · tốc độ ' + v.toFixed(1);
       });
@@ -910,22 +944,27 @@
   function talkGame(p, C) {
     return new Promise((res) => {
       const st = p.ctx.stats, qs = shuffle(C.qs.slice()).slice(0, 4), secs = 10 + st.smarts / 12, hint = st.smarts >= 70;
-      let i = 0, sum = 0, timer = null;
-      const box = open('<div class="mini-head"><b>' + C.title + '</b><small id="ivN"></small></div><div class="mini-bar"><i id="ivT"></i></div><div class="iv-boss"><span>' + C.face + '</span><p id="ivQ"></p></div><div class="mini-ans one" id="ivA"></div><p class="mini-tip" id="ivR"></p><p class="mini-keys">⌨️ Click câu trả lời hoặc bấm phím số <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>. ' + C.tip + '</p>');
+      // hai thước đo thay cho đúng/sai đơn thuần: Thiện cảm (đối phương tin bạn) và Kiên nhẫn (để họ chờ lâu hay nói dở thì cạn dần)
+      let i = 0, sum = 0, timer = null, like = 40 + (st.looks - 50) / 5, patience = 100;
+      const face = (v, pt) => (pt < 25 ? '😠' : v >= 75 ? '😄' : v >= 55 ? '🙂' : v >= 35 ? '😐' : '🙁');
+      const box = open('<div class="mini-head"><b>' + C.title + '</b><small id="ivN"></small></div><div class="tk-grid"><div class="tk-who"><div class="tk-face" id="tkF">' + C.face + '</div><div class="tk-meter"><small>Thiện cảm</small><div class="mini-bar"><i id="tkL" style="background:#45c486"></i></div></div><div class="tk-meter"><small>Kiên nhẫn</small><div class="mini-bar"><i id="tkP" style="background:#5cc8ff"></i></div></div></div><div class="tk-chat"><div class="iv-boss"><span>' + C.face + '</span><p id="ivQ"></p></div><div class="mini-bar"><i id="ivT"></i></div><div class="mini-ans one" id="ivA"></div><p class="mini-tip" id="ivR"></p></div></div><p class="mini-keys">⌨️ Click câu trả lời hoặc bấm phím số <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>. ' + C.tip + '</p>');
+      const meters = () => { const l = clamp(like, 0, 100), pt = clamp(patience, 0, 100); box.querySelector('#tkL').style.width = l + '%'; box.querySelector('#tkP').style.width = pt + '%'; box.querySelector('#tkP').style.background = pt < 30 ? '#ff5c5c' : '#5cc8ff'; box.querySelector('#tkF').textContent = face(l, pt); };
       const show = () => {
-        if (i >= qs.length) { clearInterval(timer); const score = clamp(sum / qs.length + (st.happy - 50) / 600, 0, 1); res({ score, text: score >= 0.75 ? C.end[0] : score >= 0.45 ? C.end[1] : C.end[2] }); return; }
+        if (i >= qs.length) { clearInterval(timer); const score = clamp(sum / qs.length * 0.7 + clamp(like, 0, 100) / 100 * 0.3 + (st.happy - 50) / 600 - (patience < 20 ? 0.1 : 0), 0, 1); res({ score, text: score >= 0.75 ? C.end[0] : score >= 0.45 ? C.end[1] : C.end[2] }); return; }
         const q = qs[i], opts = shuffle([[q[1], 1], [q[2], 0.45], [q[3], 0]]);
         box.querySelector('#ivN').textContent = 'Lượt ' + (i + 1) + '/' + qs.length;
         box.querySelector('#ivQ').textContent = q[0];
+        box.querySelector('#ivR').textContent = '';
         box.querySelector('#ivA').innerHTML = opts.map((o, k) => '<button type="button" class="mini-opt" data-v="' + o[1] + '"' + (hint && o[1] === 0 ? ' style="opacity:.45"' : '') + '><span>' + (k + 1) + '</span>' + esc(o[0]) + '</button>').join('');
-        let left = secs, answered = false; const bar = box.querySelector('#ivT'); bar.style.width = '100%';
+        let left = secs, answered = false; const bar = box.querySelector('#ivT'); bar.style.width = '100%'; meters();
         const answer = (v, btn) => {
           if (answered) return; answered = true; clearInterval(timer); sum += v; sfx(v === 1 ? 'good' : v > 0 ? 'click' : 'bad');
+          like += v === 1 ? 18 : v > 0 ? 5 : -16; patience -= v === 1 ? 2 : v > 0 ? 8 : btn ? 22 : 28; patience -= Math.max(0, (secs - left) / secs) * 8; meters();
           box.querySelectorAll('.mini-opt').forEach((b) => { b.disabled = true; if (b === btn) b.classList.add(v === 1 ? 'right' : v > 0 ? 'mid' : 'wrong'); });
           box.querySelector('#ivR').textContent = v === 1 ? pick(C.good) : v > 0 ? pick(C.mid) : btn ? pick(C.bad) : 'Bạn ngập ngừng mãi không nói được gì.';
-          i++; setTimeout(show, 1000);
+          i++; setTimeout(show, 1100);
         };
-        timer = every(() => { left -= 0.1; bar.style.width = Math.max(0, left / secs * 100) + '%'; if (left <= 0) answer(0, null); }, 100);
+        timer = every(() => { left -= 0.1; bar.style.width = Math.max(0, left / secs * 100) + '%'; bar.style.background = left / secs < 0.3 ? '#ff5c5c' : ''; if (left <= 0) answer(0, null); }, 100);
         box.querySelectorAll('.mini-opt').forEach((b) => (b.onclick = () => answer(+b.dataset.v, b)));
         onKeysOnce((e) => { const n = +e.key; if (n >= 1 && n <= 3) { const b = box.querySelectorAll('.mini-opt')[n - 1]; if (b && !b.disabled) answer(+b.dataset.v, b); return true; } return false; });
       };
@@ -984,25 +1023,34 @@
   }
 
   // ------------------------------------------------------------------ 12. lướt sóng cổ phiếu
+  const NEWS = [
+    ['📰 Doanh thu quý vượt kỳ vọng, nhà đầu tư hào hứng', 1, 1], ['📰 Công ty ký hợp đồng lớn với đối tác nước ngoài', 1, 1], ['📰 Lợi nhuận giảm mạnh, ban lãnh đạo xin lỗi cổ đông', -1, 1], ['📰 Cơ quan chức năng điều tra sai phạm kế toán', -1, 1],
+    ['🗣️ Tin đồn: “sắp có quỹ lớn gom hàng”', 1, 0], ['🗣️ Tin đồn: “lãnh đạo sắp bán chui cổ phiếu”', -1, 0], ['🗣️ Tin đồn: “công ty sắp được thâu tóm”', 1, 0], ['🗣️ Tin đồn: “sản phẩm mới bị lỗi nặng”', -1, 0],
+  ];
   function stock(p) {
     return new Promise((res) => {
-      const st = p.ctx.stats, DUR = 25, sig = 0.007 + p.need * 0.008;
-      const { box, c, hud } = canvasGame('📈 Lướt sóng', '<div class="mini-pad"><button type="button" data-b="buy">🟢 MUA hết <kbd>↑</kbd></button><button type="button" data-b="sell">🔴 BÁN hết <kbd>↓</kbd></button></div>', '<kbd>↑</kbd> (hoặc <kbd>B</kbd>) mua hết khi đoán giá sắp lên · <kbd>↓</kbd> (hoặc <kbd>S</kbd>) bán hết khi đoán giá sắp xuống. Hết giờ tự bán, tính lãi lỗ.');
-      let t = -1.5, price = 100, cash = 100, sh = 0, hist = [100], mu = 0, regT = 0, acc = 0, marks = [], done = false, trendHint = 0;
+      const st = p.ctx.stats, DUR = 25, sig = 0.007 + p.need * 0.008, FEE = 0.002;
+      const { box, c, hud } = canvasGame('📈 Sàn giao dịch', '<div class="st-panel"><div><small>Tiền mặt</small><b id="stC">100</b></div><div><small>Cổ phiếu</small><b id="stS">0</b></div><div><small>Tổng tài sản</small><b id="stT">100</b></div><div><small>Lãi / lỗ</small><b id="stP">0%</b></div></div><div class="st-news" id="stN"><small>Bản tin</small><span>Chưa có tin mới. Theo dõi bản tin để đoán xu hướng.</span></div><div class="mini-pad st-pad"><button type="button" data-b="b25">Mua 25% <kbd>1</kbd></button><button type="button" data-b="b50">Mua 50% <kbd>2</kbd></button><button type="button" data-b="b100">Mua hết <kbd>3</kbd></button><button type="button" data-b="s50">Bán 50% <kbd>4</kbd></button><button type="button" data-b="s100">Bán hết <kbd>5</kbd></button></div>', 'Phím <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> mua 25% / 50% / hết · <kbd>4</kbd> <kbd>5</kbd> bán 50% / hết (hoặc <kbd>↑</kbd> mua hết, <kbd>↓</kbd> bán hết). Mỗi lệnh mất phí 0,2%, đừng lướt quá tay. Hết giờ tự bán hết, tính lãi lỗ.');
+      let t = -1.5, price = 100, cash = 100, sh = 0, hist = [100], mu = 0, regT = 0, acc = 0, marks = [], done = false, trendHint = 0, newsT = rand(3, 5), pending = null, boost = 0, boostT = 0, lastNews = null;
       const N = () => { let u = 0; while (!u) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
-      const val = () => cash + sh * price;
-      const buy = () => { if (done || t < 0 || cash <= 0) return; sh += cash * 0.998 / price; cash = 0; marks.push({ i: hist.length - 1, b: 1 }); sfx('coin'); };
-      const sell = () => { if (done || t < 0 || sh <= 0) return; cash += sh * price * 0.998; sh = 0; marks.push({ i: hist.length - 1, b: 0 }); sfx('click'); };
-      padBind(box, '[data-b]', (b) => (b.dataset.b === 'buy' ? buy() : sell()));
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (k === 'ArrowUp' || k === 'b' || k === 'B' || k === '1') buy(); else if (k === 'ArrowDown' || k === 's' || k === 'S' || k === '2') sell(); else return false; return true; });
+      const val = () => cash + sh * price, $ = (id) => box.querySelector('#' + id);
+      const buy = (f) => { if (done || t < 0 || cash <= 0.5) return; const amt = cash * f; sh += amt * (1 - FEE) / price; cash -= amt; marks.push({ i: hist.length - 1, b: 1 }); sfx('coin'); };
+      const sell = (f) => { if (done || t < 0 || sh <= 0) return; const q = sh * f; cash += q * price * (1 - FEE); sh -= q; if (sh * price < 0.5) { cash += sh * price; sh = 0; } marks.push({ i: hist.length - 1, b: 0 }); sfx('click'); };
+      const act = { b25: () => buy(0.25), b50: () => buy(0.5), b100: () => buy(1), s50: () => sell(0.5), s100: () => sell(1) };
+      padBind(box, '[data-b]', (b) => act[b.dataset.b]());
+      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; const m = { 1: 'b25', 2: 'b50', 3: 'b100', 4: 's50', 5: 's100', ArrowUp: 'b100', b: 'b100', B: 'b100', ArrowDown: 's100', s: 's100', S: 's100' }[k]; if (!m) return false; act[m](); return true; });
       loop((dt) => {
         t += dt;
         if (t > 0 && !done) {
-          acc += dt; regT -= dt;
+          acc += dt; regT -= dt; newsT -= dt;
           if (regT <= 0) { regT = rand(2.5, 5); mu = pick([0.006, 0.0045, -0.006, -0.0075, 0, 0.001]); trendHint = rnd() < 0.7 ? Math.sign(mu) : -Math.sign(mu); }
-          while (acc >= 0.1) { acc -= 0.1; price = Math.max(5, price * Math.exp(mu + sig * N())); hist.push(price); }
+          // bản tin: tin thật (chắc chắn đẩy giá sau ~1,5 giây) hoặc tin đồn (có thể đúng hoặc sai). Trí tuệ cao đọc được độ tin cậy.
+          if (newsT <= 0 && !pending && t < DUR - 5) { newsT = rand(5.5, 8); const [txt, dir, real] = pick(NEWS), truth = real ? true : rnd() < 0.55; pending = { txt, dir, real, truth, at: 1.6 }; lastNews = pending; const hintTxt = real ? '' : st.smarts >= 70 ? (truth ? ' · nguồn có vẻ đáng tin' : ' · nguồn khá mơ hồ') : ''; $('stN').innerHTML = '<small>Bản tin</small><span class="' + (dir > 0 ? 'up' : 'dn') + '">' + txt + hintTxt + '</span>'; sfx('notify'); }
+          if (pending) { pending.at -= dt; if (pending.at <= 0) { const sgn = pending.truth ? pending.dir : -pending.dir; boost = sgn * 0.012; boostT = 3; pending = null; } }
+          if (boostT > 0) boostT -= dt; else boost = 0;
+          while (acc >= 0.1) { acc -= 0.1; price = Math.max(5, price * Math.exp(mu + boost + sig * N())); hist.push(price); }
           if (t >= DUR) {
-            done = true; if (sh > 0) { cash += sh * price * 0.998; sh = 0; }
+            done = true; if (sh > 0) { cash += sh * price * (1 - FEE); sh = 0; }
             const r = val() / 100 - 1;
             setTimeout(() => res({ score: clamp(0.5 + r * 2.5, 0, 1), text: 'Tài khoản ' + (r >= 0 ? 'lãi ' : 'lỗ ') + Math.abs(r * 100).toFixed(1) + '% (giá cổ phiếu cả phiên ' + (price >= 100 ? 'tăng ' : 'giảm ') + Math.abs(price - 100).toFixed(1) + '%).' }), 700);
           }
@@ -1016,11 +1064,12 @@
         c.strokeStyle = price >= (vis[0] || 100) ? '#39cf98' : '#ff5c5c'; c.lineWidth = 2.5; c.beginPath(); vis.forEach((v, i) => (i ? c.lineTo(X(i + off), Y(v)) : c.moveTo(X(i + off), Y(v)))); c.stroke();
         marks.forEach((m) => { if (m.i < off) return; c.fillStyle = m.b ? '#39cf98' : '#ff5c5c'; c.beginPath(); c.arc(X(m.i), Y(hist[m.i]), 6, 0, 7); c.fill(); });
         c.fillStyle = '#fff'; c.font = '800 22px "Baloo 2", sans-serif'; c.textAlign = 'left'; c.fillText('Giá ' + price.toFixed(2), 24, 36);
-        c.textAlign = 'right'; c.fillStyle = sh > 0 ? '#39cf98' : '#9ad1ff'; c.fillText(sh > 0 ? '📦 Đang giữ cổ phiếu' : '💵 Đang cầm tiền', 616, 36);
+        c.textAlign = 'right'; c.fillStyle = sh > 0 ? '#39cf98' : '#9ad1ff'; c.fillText(sh > 0 ? '📦 Đang giữ ' + Math.round(sh * price / Math.max(1, val()) * 100) + '% cổ phiếu' : '💵 Đang cầm tiền', 616, 36);
         if (st.smarts >= 80 && t > 0) { c.font = '700 15px sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('Dự báo: ' + (trendHint > 0 ? '↗ tăng' : trendHint < 0 ? '↘ giảm' : '→ đi ngang'), 616, 58); }
         countdown(c, t, 'MỞ PHIÊN!');
         const r = val() / 100 - 1;
-        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(DUR - Math.max(0, t))) + 's · tài sản ' + (r >= 0 ? '+' : '') + (r * 100).toFixed(1) + '%';
+        $('stC').textContent = cash.toFixed(1); $('stS').textContent = sh.toFixed(2); $('stT').textContent = val().toFixed(1); const pe = $('stP'); pe.textContent = (r >= 0 ? '+' : '') + (r * 100).toFixed(1) + '%'; pe.style.color = r >= 0 ? '#45c486' : '#ff6b68';
+        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(DUR - Math.max(0, t))) + 's';
       });
     });
   }
@@ -1180,16 +1229,17 @@
         }
         const avg = comp.length ? comp.slice(-6).reduce((a, b) => a + b, 0) / Math.min(6, comp.length) : 0;
         ecg.push(t > 0 && Math.abs(((t - cycStart) % T + T) % T) < 0.05 && avg > 0.4 ? 1 : 0); if (ecg.length > 300) ecg.shift();
-        c.fillStyle = '#e9f0f5'; c.fillRect(0, 0, 640, 400);
-        c.fillStyle = '#cfd9e2'; c.fillRect(60, 250, 520, 110);
-        c.fillStyle = '#7fb3d5'; c.fillRect(150, 200 + squeeze * 40, 300, 70);
+        c.fillStyle = '#0f1424'; c.fillRect(0, 0, 640, 400);
+        c.fillStyle = '#18233a'; c.fillRect(60, 250, 520, 110);
+        c.fillStyle = '#3b6ea5'; c.fillRect(150, 200 + squeeze * 40, 300, 70);
         c.fillStyle = '#f2c39a'; c.beginPath(); c.arc(110, 235, 34, 0, 7); c.fill();
         c.fillStyle = '#f2c39a'; c.fillRect(260, 130 + squeeze * 120, 60, 80);
-        c.strokeStyle = '#123'; c.lineWidth = 2; c.beginPath(); ecg.forEach((v, i) => { const x = 330 + i, y = 70 - v * 40; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
-        c.fillStyle = '#123'; c.font = '700 14px sans-serif'; c.textAlign = 'left'; c.fillText('Nhịp tim bệnh nhân', 330, 100);
+        c.fillStyle = 'rgba(69,196,134,.08)'; c.fillRect(330, 28, 280, 80); c.strokeStyle = '#45c486'; c.lineWidth = 2; c.beginPath(); ecg.forEach((v, i) => { const x = 330 + i, y = 70 - v * 40; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
+        c.fillStyle = '#9fb0cc'; c.font = '700 14px sans-serif'; c.textAlign = 'left'; c.fillText('Nhịp tim bệnh nhân', 330, 128);
+        c.fillStyle = '#232d40'; c.fillRect(330, 140, 280, 10); c.fillStyle = avg > 0.6 ? '#45c486' : avg > 0.3 ? '#ffb547' : '#ef6a62'; c.fillRect(330, 140, 280 * Math.min(1, avg), 10); c.fillStyle = '#9fb0cc'; c.fillText('Hồi phục', 330, 170);
         if (mode === 'c' && t > 0) { const ph = (((t - cycStart) % T) + T) % T / T; beatRing(c, 80, 70, ph, Math.min(ph, 1 - ph) * T < tol); }
         else if (mode === 'b') { c.font = '40px sans-serif'; c.textAlign = 'center'; c.fillText('🌬️', 80, 85); }
-        c.fillStyle = '#123'; c.font = '800 20px "Baloo 2", sans-serif'; c.textAlign = 'center';
+        c.fillStyle = '#e8ecf6'; c.font = '800 20px "Baloo 2", sans-serif'; c.textAlign = 'center';
         c.fillText(mode === 'c' ? 'Ép tim ' + Math.min(15, k) + '/15 · chu kỳ ' + (cyc + 1) + '/2' : 'Thổi ngạt ' + bCount + '/2', 320, 390);
         if (msgT > 0) bigText(c, msg, 160, msg.startsWith('THỔI') ? '#1d6fa5' : '#d63c3c', 30);
         countdown(c, t, 'ÉP!');
