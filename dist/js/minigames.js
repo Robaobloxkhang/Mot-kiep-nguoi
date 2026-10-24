@@ -1072,7 +1072,7 @@
       ['Bị chất vấn về một sai sót?', 'Nhận phần trách nhiệm, trình bày cách khắc phục cụ thể', 'Giải thích hoàn cảnh', 'Đẩy trách nhiệm sang người khác'],
       ['Kết thúc cuộc trao đổi thế nào?', 'Tóm tắt thoả thuận, ai làm gì và khi nào', 'Hẹn họp lại', 'Rời đi trước khi bị hỏi thêm']]),
   });
-  const JT_CTX = { hlv: 'coach', giaovien: 'student', canhsat: 'crisis', cuuhoa: 'crisis', chinhtri: 'crisis', bacsi: 'customer', duocsi: 'customer' };
+  const JT_CTX = { hlv: 'coach', giaovien: 'student', canhsat: 'crisis', cuuhoa: 'crisis', chinhtri: 'crisis', bacsi: 'customer', duocsi: 'customer', moigioi: 'customer', congchuc: 'crisis', streamer: 'speech', hoasi: 'speech' };
   function ivKind(p) {
     const t = fold((p.title || '') + ' ' + (p.label || ''));
     // ca việc của từng nghề: bộ câu hỏi theo nghề, không dùng câu hỏi gia đình hay phỏng vấn xin việc

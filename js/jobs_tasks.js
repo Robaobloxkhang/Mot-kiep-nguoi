@@ -454,3 +454,78 @@
         ['🧠 Ngồi tính xem còn đường rút nào không', null, 1, null, 'Bạn lặng lẽ ghi lại những người có thể giúp bạn rời đi an toàn. Một ngày nào đó sẽ cần đến.', '', 'safe']] },
   ] };
 })();
+
+/* ---- bổ sung: các nghề còn thiếu minigame (ca sĩ, nhạc công, streamer, công chức, hoạ sĩ) + nghề môi giới bất động sản ---- */
+(function () {
+  'use strict';
+  const J = (window.KN || {}).JOB_TASKS; if (!J) return;
+  const add = (id, act, tasks) => { if (!J[id]) J[id] = { act, tasks: [] }; J[id].tasks.push(...tasks); };
+  add('casi', ['🎤', 'Chạy show'], [
+    { t: 'Đêm nhạc trực tiếp không chỉnh nhạc', i: '🎶', loc: 'stage', a: 'sing', npc: ['coworker', 'cheer', 'Khán giả chờ giọng thật của bạn!'],
+      x: 'Ban tổ chức đề nghị bạn hát live hoàn toàn, không phối nền, không chỉnh giọng. Khán giả đông nghịt và truyền hình quay trực tiếp.',
+      c: [['🎤 Hát live thật, hết mình', 'health', 0.5, 'sing', 'Giọng bạn vang khắp khán phòng, khán giả đứng dậy vỗ tay. Clip live lan khắp mạng.', 'Bạn hụt hơi ở đoạn cao trào. Khán giả vẫn vỗ tay nhưng báo chí viết bạn “chưa đủ lửa”.', 'big'],
+        ['🎧 Xin hát nhép cho an toàn', null, 1, null, 'Màn trình diễn trơn tru, không ai phát hiện. Nhưng bạn biết mình đã né tránh thử thách.', '', 'safe']] },
+    { t: 'Thu âm bản hit trong một đêm', i: '🎙️', loc: 'office', a: 'sing', npc: ['boss', 'talk', 'Sáng mai phải có bản thu!'],
+      x: 'Nhà sản xuất cần bản thu hoàn chỉnh cho ca khúc mới trước khi phát hành. Phòng thu đã đặt, nhạc công đang chờ bạn vào mic.',
+      c: [['🎙️ Thu ngay, đúng nhịp từng câu', 'smarts', 0.5, 'sing', 'Chỉ vài lần thu là xong. Nhà sản xuất gật gù: “Giọng này ra nhạc hit được!”', 'Bạn lệch nhịp nhiều lần, phải thu đi thu lại đến sáng mà vẫn chưa ưng.', 'mid'],
+        ['📅 Xin dời lịch thu một tuần', null, 1, null, 'Nhà sản xuất miễn cưỡng đồng ý. Bạn có thêm thời gian luyện, nhưng đối thủ kịp ra bài trước.', '', 'safe']] },
+  ]);
+  add('nhaccong', ['🎸', 'Biểu diễn, đi diễn'], [
+    { t: 'Sân khấu hoà nhạc lớn', i: '🎼', loc: 'stage', a: 'sing', npc: ['coworker', 'clap', 'Đến lượt bạn solo!'],
+      x: 'Dàn nhạc giao cho bạn đoạn solo dài giữa buổi hoà nhạc. Cả hội trường im phăng phắc chờ nốt đầu tiên.',
+      c: [['🎼 Chơi solo đúng từng nhịp', 'smarts', 0.5, 'sing', 'Đoạn solo trọn vẹn đến từng nốt, tràng pháo tay kéo dài hơn một phút.', 'Bạn trượt nhịp giữa đoạn solo. Dàn nhạc phải đỡ cho bạn, hơi ngượng nhưng buổi diễn vẫn tiếp tục.', 'big'],
+        ['🤝 Nhường solo cho đồng nghiệp', null, 1, null, 'Đồng nghiệp chơi rất tốt. Bạn được khen biết nhường nhịn nhưng bỏ lỡ cơ hội toả sáng.', '', 'safe']] },
+    { t: 'Kiểm tra nhạc lý để lên nhạc trưởng phó', i: '📝', loc: 'office', a: 'think', npc: ['boss', 'talk', 'Trả lời cho chắc.'],
+      x: 'Nhạc trưởng bất ngờ kiểm tra nhạc lý trước cả dàn nhạc để chọn người làm trợ lý. Ai trả lời chuẩn nhất sẽ được chọn.',
+      c: [['📝 Trả lời thật nhanh, thật chuẩn', 'smarts', 0.5, 'quiz', 'Bạn trả lời gọn gàng, nhạc trưởng mỉm cười ghi tên bạn vào danh sách trợ lý.', 'Bạn nhầm vài câu cơ bản, cả dàn nhạc thì thầm bàn tán.', 'mid'],
+        ['🙈 Xung phong ngồi hàng cuối', null, 1, null, 'Không ai chú ý đến bạn. An toàn, nhưng cũng chẳng có cơ hội mới.', '', 'safe']] },
+  ]);
+  add('streamer', ['📡', 'Lên sóng'], [
+    { t: 'Phiên live đông nhất tháng', i: '📡', loc: 'bedroom', a: 'talk', npc: ['stranger', 'cheer', 'Streamer đỉnh quá!'],
+      x: 'Lượng người xem tăng vọt lên hàng chục nghìn vì một clip lan truyền. Chat chạy như thác, ai cũng chờ bạn nói gì đó thật duyên.',
+      c: [['🎙️ Dẫn dắt tự nhiên, trả lời chat', 'looks', 0.5, 'interview', 'Bạn giữ được nhịp, chat bật cười liên tục. Lượng theo dõi tăng mạnh sau buổi live.', 'Bạn lúng túng trước câu hỏi hóc búa, lượng người xem thưa dần.', 'big'],
+        ['⏸️ Chạy video cũ cho đỡ áp lực', null, 1, null, 'Buổi live trôi qua êm ả, nhưng cơ hội tăng tốc bị bỏ lỡ.', '', 'safe']] },
+    { t: 'Drama bất ngờ trên sóng', i: '🔥', loc: 'bedroom', a: 'think', npc: ['stranger', 'angry', 'Giải thích đi!'],
+      x: 'Một tài khoản lớn đăng bài chỉ trích bạn ngay trong lúc bạn đang live. Chat hỏi dồn, ai cũng chờ xem bạn phản ứng thế nào.',
+      c: [['🛡️ Bình tĩnh giải thích từng ý', 'smarts', 0.5, 'interview', 'Bạn giải thích rõ ràng, nhiều người quay sang bênh bạn. Drama dịu xuống trong ngày.', 'Bạn nói vội, bị cắt clip xuyên tạc. Lượng theo dõi giảm.', 'big'],
+        ['📴 Tắt live, im lặng vài hôm', null, 1, null, 'Bạn tắt live và ở ẩn. Drama tự nguội, không ai nhớ lâu.', '', 'safe']] },
+  ]);
+  add('congchuc', ['🏛️', 'Giải quyết công việc'], [
+    { t: 'Buổi tiếp dân căng thẳng', i: '🗂️', loc: 'office', a: 'talk', npc: ['stranger', 'angry', 'Hồ sơ của tôi nằm đó cả năm rồi!'],
+      x: 'Một người dân đến bức xúc vì hồ sơ bị chậm cả năm, nói to giữa phòng làm việc. Mọi người đều nhìn về phía bạn.',
+      c: [['🤝 Lắng nghe, giải thích rõ quy trình', 'smarts', 0.5, 'interview', 'Người dân dịu lại khi thấy bạn kiên nhẫn. Hồ sơ được xử lý trong tuần, lãnh đạo ghi nhận.', 'Bạn nói chưa trúng vấn đề, người dân bỏ về và gửi đơn phản ánh lên cấp trên.', 'mid'],
+        ['📞 Chuyển cho trưởng phòng', null, 1, null, 'Trưởng phòng ra xử lý. Bạn an toàn, nhưng không ghi thêm điểm nào.', '', 'safe']] },
+    { t: 'Kỳ thi nâng ngạch', i: '📝', loc: 'office', a: 'think', npc: ['boss', 'talk', 'Chuẩn bị kỹ nhé.'],
+      x: 'Cơ quan tổ chức thi nâng ngạch công chức. Ai đạt sẽ được nâng lương và có cơ hội lên vị trí cao hơn.',
+      c: [['📝 Làm bài thật tập trung', 'smarts', 0.5, 'quiz', 'Bạn đạt điểm cao, hồ sơ nâng ngạch được duyệt gọn gàng.', 'Bạn lỡ vài câu then chốt, hụt ngưỡng đậu một chút.', 'mid'],
+        ['⏳ Hoãn sang kỳ thi sau', null, 1, null, 'Bạn có thêm thời gian ôn tập, nhưng lộ trình thăng tiến chậm một năm.', '', 'safe']] },
+  ]);
+  add('hoasi', ['🎨', 'Sáng tác, triển lãm'], [
+    { t: 'Triển lãm cá nhân đầu tiên', i: '🖼️', loc: 'office', a: 'talk', npc: ['stranger', 'think', 'Bức này kể câu chuyện gì vậy?'],
+      x: 'Bạn mở triển lãm cá nhân tại một phòng tranh nhỏ. Khách tham quan và một nhà phê bình hỏi bạn về ý tưởng đằng sau từng bức tranh.',
+      c: [['🎤 Kể câu chuyện sau mỗi bức tranh', 'smarts', 0.5, 'interview', 'Bạn kể cuốn hút, khách nán lại rất lâu. Nhà phê bình viết bài khen ngợi.', 'Bạn nói lan man, khách tản đi. Triển lãm kết thúc lặng lẽ.', 'big'],
+        ['🤐 Để tranh tự nói, bạn đứng góc phòng', null, 1, null, 'Không áp lực, vài người ngắm kỹ rồi mua một bức nhỏ.', '', 'safe']] },
+    { t: 'Mua bộ màu hiếm', i: '🎨', loc: 'office', a: 'talk', npc: ['stranger', 'talk', 'Hàng này nhập khẩu, giá hết rồi.'],
+      x: 'Một cửa hàng có bộ màu dầu hiếm bạn mơ ước từ lâu, nhưng giá khá cao so với ngân sách.',
+      c: [['🧧 Mặc cả giá bộ màu', 'smarts', 0.5, 'haggle', 'Chủ tiệm gật đầu bớt cho bạn kha khá. Bộ màu mới giúp tranh của bạn rực rỡ hơn.', 'Chủ tiệm không nhượng bước, bạn đành trả giá gần như nguyên.', 'mid'],
+        ['🛍️ Mua giá niêm yết cho nhanh', null, 1, null, 'Bạn trả đủ giá, mua xong không phải bận tâm.', '', 'safe']] },
+  ]);
+  add('moigioi', ['🏘️', 'Chăm khách, chốt giao dịch'], [
+    { t: 'Khách đi xem nhà cuối tuần', i: '🏠', loc: 'office', a: 'talk', npc: ['stranger', 'think', 'Căn này có gì đặc biệt?'],
+      x: 'Một cặp vợ chồng trẻ đi xem căn hộ bạn đang bán. Họ hỏi dồn về pháp lý, quy hoạch, giá cả và tiện ích xung quanh.',
+      c: [['🤝 Tư vấn thật, nói rõ ưu nhược điểm', 'smarts', 0.5, 'interview', 'Họ tin tưởng bạn vì sự thẳng thắn, chốt cọc ngay trong tuần.', 'Bạn lúng túng trước vài câu hỏi pháp lý, họ đi xem căn khác.', 'mid'],
+        ['📣 Nói thật hấp dẫn, giấu bớt nhược điểm', 'looks', 0.55, 'interview', 'Họ chốt cọc ngay, nhưng sau này biết chuyện và để lại đánh giá rất xấu.', 'Họ hỏi đúng điểm yếu bạn né tránh. Bạn mất khách và mất uy tín.', 'shady']] },
+    { t: 'Đàm phán giá cho khách mua', i: '💵', loc: 'office', a: 'talk', npc: ['stranger', 'talk', 'Giá này chủ nhà không bớt đâu.'],
+      x: 'Khách của bạn ưng một căn nhà, nhưng chủ nhà đòi giá cao hơn mức thị trường. Bạn đại diện khách thương lượng.',
+      c: [['🧧 Thương lượng giá giúp khách', 'smarts', 0.5, 'haggle', 'Chủ nhà nhượng bộ, khách tiết kiệm được một khoản lớn và giới thiệu thêm bạn bè cho bạn.', 'Chủ nhà không nhúc nhích, khách chần chừ rồi bỏ cuộc.', 'big'],
+        ['✍️ Chốt đúng giá chủ nhà đưa', null, 1, null, 'Giao dịch xong nhanh, khách hơi tiếc nhưng vẫn hài lòng.', '', 'safe']] },
+    { t: 'Kiểm tra pháp lý lô đất', i: '📑', loc: 'office', a: 'think', npc: ['coworker', 'think', 'Giấy tờ này lạ lắm...'],
+      x: 'Lô đất khách muốn mua có sổ đỏ nhưng thông tin quy hoạch không rõ ràng. Bạn cần kiểm tra kỹ trước khi để khách đặt cọc.',
+      c: [['📑 Kiểm tra từng giấy tờ, hỏi cơ quan quản lý', 'smarts', 0.5, 'quiz', 'Bạn phát hiện đúng điểm rủi ro và cứu khách khỏi một vụ tranh chấp. Họ biết ơn và giới thiệu thêm khách.', 'Bạn bỏ sót một chi tiết quan trọng, khách phải mất công giải quyết về sau.', 'mid'],
+        ['🛡️ Khuyên khách thuê luật sư xem kỹ', null, 1, null, 'Luật sư kiểm tra giúp. Bạn an toàn, khách cũng yên tâm hơn.', '', 'safe']] },
+    { t: 'Đưa khách đi xem nhiều dự án', i: '🚗', loc: 'street', a: 'drive', npc: ['stranger', 'talk', 'Còn xa không anh?'],
+      x: 'Buổi chiều bạn chở khách đi xem ba dự án ở ba quận khác nhau trong giờ cao điểm. Khách đã hơi mệt.',
+      c: [['🚗 Lái xe khéo, đi đúng lộ trình', 'health', 0.5, 'drive', 'Bạn đưa khách đi suôn sẻ, họ hài lòng vì được chăm chu đáo và đặt cọc căn thứ hai.', 'Bạn kẹt xe và lạc đường, khách mất kiên nhẫn và hẹn lại hôm khác.', 'mid'],
+        ['📱 Gửi video các dự án, hẹn xem sau', null, 1, null, 'Khách xem video trước rồi chọn một dự án để đi xem trực tiếp. Gọn nhẹ nhưng ít thân thiết hơn.', '', 'safe']] },
+  ]);
+})();

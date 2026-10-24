@@ -792,6 +792,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🎭 Thêm ca làm việc có minigame cho 6 nghề còn thiếu: Ca sĩ (hát live, thu âm), Nhạc công (solo, nhạc lý), Streamer (live đông người, drama trên sóng), Công chức (tiếp dân, thi nâng ngạch), Hoạ sĩ (triển lãm, mặc cả bộ màu) và Môi giới bất động sản (xem nhà, đàm phán giá, kiểm tra pháp lý, đưa khách đi xem dự án — nghề này trước chưa có ca nào).',
       '📞 Nghề đường dây lừa đảo giờ có nút “Làm ca gọi điện” với 4 ca làm việc riêng (gọi đêm khuya, kịch bản giả cơ quan chức năng, nạn nhân là người quen, quản lý ép KPI) dùng minigame nhắn tin dụ nạn nhân; số người bị lừa / lén cứu / bị bắt quả tang ảnh hưởng đức, tiền thưởng và sức khỏe.',
       '⏸ Tạm dừng giữa ván (nút ⏸ hoặc phím P/Esc) ở: chạy nước rút, bơi, rượt đuổi, lái xe, đánh nhau, vượt ngục, bán hàng, tập ngắm, phòng thi, sàn giao dịch, cấp cứu, phỏng vấn, tỏ tình, clutch, bắt penalty.',
       '🏍️ Đua xe máy: bám đuôi xe phía trước để “hít gió” (+7% tốc độ tối đa) và các tay đua máy có 3 tính cách — liều (phanh muộn, hay dùng nitro), thận trọng, cân bằng.',
