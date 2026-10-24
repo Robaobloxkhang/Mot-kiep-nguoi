@@ -168,27 +168,36 @@
       const gap = (bolero ? 0.62 : 0.44) * (1 - (p.need || 0.5) * 0.25), dur = 26, speed = 260, hitY = 330;
       const win = 0.07 + Math.min(40, Math.max(0, (st.happy || 50) + (st.looks || 50) - 80)) / 1000; // vùng "chuẩn" rộng hơn khi vui vẻ, tự tin
       const notes = []; let t = 1.6;
-      while (t < dur) { const lane = Math.floor(Math.random() * 4); notes.push({ t, lane, hit: null }); if (Math.random() < 0.18 && t > 4) notes.push({ t, lane: (lane + 2) % 4, hit: null }); t += gap * (Math.random() < 0.25 ? 0.5 : 1); }
+      // nốt giữ (hold): ~20% nốt sau giây thứ 3 — giữ phím tới hết thanh; bấm sớm/muộn tính theo ms: Perfect <½ vùng chuẩn, Great trong vùng chuẩn, Good ngoài vùng. Bù trễ: phím [ ] chỉnh ±10ms (lưu máy).
+      let lat = 0; try { lat = +localStorage.getItem('kn_sing_lat') || 0; } catch (e) {}
+      const holding = {};
+      while (t < dur) { const lane = Math.floor(Math.random() * 4); const hold = t > 3 && Math.random() < 0.2 ? 0.5 + Math.random() * 0.4 : 0; notes.push({ t, lane, hit: null, len: hold }); if (!hold && Math.random() < 0.18 && t > 4) notes.push({ t, lane: (lane + 2) % 4, hit: null }); t += gap * (Math.random() < 0.25 ? 0.5 : 1) + (hold ? hold : 0); }
       const box = open('<div class="mini-head"><b>🎤 ' + esc(p.title || 'Thi hát') + '</b><small class="mini-hud" id="sgHud"></small></div><div class="sg-judges" id="sgJ">' + JUDGES.map((j) => '<div><span>🪑</span><small>' + esc(j[0]) + '</small></div>').join('') + '</div><canvas class="mini-cv" width="640" height="400"></canvas><div class="mini-pad sg-pad">' + ['D', 'F', 'J', 'K'].map((k, i) => '<button type="button" data-lane="' + i + '">' + k + '</button>').join('') + '</div><p class="mini-keys">⌨️ Bấm <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> (hoặc <kbd>←</kbd> <kbd>↓</kbd> <kbd>↑</kbd> <kbd>→</kbd>) đúng lúc nốt chạm vạch sáng. Hát hay thì các HLV quay ghế!</p>');
       const cv = box.querySelector('canvas'), c = cv.getContext('2d'), hud = box.querySelector('#sgHud'), jbox = box.querySelector('#sgJ').children;
       let t0 = performance.now(), score = 0, maxScore = 0, combo = 0, best = 0, flash = [0, 0, 0, 0], msg = '', msgT = 0, turned = 0, done = false;
       const lyr = LYRICS[bolero ? 'bolero' : 'tre'];
+      const clock = () => (performance.now() - t0) / 1000 - lat / 1000;
+      const release = (lane) => { const n = holding[lane]; if (!n) return; delete holding[lane]; const now = clock(); if (now < n.t + n.len - 0.12) { n.hit = Math.max(0.3, (n.hit || 0.55) * 0.5); msg = 'Nhả sớm!'; msgT = 0.5; score -= (n.hit ? 0 : 0); combo = 0; } else { msg = msg; } n.held = true; };
       const hit = (lane) => {
-        if (done) return; const now = (performance.now() - t0) / 1000; flash[lane] = 0.15;
+        if (done) return; const now = clock(); flash[lane] = 0.15;
         let bestN = null, bd = 9; notes.forEach((n) => { if (n.lane === lane && n.hit == null) { const d = Math.abs(n.t - now); if (d < bd) { bd = d; bestN = n; } } });
         if (!bestN || bd > 0.22) { combo = 0; return; }
-        if (bd < win) { bestN.hit = 1; score += 1; combo++; msg = pick(['Tuyệt vời!', 'Chuẩn!', 'Hay quá!']); }
-        else { bestN.hit = 0.55; score += 0.55; combo++; msg = 'Được!'; }
+        const ms = Math.round((now - bestN.t) * 1000), tag = (ms > 0 ? '+' : '') + ms + 'ms';
+        if (bd < win * 0.5) { bestN.hit = 1; score += 1; combo++; msg = 'PERFECT ' + tag; }
+        else if (bd < win) { bestN.hit = 0.9; score += 0.9; combo++; msg = 'Great ' + tag; }
+        else { bestN.hit = 0.55; score += 0.55; combo++; msg = 'Good ' + tag; }
+        if (bestN.len) holding[lane] = bestN;
         msgT = 0.5; best = Math.max(best, combo); if (combo && combo % 10 === 0) sfx('good');
       };
-      box.querySelectorAll('[data-lane]').forEach((b) => (b.onpointerdown = (e) => { e.preventDefault(); hit(+b.dataset.lane); }));
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return e.type === 'keyup' ? false : true; const k = e.key.toLowerCase(), lane = LANE_KEYS.findIndex((x) => x.includes(k)); if (lane < 0) return false; hit(lane); return true; });
+      box.querySelectorAll('[data-lane]').forEach((b) => { b.onpointerdown = (e) => { e.preventDefault(); hit(+b.dataset.lane); }; b.onpointerup = b.onpointerleave = () => release(+b.dataset.lane); });
+      onKeys((e) => { const k = e.key.toLowerCase(); if (e.type === 'keydown' && (k === '[' || k === ']')) { lat = Math.max(-200, Math.min(200, lat + (k === ']' ? 10 : -10))); try { localStorage.setItem('kn_sing_lat', String(lat)); } catch (e2) {} msg = 'Bù trễ ' + lat + 'ms'; msgT = 0.8; return true; } const lane = LANE_KEYS.findIndex((x) => x.includes(k)); if (lane < 0) return false; if (e.type === 'keyup') { release(lane); return true; } if (e.repeat) return true; hit(lane); return true; });
       const frame = () => {
         if (!root || done) return;
-        const now = (performance.now() - t0) / 1000;
+        const now = clock();
+        Object.keys(holding).forEach((l) => { const n = holding[l]; if (now >= n.t + n.len) { delete holding[l]; score += 0.4; } });
         notes.forEach((n) => { if (n.hit == null && now - n.t > 0.22) { n.hit = 0; combo = 0; } });
         maxScore = notes.filter((n) => n.t < now - 0.22 || n.hit != null).length;
-        const acc = maxScore ? score / maxScore : 0, prog = Math.min(1, now / dur);
+        const acc = maxScore ? Math.min(1, score / maxScore) : 0, prog = Math.min(1, now / dur);
         // HLV quay ghế khi độ chính xác đủ cao (sau khi hát được 1/3 bài)
         JUDGES.forEach((j, k) => { if (k >= turned && prog > 0.33 && acc >= j[1]) { turned = k + 1; jbox[k].classList.add('on'); jbox[k].querySelector('span').textContent = '🔄'; sfx('cheer'); msg = j[0] + ' quay ghế!'; msgT = 1.2; } });
         c.fillStyle = '#140f2a'; c.fillRect(0, 0, 640, 400);
@@ -197,11 +206,11 @@
         for (let l = 0; l < 4; l++) { c.fillStyle = 'rgba(255,255,255,' + (0.05 + flash[l] * 2) + ')'; c.fillRect(lx(l) - 34, 0, 68, 400); flash[l] = Math.max(0, flash[l] - 1 / 60); }
         c.fillStyle = '#ffd23f'; c.fillRect(130, hitY - 3, 380, 6);
         const COL = ['#ff7eb6', '#5cc8ff', '#39cf98', '#ffb347'];
-        notes.forEach((n) => { const y = hitY - (n.t - now) * speed; if (y < -20 || y > 420 || n.hit) return; c.fillStyle = COL[n.lane]; c.beginPath(); c.arc(lx(n.lane), y, 18, 0, 7); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#fff'; c.font = '700 15px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('♪', lx(n.lane), y + 1); });
+        notes.forEach((n) => { const y = hitY - (n.t - now) * speed; if (n.len && n.hit !== 0 && y - n.len * speed < 420 && y > -20 && !(n.held && now > n.t + n.len)) { c.fillStyle = (holding[n.lane] === n ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.25)'); c.fillRect(lx(n.lane) - 9, Math.min(y, hitY) - n.len * speed, 18, Math.min(n.len * speed + Math.max(0, y - hitY), n.len * speed)); } if (y < -20 || y > 420 || n.hit) return; c.fillStyle = COL[n.lane]; c.beginPath(); c.arc(lx(n.lane), y, 18, 0, 7); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#fff'; c.font = '700 15px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('♪', lx(n.lane), y + 1); });
         c.fillStyle = 'rgba(255,255,255,.9)'; c.font = '600 17px sans-serif'; c.textAlign = 'center'; c.fillText('“' + lyr[Math.min(lyr.length - 1, Math.floor(prog * lyr.length))] + '”', 320, 375);
         if (msgT > 0) { msgT -= 1 / 60; c.font = '800 30px "Baloo 2", sans-serif'; c.fillStyle = '#ffd23f'; c.fillText(msg, 320, 140); }
         c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(20, 20, 8, 340); c.fillStyle = '#ff7eb6'; c.fillRect(20, 20 + 340 * (1 - prog), 8, 340 * prog);
-        hud.textContent = 'Chính xác ' + Math.round(acc * 100) + '% · combo ' + combo + ' · ' + turned + '/4 HLV quay ghế';
+        hud.textContent = (lat ? 'trễ ' + lat + 'ms · ' : '') + 'Chính xác ' + Math.round(acc * 100) + '% · combo ' + combo + ' · ' + turned + '/4 HLV quay ghế';
         if (now > dur + 1) {
           done = true; const total = notes.length, fin = score / total;
           const sc = Math.min(1, fin * 0.8 + turned * 0.06);
@@ -220,7 +229,7 @@
     if (KN.Mini.onAbort) KN.Mini.onAbort.push(close);
     KN.Mini.register('millionaire', wrap(millionaire), '💰 Ai là triệu phú', '15 câu hỏi khó dần, mỗi câu 30 giây. Có 3 quyền trợ giúp: 50:50, hỏi ý kiến khán giả, gọi điện cho người thân. Câu 5 và câu 10 là mốc an toàn. Có thể dừng cuộc chơi bất cứ lúc nào để mang tiền về.',
       (p) => 'Trí tuệ ' + Math.round(p.ctx.stats.smarts) + ': ' + (p.ctx.stats.smarts >= 80 ? 'được 45 giây mỗi câu, người thân gọi điện đáng tin hơn' : 'mỗi câu 30 giây'));
-    KN.Mini.register('sing', wrap(sing), '🎤 Thi hát', 'Nốt nhạc rơi xuống 4 làn. Bấm D F J K (hoặc ← ↓ ↑ →) đúng lúc nốt chạm vạch vàng. Hát càng chuẩn càng nhiều HLV quay ghế.',
+    KN.Mini.register('sing', wrap(sing), '🎤 Thi hát', 'Nốt nhạc rơi xuống 4 làn. Bấm D F J K (hoặc ← ↓ ↑ →) đúng lúc nốt chạm vạch vàng (hiện Perfect/Great/Good kèm ms sớm–muộn). Nốt có đuôi dài thì GIỮ phím tới hết. Nếu thấy lệch nhịp, bấm [ hoặc ] để bù trễ ±10ms. Hát càng chuẩn càng nhiều HLV quay ghế.',
       (p) => 'Hạnh phúc + ngoại hình (tự tin trên sân khấu): vùng bấm chuẩn ' + ((p.ctx.stats.happy + p.ctx.stats.looks) >= 130 ? 'rộng' : 'vừa'));
   }
   boot();

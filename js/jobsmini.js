@@ -291,45 +291,58 @@
     ['Nếu tôi không đầu tư, bạn sẽ làm gì?', [['Vẫn làm tiếp bằng tiền của mình, chậm hơn nhưng chắc', 3], ['"Chắc em nghỉ, về quê nuôi cá"', 0], ['Tìm quỹ đầu tư khác, em đang nói chuyện với 2 quỹ', 2]]],
     ['Bạn hiểu gì về dòng tiền của chính công ty mình?', [['Nêu được chi phí cố định, điểm hoà vốn và số tháng còn trụ được', 3], ['"Kế toán lo hết, em lo tầm nhìn"', 0], ['Nắm sơ sơ, đang thuê người làm báo cáo chuẩn', 1]]],
   ];
+  // Gọi vốn Shark Tank — chọn số vốn xin + % cổ phần (định giá), 3 câu hỏi làm đổi "độ quan tâm" của từng shark, rồi nhận đề nghị riêng của mỗi shark / mặc cả / từ chối.
+  // Độ khó: định giá hợp lý V0 = 2500 + trí tuệ×25 (triệu) ±15%. Định giá cao hơn V0 → shark kém quan tâm. Kết quả lưu vào KN.Mini.lastOut.deal để sự kiện sau dùng.
+  const PT_CFG = { v0: 2500, v0Smart: 25, askMin: 200, askMax: 2000, eqMin: 5, eqMax: 40 };
+  function pitchInterest(rv, base, aff) { return clamp(base - Math.max(0, rv - 1) * 0.7 + Math.min(0, rv - 1) * 0.1 + aff, 0, 1.2); } // thuần túy
   function pitch(p) {
     return new Promise((res) => {
-      const s = st(p), qs = shuffle(PQ.slice()).slice(0, 3), sharks = shuffle(SHARKS.slice());
-      let qi = 0, pts = (s.smarts - 50) / 25 + (s.looks - 50) / 40, done = false;
-      const box = open('🦈 Shark Tank: gọi vốn', '<div class="pt" id="ptBox"></div>', 'Chọn câu trả lời (phím <kbd>1</kbd>–<kbd>3</kbd>). Trả lời thông minh, minh bạch thì các shark mới muốn đầu tư.');
+      const s = st(p), qs = shuffle(PQ.slice()).slice(0, 3), sharks = shuffle(SHARKS.slice()).map((n) => ({ n, aff: (Math.random() - 0.5) * 0.3, like: 0.4 + (s.smarts - 50) / 200 + (s.looks - 50) / 400, bias: pick([0, 1, 2]) }));
+      const V0 = (PT_CFG.v0 + s.smarts * PT_CFG.v0Smart) * (0.85 + Math.random() * 0.3);
+      let qi = 0, ask = 800, eq = 20, done = false, rv = 1;
+      const box = open('🦈 Shark Tank: gọi vốn', '<div class="pt" id="ptBox"></div>', 'Bước 1: chọn số vốn muốn xin và % cổ phần nhượng. Bước 2: trả lời 3 câu hỏi (phím <kbd>1</kbd>–<kbd>3</kbd>). Bước 3: chọn đề nghị của shark, mặc cả hoặc từ chối.');
       const area = box.querySelector('#ptBox');
+      const meters = () => '<div class="pt-meters">' + sharks.map((x) => '<div><small>🦈 ' + esc(x.n.replace('Shark ', '')) + '</small><div class="mini-bar"><i style="width:' + Math.round(clamp(x.like, 0, 1) * 100) + '%;background:' + (x.like > 0.6 ? '#45c486' : x.like > 0.35 ? '#ffb547' : '#ef6a62') + '"></i></div></div>').join('') + '</div>';
+      const setup = () => {
+        const val = Math.round(ask / eq * 100);
+        area.innerHTML = '<div class="pt-q">Bạn bước vào phòng quay. Hãy chọn thương vụ:</div><p>Xin vốn: <b id="ptA">' + ask + ' triệu</b></p><input type="range" class="hg-range" id="ptAr" min="' + PT_CFG.askMin + '" max="' + PT_CFG.askMax + '" step="100" value="' + ask + '"><p>Nhượng: <b id="ptE">' + eq + '%</b></p><input type="range" class="hg-range" id="ptEr" min="' + PT_CFG.eqMin + '" max="' + PT_CFG.eqMax + '" step="1" value="' + eq + '"><p class="mini-tip" id="ptV">Định giá công ty: <b>' + val + ' triệu</b></p><div class="mini-btns"><button type="button" class="btn btn-primary" data-go>🎤 Bắt đầu pitch</button></div>';
+        const upd = () => { ask = +area.querySelector('#ptAr').value; eq = +area.querySelector('#ptEr').value; area.querySelector('#ptA').textContent = ask + ' triệu'; area.querySelector('#ptE').textContent = eq + '%'; const v = Math.round(ask / eq * 100); area.querySelector('#ptV').innerHTML = 'Định giá công ty: <b>' + v + ' triệu</b>' + (s.smarts >= 60 ? ' · ' + (v > V0 * 1.25 ? '😬 hơi cao so với doanh thu' : v < V0 * 0.8 ? '🙂 khá mềm, dễ được quan tâm' : '👍 hợp lý') : ''); };
+        area.querySelector('#ptAr').oninput = upd; area.querySelector('#ptEr').oninput = upd; upd();
+        area.querySelector('[data-go]').onclick = () => { rv = (ask / eq * 100) / V0; sharks.forEach((x) => { x.like = pitchInterest(rv, x.like, x.aff); }); sfx('click'); showQ(); };
+        hud('Chọn thương vụ');
+      };
       const showQ = () => {
-        const [q, opts] = qs[qi], ord = shuffle(opts.map((o, i) => i));
-        area.innerHTML = '<div class="pt-shark">🦈 <b>' + sharks[qi % 4] + '</b> hỏi:</div><div class="pt-q">' + esc(q) + '</div><div class="pt-opts">' + ord.map((k, n) => '<button type="button" data-o="' + k + '"><b>' + (n + 1) + '</b> ' + esc(opts[k][0]) + '</button>').join('') + '</div>';
+        const [q, opts] = qs[qi], ord = shuffle(opts.map((o, i) => i)), sh = sharks[qi % 4];
+        area.innerHTML = meters() + '<div class="pt-shark">🦈 <b>' + esc(sh.n) + '</b> hỏi:</div><div class="pt-q">' + esc(q) + '</div><div class="pt-opts">' + ord.map((k, n) => '<button type="button" data-o="' + k + '"><b>' + (n + 1) + '</b> ' + esc(opts[k][0]) + '</button>').join('') + '</div>';
         hud('Câu hỏi ' + (qi + 1) + '/3');
         area.querySelectorAll('[data-o]').forEach((b) => (b.onclick = () => answer(+b.dataset.o)));
         area.dataset.ord = ord.join(',');
       };
       const answer = (k) => {
-        if (done) return; const sc = qs[qi][1][k][1]; pts += sc; sfx(sc >= 3 ? 'good' : sc ? 'click' : 'bad'); qi++;
-        if (qi < 3) showQ(); else offer();
+        if (done) return; const sc = qs[qi][1][k][1]; sfx(sc >= 3 ? 'good' : sc ? 'click' : 'bad');
+        sharks.forEach((x, i) => { x.like = clamp(x.like + (sc - 1.5) * 0.1 + (i === qi % 4 ? (sc - 1.5) * 0.06 : 0) + (x.bias === qi ? 0.04 : 0), 0, 1.2); });
+        qi++; if (qi < 3) showQ(); else offers();
       };
-      onKeys((e) => { if (e.type !== 'keydown' || done || qi >= 3) return false; const n = +e.key; if (!(n >= 1 && n <= 3)) return false; const ord = (area.dataset.ord || '').split(',').map(Number); if (ord[n - 1] != null) answer(ord[n - 1]); return true; });
-      const offer = () => {
-        const interest = clamp(pts / 9, 0, 1.2), keen = sharks.filter((x, i) => interest > 0.3 + i * 0.18);
-        if (!keen.length) { done = true; area.innerHTML = '<div class="pt-q">Cả 4 shark lần lượt nói: "Tôi xin phép không đầu tư." 😔</div>'; sfx('bad'); setTimeout(() => res({ score: 0.1, text: 'Không shark nào xuống tiền. Bạn ra về với bài học quý giá.' }), 1600); return; }
-        let eq = Math.round(clamp(45 - interest * 25, 15, 45) / 5) * 5;
+      onKeys((e) => { if (e.type !== 'keydown' || done || qi >= 3 || !area.dataset.ord) return false; const n = +e.key; if (!(n >= 1 && n <= 3)) return false; const ord = area.dataset.ord.split(',').map(Number); if (ord[n - 1] != null) answer(ord[n - 1]); return true; });
+      const finish = (score, text, deal) => { done = true; if (deal && KN.Mini) KN.Mini.lastOut = { deal }; sfx(score >= 0.5 ? 'cheer' : 'bad'); setTimeout(() => res({ score, text }), 900); };
+      const offers = () => {
+        let list = sharks.filter((x) => x.like > 0.5).map((x) => ({ n: x.n, like: x.like, eq: clamp(Math.round(eq * (1.9 - Math.min(1.3, x.like)) / 5) * 5, 5, 60), amt: ask })).sort((a, b) => a.eq - b.eq);
+        if (!list.length) { done = true; area.innerHTML = meters() + '<div class="pt-q">Cả 4 shark lần lượt nói: "Tôi xin phép không đầu tư." 😔</div>'; sfx('bad'); setTimeout(() => res({ score: 0.1, text: 'Không shark nào xuống tiền' + (rv > 1.3 ? ' (định giá ' + Math.round(ask / eq * 100) + ' triệu hơi cao).' : '.') + ' Bạn ra về với bài học quý giá.' }), 1600); return; }
         const draw = (note) => {
-          area.innerHTML = '<div class="pt-q">' + keen.map((x) => '🦈 ' + esc(x)).join(', ') + ' muốn đầu tư!</div><p class="pt-deal">Đề nghị tốt nhất: góp vốn đổi lấy <b>' + eq + '%</b> cổ phần.' + (note ? '<br><small>' + esc(note) + '</small>' : '') + '</p><div class="pt-opts"><button type="button" data-d="ok">🤝 Đồng ý</button><button type="button" data-d="ct">💬 Mặc cả xuống ' + Math.max(10, eq - 10) + '%</button><button type="button" data-d="no">🚶 Từ chối</button></div>';
-          area.querySelectorAll('[data-d]').forEach((b) => (b.onclick = () => decide(b.dataset.d)));
+          area.innerHTML = meters() + '<div class="pt-q">Các shark ra đề nghị cho ' + ask + ' triệu:</div><div class="pt-opts">' + list.map((o, i) => '<button type="button" data-t="' + i + '">🦈 <b>' + esc(o.n) + '</b>: ' + o.eq + '% cổ phần' + (o.counter ? ' (mặc cả ' + o.counter + ' lần)' : '') + '</button>').join('') + '</div>' + (note ? '<p class="mini-tip">' + esc(note) + '</p>' : '') + '<div class="mini-btns"><button type="button" class="btn btn-ghost" data-d="no">✋ Từ chối tất cả</button></div><p class="mini-keys">Bấm một đề nghị để chấp nhận · giữ <kbd>Shift</kbd> + bấm để mặc cả giảm % (có thể bị rút đề nghị).</p>';
+          area.querySelectorAll('[data-t]').forEach((b) => (b.onclick = (ev) => pickOffer(+b.dataset.t, ev.shiftKey)));
+          area.querySelector('[data-d="no"]').onclick = () => finish(0.3, 'Bạn từ chối mọi đề nghị, tự tin đi tiếp một mình.');
         };
-        const finish = (score, text) => { done = true; sfx(score >= 0.5 ? 'cheer' : 'bad'); setTimeout(() => res({ score, text }), 900); };
-        let tries = 0;
-        const decide = (d) => {
-          if (d === 'ok') return finish(clamp(0.5 + (45 - eq) / 60 + keen.length * 0.04, 0.5, 1), 'Bạn bắt tay ' + keen[0] + ': nhận vốn đổi lấy ' + eq + '% cổ phần.');
-          if (d === 'no') return finish(0.3, 'Bạn từ chối mọi đề nghị, tự tin đi tiếp một mình.');
-          tries++;
-          if (Math.random() < clamp(interest - 0.15 - tries * 0.12, 0.05, 0.85)) { eq = Math.max(10, eq - 10); draw(keen[0] + ' gật đầu: "Được, tôi chịu ' + eq + '%."'); }
-          else if (Math.random() < 0.5 || keen.length < 2) { finish(0.2, keen[0] + ' phật ý vì bị mặc cả, rút lại đề nghị. Bạn ra về tay trắng.'); }
-          else { keen.shift(); draw('Shark kia rút lui, nhưng ' + keen[0] + ' vẫn giữ đề nghị.'); }
+        const pickOffer = (i, bargain) => {
+          const o = list[i]; if (!bargain) return finish(clamp(0.5 + (40 - o.eq) / 70 + (o.like - 0.5) * 0.2, 0.5, 1), 'Bạn bắt tay ' + o.n + ': ' + ask + ' triệu đổi lấy ' + o.eq + '% cổ phần (định giá ' + Math.round(ask / o.eq * 100) + ' triệu).', { shark: o.n, equity: o.eq, amount: ask });
+          o.counter = (o.counter || 0) + 1;
+          if (Math.random() < clamp(o.like - 0.3 - o.counter * 0.15, 0.05, 0.8)) { o.eq = Math.max(5, o.eq - 5); draw(o.n + ' gật đầu: "Được, tôi chịu ' + o.eq + '%."'); }
+          else if (Math.random() < 0.5 || list.length < 2) { list.splice(i, 1); if (!list.length) return finish(0.2, o.n + ' phật ý vì bị mặc cả, rút đề nghị. Bạn ra về tay trắng.'); draw(o.n + ' rút đề nghị vì bị ép giá!'); }
+          else draw(o.n + ' giữ nguyên ' + o.eq + '%, không nhượng thêm.');
         };
         draw('');
       };
-      showQ();
+      setup();
     });
   }
 
@@ -340,7 +353,7 @@
     R('surgery', surgery, '🔪 Phẫu thuật', 'Bước 1: giữ và kéo dao mổ dọc đường nét đứt từ chấm xanh tới chấm đỏ. Bước 2: bấm từng mũi khâu khi vòng vàng thu nhỏ vừa khít vòng trắng. Nhịp tim bệnh nhân tụt dần, đừng chậm quá!', (p) => 'Trí tuệ ' + Math.round(st(p).smarts) + ': sai số cho phép ' + (st(p).smarts >= 75 ? 'rộng, tay vững' : 'hẹp'));
     R('detective', detective, '🕵️ Phá án', 'Có 4 nghi phạm. Mỗi lượt điều tra cho một manh mối (dáng người, màu áo, phương tiện, chứng cứ ngoại phạm). Gạch tên người không khớp và chỉ đúng thủ phạm. Bắt nhầm là thất bại!', (p) => 'Trí tuệ ' + Math.round(st(p).smarts) + ': ' + (st(p).smarts >= 75 ? '4 lượt điều tra' : '3 lượt điều tra'));
     R('fishing', fishing, '🎣 Câu cá', 'Quăng câu (vạch xa = cá to), chờ phao chìm thì giật ngay, rồi giữ Space để kéo — thả ra khi thanh độ căng đỏ kẻo đứt dây.', (p) => 'Sức khỏe ' + Math.round(st(p).health) + ': phản xạ giật cần ' + (st(p).health >= 70 ? 'nhanh' : 'vừa'));
-    R('pitch', pitch, '🦈 Gọi vốn Shark Tank', 'Trả lời 3 câu hỏi của các shark. Câu trả lời minh bạch, có số liệu thì được đánh giá cao. Sau đó chọn đồng ý, mặc cả hay từ chối đề nghị.', (p) => 'Trí tuệ và ngoại hình giúp bạn thuyết phục hơn');
+    R('pitch', pitch, '🦈 Gọi vốn Shark Tank', 'Chọn số vốn xin và % cổ phần (định giá càng cao shark càng khó tính), trả lời 3 câu hỏi để tăng độ quan tâm của từng shark, rồi chọn đề nghị tốt nhất, mặc cả (Shift + bấm) hoặc từ chối.', (p) => 'Trí tuệ và ngoại hình giúp bạn thuyết phục hơn');
   }
   KN.JobMini = { ride, surgery, detective, fishing, pitch };
 })();

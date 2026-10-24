@@ -1182,12 +1182,16 @@
     return new Promise((res) => {
       const st = p.ctx.stats, DUR = 25, sig = 0.007 + p.need * 0.008, FEE = 0.002;
       const { box, c, hud } = canvasGame('📈 Sàn giao dịch', '<div class="st-panel"><div><small>Tiền mặt</small><b id="stC">100</b></div><div><small>Cổ phiếu</small><b id="stS">0</b></div><div><small>Tổng tài sản</small><b id="stT">100</b></div><div><small>Lãi / lỗ</small><b id="stP">0%</b></div></div><div class="st-news" id="stN"><small>Bản tin</small><span>Chưa có tin mới. Theo dõi bản tin để đoán xu hướng.</span></div><div class="mini-pad st-pad"><button type="button" data-b="b25">Mua 25% <kbd>1</kbd></button><button type="button" data-b="b50">Mua 50% <kbd>2</kbd></button><button type="button" data-b="b100">Mua hết <kbd>3</kbd></button><button type="button" data-b="s50">Bán 50% <kbd>4</kbd></button><button type="button" data-b="s100">Bán hết <kbd>5</kbd></button></div>', 'Phím <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> mua 25% / 50% / hết · <kbd>4</kbd> <kbd>5</kbd> bán 50% / hết (hoặc <kbd>↑</kbd> mua hết, <kbd>↓</kbd> bán hết). Mỗi lệnh mất phí 0,2%, đừng lướt quá tay. Hết giờ tự bán hết, tính lãi lỗ.');
+      // Lệnh điều kiện: 🛡️ cắt lỗ −3% / 🎯 chốt lời +4% so với giá vốn trung bình (bật/tắt, tự khớp khi chạm). Phí 0.2%/lệnh. Cuối phiên: bài học rủi ro.
+      const OR = { sl: 0.03, tp: 0.04 }; let entry = 0, slOn = false, tpOn = false, fees = 0, auto = 0, orderMsg = '', orderT = 0;
       let t = -1.5, price = 100, cash = 100, sh = 0, hist = [100], mu = 0, regT = 0, acc = 0, marks = [], done = false, trendHint = 0, newsT = rand(3, 5), pending = null, boost = 0, boostT = 0, lastNews = null;
       const N = () => { let u = 0; while (!u) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
       const val = () => cash + sh * price, $ = (id) => box.querySelector('#' + id);
-      const buy = (f) => { if (done || t < 0 || cash <= 0.5) return; const amt = cash * f; sh += amt * (1 - FEE) / price; cash -= amt; marks.push({ i: hist.length - 1, b: 1 }); sfx('coin'); };
-      const sell = (f) => { if (done || t < 0 || sh <= 0) return; const q = sh * f; cash += q * price * (1 - FEE); sh -= q; if (sh * price < 0.5) { cash += sh * price; sh = 0; } marks.push({ i: hist.length - 1, b: 0 }); sfx('click'); };
+      const buy = (f) => { if (done || t < 0 || cash <= 0.5) return; const amt = cash * f; fees += amt * FEE; const nsh = amt * (1 - FEE) / price; entry = (entry * sh + price * nsh) / Math.max(1e-9, sh + nsh); sh += nsh; cash -= amt; marks.push({ i: hist.length - 1, b: 1 }); sfx('coin'); };
+      const sell = (f) => { if (done || t < 0 || sh <= 0) return; const q = sh * f; fees += q * price * FEE; cash += q * price * (1 - FEE); sh -= q; if (sh * price < 0.5) { cash += sh * price; sh = 0; } marks.push({ i: hist.length - 1, b: 0 }); sfx('click'); };
       const act = { b25: () => buy(0.25), b50: () => buy(0.5), b100: () => buy(1), s50: () => sell(0.5), s100: () => sell(1) };
+      const ord = document.createElement('div'); ord.className = 'mini-btns'; ord.innerHTML = '<button type="button" class="btn btn-soft" data-o="sl">🛡️ Cắt lỗ −3%: TẮT</button><button type="button" class="btn btn-soft" data-o="tp">🎯 Chốt lời +4%: TẮT</button>'; const padEl = box.querySelector('.st-panel') || box.querySelector('.mini-pad'); if (padEl) padEl.insertAdjacentElement('afterend', ord); else box.appendChild(ord);
+      ord.querySelectorAll('[data-o]').forEach((b) => (b.onclick = () => { if (b.dataset.o === 'sl') { slOn = !slOn; b.textContent = '🛡️ Cắt lỗ −3%: ' + (slOn ? 'BẬT' : 'TẮT'); } else { tpOn = !tpOn; b.textContent = '🎯 Chốt lời +4%: ' + (tpOn ? 'BẬT' : 'TẮT'); } b.classList.toggle('btn-primary', b.dataset.o === 'sl' ? slOn : tpOn); sfx('click'); }));
       padBind(box, '[data-b]', (b) => act[b.dataset.b]());
       onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; const m = { 1: 'b25', 2: 'b50', 3: 'b100', 4: 's50', 5: 's100', ArrowUp: 'b100', b: 'b100', B: 'b100', ArrowDown: 's100', s: 's100', S: 's100' }[k]; if (!m) return false; act[m](); return true; });
       loop((dt) => {
@@ -1199,11 +1203,13 @@
           if (newsT <= 0 && !pending && t < DUR - 5) { newsT = rand(5.5, 8); const [txt, dir, real] = pick(NEWS), truth = real ? true : rnd() < 0.55; pending = { txt, dir, real, truth, at: 1.6 }; lastNews = pending; const hintTxt = real ? '' : st.smarts >= 70 ? (truth ? ' · nguồn có vẻ đáng tin' : ' · nguồn khá mơ hồ') : ''; $('stN').innerHTML = '<small>Bản tin</small><span class="' + (dir > 0 ? 'up' : 'dn') + '">' + txt + hintTxt + '</span>'; sfx('notify'); }
           if (pending) { pending.at -= dt; if (pending.at <= 0) { const sgn = pending.truth ? pending.dir : -pending.dir; boost = sgn * 0.012; boostT = 3; pending = null; } }
           if (boostT > 0) boostT -= dt; else boost = 0;
-          while (acc >= 0.1) { acc -= 0.1; price = Math.max(5, price * Math.exp(mu + boost + sig * N())); hist.push(price); }
+          while (acc >= 0.1) { acc -= 0.1; price = Math.max(5, price * Math.exp(mu + boost + sig * N())); hist.push(price);
+            if (sh > 0 && entry) { if (slOn && price <= entry * (1 - OR.sl)) { sell(1); auto++; orderMsg = '🛡️ Lệnh cắt lỗ đã khớp'; orderT = 1.6; entry = 0; } else if (tpOn && price >= entry * (1 + OR.tp)) { sell(1); auto++; orderMsg = '🎯 Lệnh chốt lời đã khớp'; orderT = 1.6; entry = 0; } } }
+          orderT = Math.max(0, orderT - dt);
           if (t >= DUR) {
             done = true; if (sh > 0) { cash += sh * price * (1 - FEE); sh = 0; }
-            const r = val() / 100 - 1;
-            setTimeout(() => res({ score: clamp(0.5 + r * 2.5, 0, 1), text: 'Tài khoản ' + (r >= 0 ? 'lãi ' : 'lỗ ') + Math.abs(r * 100).toFixed(1) + '% (giá cổ phiếu cả phiên ' + (price >= 100 ? 'tăng ' : 'giảm ') + Math.abs(price - 100).toFixed(1) + '%).' }), 700);
+            const r = val() / 100 - 1, lesson = r < 0 && !slOn && !auto ? ' 💡 Bài học: đặt lệnh cắt lỗ để giới hạn thua lỗ, đừng “găm” hy vọng.' : r >= 0 ? ' 💡 Lãi chỉ thật khi bạn chốt; luôn tính phí giao dịch.' : ' 💡 Thua lỗ là bình thường — điều quan trọng là kiểm soát mức lỗ mỗi lệnh.';
+            setTimeout(() => res({ score: clamp(0.5 + r * 2.5, 0, 1), text: 'Tài khoản ' + (r >= 0 ? 'lãi ' : 'lỗ ') + Math.abs(r * 100).toFixed(1) + '% (trước phí ' + (((val() + fees) / 100 - 1) * 100).toFixed(1) + '%, phí ' + fees.toFixed(2) + '; giá cả phiên ' + (price >= 100 ? 'tăng ' : 'giảm ') + Math.abs(price - 100).toFixed(1) + '%' + (auto ? '; ' + auto + ' lệnh điều kiện khớp' : '') + ').' + lesson }), 700);
           }
         }
         c.fillStyle = '#0f1424'; c.fillRect(0, 0, 640, 400);
@@ -1212,7 +1218,10 @@
         c.strokeStyle = 'rgba(255,255,255,.07)'; c.lineWidth = 1; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(20, 60 + i * 60); c.lineTo(620, 60 + i * 60); c.stroke(); }
         c.strokeStyle = 'rgba(255,255,255,.25)'; c.setLineDash([6, 6]); c.beginPath(); c.moveTo(20, Y(100)); c.lineTo(620, Y(100)); c.stroke(); c.setLineDash([]);
         if (st.smarts >= 60 && vis.length > 20) { c.strokeStyle = '#ffb347'; c.lineWidth = 2; c.beginPath(); for (let i = 20; i < hist.length; i++) { if (i < off) continue; const m = hist.slice(i - 20, i).reduce((a, b) => a + b, 0) / 20; i === Math.max(20, off) ? c.moveTo(X(i), Y(m)) : c.lineTo(X(i), Y(m)); } c.stroke(); }
-        c.strokeStyle = price >= (vis[0] || 100) ? '#39cf98' : '#ff5c5c'; c.lineWidth = 2.5; c.beginPath(); vis.forEach((v, i) => (i ? c.lineTo(X(i + off), Y(v)) : c.moveTo(X(i + off), Y(v)))); c.stroke();
+        // nến: gom 6 tick (0.6s) / nến
+        for (let g = 0; g < vis.length; g += 6) { const seg = vis.slice(g, g + 6), o = seg[0], cl = seg[seg.length - 1], h = Math.max(...seg), l = Math.min(...seg), xm = X(g + off + 3), up = cl >= o; c.strokeStyle = c.fillStyle = up ? '#39cf98' : '#ff5c5c'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(xm, Y(h)); c.lineTo(xm, Y(l)); c.stroke(); c.fillRect(xm - 5, Math.min(Y(o), Y(cl)), 10, Math.max(2, Math.abs(Y(o) - Y(cl)))); }
+        if (sh > 0 && entry) { c.strokeStyle = 'rgba(255,210,63,.6)'; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(20, Y(entry)); c.lineTo(620, Y(entry)); c.stroke(); c.setLineDash([]); }
+        if (orderT > 0) { c.fillStyle = '#ffd23f'; c.font = '800 18px sans-serif'; c.textAlign = 'center'; c.fillText(orderMsg, 320, 90); }
         marks.forEach((m) => { if (m.i < off) return; c.fillStyle = m.b ? '#39cf98' : '#ff5c5c'; c.beginPath(); c.arc(X(m.i), Y(hist[m.i]), 6, 0, 7); c.fill(); });
         c.fillStyle = '#fff'; c.font = '800 22px "Baloo 2", sans-serif'; c.textAlign = 'left'; c.fillText('Giá ' + price.toFixed(2), 24, 36);
         c.textAlign = 'right'; c.fillStyle = sh > 0 ? '#39cf98' : '#9ad1ff'; c.fillText(sh > 0 ? '📦 Đang giữ ' + Math.round(sh * price / Math.max(1, val()) * 100) + '% cổ phiếu' : '💵 Đang cầm tiền', 616, 36);

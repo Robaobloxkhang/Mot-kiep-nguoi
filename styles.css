@@ -1619,3 +1619,5 @@ details.more.risk p { margin: 0 0 8px; }
 @media (max-width: 560px) { .st-panel { grid-template-columns: repeat(2, 1fr); } .st-pad { grid-template-columns: repeat(3, 1fr); } }
 .tp-opts button.pend { background: #c88a1b; border-color: #ffd23f; box-shadow: 0 0 0 2px rgba(255,210,63,.35); }
 .am-t.on { box-shadow: 0 0 0 5px #45c486, 0 0 18px #45c486; }
+.pt-meters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; } .pt-meters small { color: var(--ink-2, #9fb0cc); font-size: 11px; }
+.pt-meters .mini-bar { height: 8px; }
