@@ -1617,3 +1617,4 @@ details.more.risk p { margin: 0 0 8px; }
 .st-news { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: #1a2233; border: 1px solid rgba(160, 180, 220, .14); display: flex; gap: 10px; align-items: baseline; min-height: 38px; } .st-news small { color: var(--lantern); font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: .08em; flex: none; } .st-news span { font-size: 14px; } .st-news .up { color: #8fe0b4; } .st-news .dn { color: #ff9a93; }
 .st-pad { display: grid; grid-template-columns: repeat(5, 1fr); } .st-pad button { font-size: 13px; padding: 10px 4px; }
 @media (max-width: 560px) { .st-panel { grid-template-columns: repeat(2, 1fr); } .st-pad { grid-template-columns: repeat(3, 1fr); } }
+.tp-opts button.pend { background: #c88a1b; border-color: #ffd23f; box-shadow: 0 0 0 2px rgba(255,210,63,.35); }

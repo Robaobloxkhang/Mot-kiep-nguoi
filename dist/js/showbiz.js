@@ -101,9 +101,13 @@
   function millionaire(p) {
     return new Promise((res) => {
       const smart = (p.ctx && p.ctx.stats && p.ctx.stats.smarts) || 60, limit = smart >= 80 ? 45 : 30;
-      const qs = [1, 2, 3].flatMap((t) => shuffle(QB[t].slice()).slice(0, 5).map((q) => ({ t, q: q[0], a: q[1], opts: shuffle([q[1]].concat(q[2])) })));
-      let i = 0, safe = 0, used = { ff: false, aud: false, call: false }, left = limit, locked = false, done = false, hidden = [];
-      const box = open('<div class="mini-head"><b>💰 Ai là triệu phú</b><small class="mini-hud" id="tpHud"></small></div><div class="tp"><div class="tp-ladder" id="tpLad"></div><div class="tp-main"><div class="tp-life"><button type="button" data-l="ff">50:50</button><button type="button" data-l="aud">👥 Khán giả</button><button type="button" data-l="call">📞 Gọi điện</button><button type="button" data-l="stop" class="stop">✋ Dừng cuộc chơi</button></div><div class="tp-help" id="tpHelp"></div><div class="tp-q" id="tpQ"></div><div class="tp-opts" id="tpO"></div><div class="tp-timer"><i id="tpT"></i></div></div></div><p class="mini-keys">⌨️ Chọn đáp án bằng <kbd>1</kbd>–<kbd>4</kbd> hoặc <kbd>A</kbd>–<kbd>D</kbd>. Sai là rơi về mốc an toàn (câu 5 hoặc 10). Muốn chắc ăn thì dừng cuộc chơi để mang tiền về.</p>');
+      // CONFIG: mốc an toàn câu 5/10; bấm giờ chỉ ở câu 1–5 (30s, trí tuệ ≥80 → 45s); từ câu 6 phải bấm lần 2 để chốt đáp án; 4 quyền trợ giúp gồm đổi câu hỏi
+      const mk = (t, q) => ({ t, q: q[0], a: q[1], opts: shuffle([q[1]].concat(q[2])) });
+      const pools = { 1: shuffle(QB[1].slice()), 2: shuffle(QB[2].slice()), 3: shuffle(QB[3].slice()) };
+      const qs = [1, 2, 3].flatMap((t) => pools[t].splice(0, 5).map((q) => mk(t, q)));
+      let pendK = -1;
+      let i = 0, safe = 0, used = { ff: false, aud: false, call: false, swap: false }, left = limit, locked = false, done = false, hidden = [];
+      const box = open('<div class="mini-head"><b>💰 Ai là triệu phú</b><small class="mini-hud" id="tpHud"></small></div><div class="tp"><div class="tp-ladder" id="tpLad"></div><div class="tp-main"><div class="tp-life"><button type="button" data-l="ff">50:50</button><button type="button" data-l="aud">👥 Khán giả</button><button type="button" data-l="call">📞 Gọi điện</button><button type="button" data-l="swap">🔄 Đổi câu</button><button type="button" data-l="stop" class="stop">✋ Dừng cuộc chơi</button></div><div class="tp-help" id="tpHelp"></div><div class="tp-q" id="tpQ"></div><div class="tp-opts" id="tpO"></div><div class="tp-timer"><i id="tpT"></i></div></div></div><p class="mini-keys">⌨️ Chọn đáp án bằng <kbd>1</kbd>–<kbd>4</kbd> hoặc <kbd>A</kbd>–<kbd>D</kbd>. Sai là rơi về mốc an toàn (câu 5 hoặc 10). Muốn chắc ăn thì dừng cuộc chơi để mang tiền về.</p>');
       const lad = box.querySelector('#tpLad');
       const end = (idx, why) => {
         if (done) return; done = true; timers.forEach((t) => clearInterval(t));
@@ -112,7 +116,7 @@
       };
       const drawLadder = () => { lad.innerHTML = PRIZES.slice(1).map((v, k) => '<div class="' + (k + 1 === i + 1 ? 'cur ' : '') + (k + 1 <= i ? 'ok ' : '') + (k + 1 === 5 || k + 1 === 10 ? 'safe' : '') + '"><span>' + (k + 1) + '</span><b>' + (v >= 1e6 ? v / 1e6 + ' tr' : v / 1e3 + 'k') + '</b></div>').reverse().join(''); };
       const show = () => {
-        const q = qs[i]; locked = false; hidden = []; left = limit;
+        const q = qs[i]; locked = false; hidden = []; left = limit; pendK = -1; const tb = box.querySelector('.tp-timer'); if (tb) tb.style.visibility = i < 5 ? '' : 'hidden';
         box.querySelector('#tpHelp').innerHTML = '';
         box.querySelector('#tpQ').innerHTML = '<small>Câu ' + (i + 1) + ' · ' + money(PRIZES[i + 1]) + '</small>' + esc(q.q);
         box.querySelector('#tpO').innerHTML = q.opts.map((o, k) => '<button type="button" data-k="' + k + '"><b>' + 'ABCD'[k] + ':</b> ' + esc(o) + '</button>').join('');
@@ -120,7 +124,9 @@
         drawLadder(); sfx('notify');
       };
       const answer = (k) => {
-        if (locked || done) return; const q = qs[i]; if (hidden.includes(k)) return; locked = true;
+        if (locked || done) return; const q = qs[i]; if (hidden.includes(k)) return;
+        if (i >= 5 && pendK !== k) { pendK = k; box.querySelectorAll('#tpO button').forEach((b, x) => b.classList.toggle('pend', x === k)); box.querySelector('#tpHelp').innerHTML = '<div class="tp-call">❓ Chốt đáp án ' + 'ABCD'[k] + '? Bấm lại để xác nhận.</div>'; sfx('click'); return; }
+        locked = true;
         const btns = box.querySelectorAll('#tpO button'); btns[k].classList.add('lock');
         setTimeout(() => {
           const ok = q.opts[k] === q.a, right = q.opts.indexOf(q.a);
@@ -133,6 +139,7 @@
         const b = e.target.closest('[data-l]'); if (!b || locked || done) return; const l = b.dataset.l, q = qs[i], right = q.opts.indexOf(q.a), help = box.querySelector('#tpHelp');
         if (l === 'stop') { locked = true; sfx('click'); end(i, 'Bạn quyết định dừng cuộc chơi ở câu ' + (i + 1) + '.'); return; }
         if (used[l]) return; used[l] = true; b.disabled = true; sfx('click');
+        if (l === 'swap') { const sp = pools[q.t].shift(); if (sp) { qs[i] = mk(q.t, sp); show(); help.innerHTML = '<div class="tp-call">🔄 Đã đổi sang câu hỏi khác cùng độ khó.</div>'; } return; }
         if (l === 'ff') { const wrong = shuffle([0, 1, 2, 3].filter((x) => x !== right)).slice(0, 2); hidden = wrong; wrong.forEach((x) => box.querySelectorAll('#tpO button')[x].classList.add('gone')); }
         else if (l === 'aud') {
           const base = q.t === 1 ? 0.75 : q.t === 2 ? 0.55 : 0.38, votes = [0, 1, 2, 3].map((x) => (hidden.includes(x) ? 0 : x === right ? base + Math.random() * 0.2 : Math.random() * 0.3)), sum = votes.reduce((a, b) => a + b, 0);
@@ -144,7 +151,7 @@
       };
       box.querySelector('#tpO').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) answer(+b.dataset.k); };
       onKeys((e) => { if (e.type !== 'keydown') return false; const m = { 1: 0, 2: 1, 3: 2, 4: 3, a: 0, b: 1, c: 2, d: 3 }[e.key.toLowerCase()]; if (m == null) return false; answer(m); return true; });
-      timers.push(setInterval(() => { if (locked || done) return; left -= 0.1; const bar = box.querySelector('#tpT'); if (bar) bar.style.width = Math.max(0, left / limit * 100) + '%'; if (left <= 0) { locked = true; sfx('bad'); end(safe, 'Hết giờ suy nghĩ!'); } }, 100));
+      timers.push(setInterval(() => { if (locked || done || i >= 5) return; left -= 0.1; const bar = box.querySelector('#tpT'); if (bar) bar.style.width = Math.max(0, left / limit * 100) + '%'; if (left <= 0) { locked = true; sfx('bad'); end(safe, 'Hết giờ suy nghĩ!'); } }, 100));
       show();
     });
   }

@@ -1402,14 +1402,16 @@
   // ------------------------------------------------------------------ 16. xì dách
   function cards(p) {
     return new Promise((res) => {
-      const st = p.ctx.stats, hint = st.smarts >= 65, dealerStand = p.need > 0.6 ? 17 : 16, HANDS = 5;
+      // CONFIG: vốn 10 chip, cược 1–3 chip/ván (không quá vốn). Xì dách ăn 1.5×, xì bàng/ngũ linh ăn 2×. Điểm = 0.5 + lãi/lỗ ÷ 20. Gợi ý xác suất quắc: dễ (need<0.4) hoặc trí tuệ ≥ 65.
+      const XD = { bank: 10, hands: 5, maxBet: 3 };
+      const st = p.ctx.stats, hint = st.smarts >= 65 || p.need < 0.4, dealerStand = p.need > 0.6 ? 17 : 16, HANDS = XD.hands;
       const box = open('<div class="mini-head"><b>🃏 Xì dách</b><small id="xdH"></small></div>' +
         '<div class="xd-row"><small>Nhà cái</small><div id="xdD" class="xd-cards"></div><b id="xdDv"></b></div>' +
         '<div class="xd-row"><small>Bạn</small><div id="xdP" class="xd-cards"></div><b id="xdPv"></b></div>' +
-        '<p class="mini-tip" id="xdM"></p><div class="mini-btns"><button type="button" class="btn btn-soft" data-x="hit">🂠 Rút <kbd>H</kbd></button><button type="button" class="btn btn-primary" data-x="stand">✋ Dằn <kbd>S</kbd></button></div>' +
+        '<p class="mini-tip" id="xdM"></p><div class="mini-btns" id="xdBet"></div><div class="mini-btns" id="xdAct"><button type="button" class="btn btn-soft" data-x="hit">🂠 Rút <kbd>H</kbd></button><button type="button" class="btn btn-primary" data-x="stand">✋ Dằn <kbd>S</kbd></button></div>' +
         '<p class="mini-keys">⌨️ <kbd>H</kbd> rút thêm bài · <kbd>S</kbd> (hoặc <kbd>Enter</kbd>) dằn. Gần 21 điểm nhất mà không quá 21 thì thắng; dưới 16 điểm phải rút thêm.</p>');
       const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-      let deck = [], hand = 0, pts = 0, wins = 0, pushes = 0, P = [], D = [], live = false;
+      let deck = [], hand = 0, pts = 0, wins = 0, pushes = 0, P = [], D = [], live = false, bank = XD.bank, bet = 1;
       const newDeck = () => { deck = []; SUITS.forEach((s) => RANKS.forEach((r) => deck.push({ r, s }))); shuffle(deck); };
       const draw = () => { if (deck.length < 12) newDeck(); return deck.pop(); };
       const valOf = (cs) => { let v = 0, a = 0; cs.forEach((x) => { if (x.r === 'A') { a++; v += 11; } else v += ['J', 'Q', 'K'].includes(x.r) ? 10 : +x.r; }); while (v > 21 && a) { v -= 10; a--; } return v; };
@@ -1420,26 +1422,34 @@
         box.querySelector('#xdDv').textContent = showD ? String(valOf(D)) : '?';
         box.querySelector('#xdP').innerHTML = P.map((x) => cardH(x)).join('');
         box.querySelector('#xdPv').textContent = String(valOf(P));
-        box.querySelector('#xdH').textContent = 'Ván ' + Math.min(hand + 1, HANDS) + '/' + HANDS + ' · thắng ' + wins + (pushes ? ' · hòa ' + pushes : '');
+        box.querySelector('#xdH').textContent = 'Ván ' + Math.min(hand + 1, HANDS) + '/' + HANDS + ' · thắng ' + wins + (pushes ? ' · hòa ' + pushes : '') + ' · 🪙 ' + bank + ' chip' + (live ? ' (cược ' + bet + ')' : '');
         const bust = deck.length ? deck.filter((x) => valOf(P.concat([x])) > 21).length / deck.length : 0;
         box.querySelector('#xdM').textContent = m || (live ? (valOf(P) < 16 ? 'Dưới 16 điểm (non) – phải rút thêm.' : '') + (hint ? ' 🧠 Rút thêm có ' + Math.round(bust * 100) + '% bị quắc.' : '') : '');
       };
-      const endHand = (r, m) => {
-        live = false; if (r === 'win') { wins++; pts += 1; sfx('coin'); } else if (r === 'push') { pushes++; pts += 0.5; sfx('click'); } else sfx('bad');
+      const endHand = (r, m, mult) => {
+        live = false; const delta = r === 'win' ? Math.round(bet * (mult || 1) * 2) / 2 : r === 'lose' ? -bet : 0; bank += delta; m = (m || '') + (delta ? ' (' + (delta > 0 ? '+' : '') + delta + ' chip)' : '');
+        if (r === 'win') { wins++; pts += 1; sfx('coin'); } else if (r === 'push') { pushes++; pts += 0.5; sfx('click'); } else sfx('bad');
         render(true, m); hand++;
-        setTimeout(() => { if (hand >= HANDS) res({ score: pts / HANDS, text: 'Thắng ' + wins + ', hòa ' + pushes + ', thua ' + (HANDS - wins - pushes) + ' trên ' + HANDS + ' ván.' }); else deal(); }, 1500);
+        setTimeout(() => { if (hand >= HANDS || bank <= 0) { const net = bank - XD.bank; if (KN.Mini) KN.Mini.lastOut = { gambling: true, net }; res({ score: clamp(0.5 + net / 20, 0, 1), text: 'Thắng ' + wins + ', hòa ' + pushes + ', thua ' + (hand - wins - pushes) + ' ván · ' + (net >= 0 ? 'lãi ' : 'lỗ ') + Math.abs(net) + ' chip. 🎲 Cờ bạc rất dễ gây nghiện — chỉ nên coi là trò vui.' }); } else askBet(); }, 1500);
       };
       const deal = () => {
         P = [draw(), draw()]; D = [draw(), draw()]; live = true;
+        box.querySelector('#xdBet').innerHTML = ''; box.querySelector('#xdAct').style.display = '';
         const sp = special(P), sd = special(D);
-        if (sp || sd) { if (sp && sd) endHand('push', 'Cả hai cùng ' + sp + '! Hòa.'); else if (sp) endHand('win', sp + '! Bạn ăn ngay.'); else endHand('lose', 'Nhà cái ' + sd + '! Bạn thua.'); return; }
+        if (sp || sd) { if (sp && sd) endHand('push', 'Cả hai cùng ' + sp + '! Hòa.'); else if (sp) endHand('win', sp + '! Bạn ăn ngay.', 1.5); else endHand('lose', 'Nhà cái ' + sd + '! Bạn thua.'); return; }
         render(false);
+      };
+      // chọn mức cược trước mỗi ván
+      const askBet = () => {
+        live = false; const bx = box.querySelector('#xdBet'); box.querySelector('#xdAct').style.display = 'none'; P = []; D = []; render(true, 'Chọn mức cược cho ván này (còn ' + bank + ' chip):');
+        bx.innerHTML = [1, 2, 3].filter((b) => b <= Math.min(XD.maxBet, bank)).map((b) => '<button type="button" class="btn btn-soft" data-bet="' + b + '">🪙 Cược ' + b + ' <kbd>' + b + '</kbd></button>').join('');
+        bx.querySelectorAll('[data-bet]').forEach((b) => { b.onclick = () => { bet = +b.dataset.bet; sfx('click'); deal(); }; });
       };
       const hit = () => {
         if (!live) return; P.push(draw()); sfx('click');
         const v = valOf(P);
         if (v > 21) endHand('lose', 'Quắc! ' + v + ' điểm.');
-        else if (P.length === 5) endHand('win', 'Ngũ linh! 5 lá không quá 21.');
+        else if (P.length === 5) endHand('win', 'Ngũ linh! 5 lá không quá 21.', 2);
         else render(false);
       };
       const stand = () => {
@@ -1453,8 +1463,8 @@
         else endHand('lose', dv + ' hơn ' + pv + '. Nhà cái ăn.');
       };
       box.querySelector('[data-x="hit"]').onclick = hit; box.querySelector('[data-x="stand"]').onclick = stand;
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (k === 'h' || k === 'H' || k === 'ArrowUp') hit(); else if (k === 's' || k === 'S' || k === 'Enter' || k === ' ') stand(); else return false; return true; });
-      newDeck(); deal();
+      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (/^[1-3]$/.test(k) && !live) { const b = box.querySelector('[data-bet="' + k + '"]'); if (b) b.click(); } else if (k === 'h' || k === 'H' || k === 'ArrowUp') hit(); else if (k === 's' || k === 'S' || k === 'Enter' || k === ' ') stand(); else return false; return true; });
+      newDeck(); askBet();
     });
   }
 

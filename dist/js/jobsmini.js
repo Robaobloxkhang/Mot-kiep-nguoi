@@ -37,18 +37,26 @@
   function ride(p) {
     return new Promise((res) => {
       const s = st(p), G = 80, X0 = 40, Y0 = 40, NX = 8, NY = 5; // giao lộ: (X0 + i*G, Y0 + j*G)
-      const box = open('🚕 Chạy xe công nghệ', '<canvas class="mini-cv" width="640" height="400"></canvas><div class="mini-pad"><button type="button" data-d="l">◀</button><button type="button" data-d="u">▲</button><button type="button" data-d="d">▼</button><button type="button" data-d="r">▶</button></div>', '<kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> hoặc WASD để chạy trên đường. Tới 🧍 đón khách rồi chở tới 🏁. Đâm xe khác là bị trừ sao!');
+      const box = open('🚕 Chạy xe công nghệ', '<canvas class="mini-cv" width="640" height="400"></canvas><div class="mini-pad"><button type="button" data-d="l">◀</button><button type="button" data-d="u">▲</button><button type="button" data-d="d">▼</button><button type="button" data-d="r">▶</button></div>', '<kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> hoặc WASD để chạy trên đường. <kbd>Space</kbd>/chạm = nhận cuốc · <kbd>X</kbd> = bỏ qua. Đón 🧍 rồi chở tới 🏁, nhớ ghé ⛽ khi sắp hết xăng. Đâm xe là bị trừ sao!');
       const cv = box.querySelector('canvas'), c = cv.getContext('2d');
-      const spd = 150 + s.health * 0.9, dur = 45;
+      // CONFIG: ca 60s; nhận/bỏ cuốc (Space/X); cao điểm 20–40s giá ×1.5 nhưng xe đông hơn; xăng 70 (cạn thì chạy rất chậm) — ghé ⛽ nạp đầy, tốn 30k; lương = cước × sao/5
+      const RD = { dur: 60, rushA: 20, rushB: 40, fuel0: 70, fuelCost: 30000, fare: 15000, target: 320000 };
+      const spd = 150 + s.health * 0.9, dur = RD.dur, GAS = [3, 2];
       const ix = (i) => X0 + i * G, iy = (j) => Y0 + j * G;
       const car = { x: ix(0), y: iy(0), dir: null, want: null, hit: 0 };
       const rndNode = (avoid) => { let n; do { n = [Math.floor(Math.random() * NX), Math.floor(Math.random() * NY)]; } while (avoid && Math.abs(ix(n[0]) - avoid.x) + Math.abs(iy(n[1]) - avoid.y) < G * 3); return n; };
-      let job = { phase: 'pick', at: rndNode(car), t: 0 }, rides = [], t = 0, crash = 0, flash = 0, done = false;
+      let rides = [], t = 0, crash = 0, flash = 0, done = false, fuel = RD.fuel0, income = 0, fuelPaid = 0, gasT = 0, offer = null, skipped = 0, toast = '', toastT = 0;
+      const rush = () => t >= RD.rushA && t <= RD.rushB;
+      const newOffer = () => { const from = rndNode(car), to = rndNode({ x: ix(from[0]), y: iy(from[1]) }), dist = Math.abs(from[0] - to[0]) + Math.abs(from[1] - to[1]); offer = { from, to, fare: Math.round((dist * RD.fare + 10000) * (rush() ? 1.5 : 1) / 1000) * 1000, ttl: 6 }; };
+      let job = { phase: 'offer', at: [0, 0], t: 0 }; newOffer();
+      cv.addEventListener('pointerdown', () => accept());
+      const accept = () => { if (!offer || done) return; job = { phase: 'pick', at: offer.from, drop: offer.to, fare: offer.fare, t: 0, c0: crash }; offer = null; sfx('click'); };
+      const skip = () => { if (!offer || done) return; skipped++; offer = null; setTimeout(() => { if (!done) newOffer(); }, 700); sfx('click'); };
       const traffic = Array.from({ length: 5 }, () => { const h = Math.random() < 0.5, n = rndNode(); return { x: ix(n[0]), y: iy(n[1]), h, v: (Math.random() < 0.5 ? -1 : 1) * (60 + Math.random() * 50), col: pick(['#5cc8ff', '#39cf98', '#c792ff', '#ffb347']) }; });
       const keys = {};
       const setDir = (d, on) => { keys[d] = on; };
       box.querySelectorAll('[data-d]').forEach((b) => { b.onpointerdown = (e) => { e.preventDefault(); setDir(b.dataset.d, true); }; b.onpointerup = b.onpointerleave = () => setDir(b.dataset.d, false); });
-      onKeys((e) => { const m = { arrowleft: 'l', a: 'l', arrowright: 'r', d: 'r', arrowup: 'u', w: 'u', arrowdown: 'd', s: 'd' }[e.key.toLowerCase()]; if (!m) return false; setDir(m, e.type === 'keydown'); return true; });
+      onKeys((e) => { if (e.type === 'keydown' && !e.repeat) { if (e.key === ' ' || e.key === 'Enter') { accept(); return true; } if (e.key === 'x' || e.key === 'X') { skip(); return true; } } const m = { arrowleft: 'l', a: 'l', arrowright: 'r', d: 'r', arrowup: 'u', w: 'u', arrowdown: 'd', s: 'd' }[e.key.toLowerCase()]; if (!m) return false; setDir(m, e.type === 'keydown'); return true; });
       loop((dt) => {
         if (done) return false;
         t += dt; flash = Math.max(0, flash - dt);
@@ -57,31 +65,37 @@
         const onCol = Math.abs((car.x - X0) % G) < 6 || Math.abs((car.x - X0) % G - G) < 6, onRow = Math.abs((car.y - Y0) % G) < 6 || Math.abs((car.y - Y0) % G - G) < 6;
         if (want) { if ((want === 'l' || want === 'r') && onRow) { car.y = Y0 + Math.round((car.y - Y0) / G) * G; car.dir = want; } else if ((want === 'u' || want === 'd') && onCol) { car.x = X0 + Math.round((car.x - X0) / G) * G; car.dir = want; } }
         else car.dir = null;
-        const v = spd * dt * (car.hit > 0 ? 0.4 : 1);
+        const v = spd * dt * (car.hit > 0 ? 0.4 : 1) * (fuel <= 0 ? 0.25 : 1); if (car.dir) fuel = Math.max(0, fuel - 2.2 * dt);
+        if (offer) { offer.ttl -= dt; if (offer.ttl <= 0) skip(); }
+        toastT = Math.max(0, toastT - dt);
+        if (Math.abs(car.x - ix(GAS[0])) < 12 && Math.abs(car.y - iy(GAS[1])) < 12 && fuel < 60) { gasT += dt; if (gasT > 1) { fuel = 100; income -= RD.fuelCost; fuelPaid += RD.fuelCost; gasT = 0; toast = '⛽ Đổ xăng −30k'; toastT = 1.4; sfx('coin'); } } else gasT = 0;
         if (car.dir === 'l') car.x -= v; if (car.dir === 'r') car.x += v; if (car.dir === 'u') car.y -= v; if (car.dir === 'd') car.y += v;
         car.x = clamp(car.x, ix(0), ix(NX - 1)); car.y = clamp(car.y, iy(0), iy(NY - 1)); car.hit = Math.max(0, car.hit - dt);
         traffic.forEach((o) => { if (o.h) { o.x += o.v * dt; if (o.x < ix(0) || o.x > ix(NX - 1)) o.v *= -1; } else { o.y += o.v * dt; if (o.y < iy(0) || o.y > iy(NY - 1)) o.v *= -1; } if (car.hit <= 0 && Math.hypot(o.x - car.x, o.y - car.y) < 20) { crash++; car.hit = 1; flash = 0.4; sfx('bad'); } });
         job.t += dt;
         const tx = ix(job.at[0]), ty = iy(job.at[1]);
-        if (Math.hypot(tx - car.x, ty - car.y) < 14) {
-          if (job.phase === 'pick') { sfx('click'); job = { phase: 'drop', at: rndNode(car), t: 0, c0: crash }; }
-          else { const stars = clamp(5 - (crash - job.c0) - (job.t > 14 ? 1 : 0) - (job.t > 22 ? 1 : 0), 1, 5); rides.push(stars); sfx(stars >= 4 ? 'good' : 'click'); job = { phase: 'pick', at: rndNode(car), t: 0 }; }
+        if (job.phase !== 'offer' && Math.hypot(tx - car.x, ty - car.y) < 14) {
+          if (job.phase === 'pick') { sfx('click'); job = { phase: 'drop', at: job.drop, fare: job.fare, t: 0, c0: job.c0 }; }
+          else { const stars = clamp(5 - (crash - job.c0) - (job.t > 14 ? 1 : 0) - (job.t > 22 ? 1 : 0), 1, 5), got = Math.round(job.fare * stars / 5 / 1000) * 1000; rides.push(stars); income += got; toast = '+' + got / 1000 + 'k · ' + stars + '⭐'; toastT = 1.4; sfx(stars >= 4 ? 'good' : 'click'); job = { phase: 'offer', at: [0, 0], t: 0 }; newOffer(); }
         }
         // vẽ
         c.fillStyle = '#6aa35a'; c.fillRect(0, 0, 640, 400);
         for (let i = 0; i < NX - 1; i++) for (let j = 0; j < NY - 1; j++) { c.fillStyle = (i + j) % 3 ? '#c9b79a' : '#b8c7d6'; c.fillRect(ix(i) + 18, iy(j) + 18, G - 36, G - 36); c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(ix(i) + 24, iy(j) + 24, 12, 12); c.fillRect(ix(i) + 44, iy(j) + 24, 12, 12); }
         c.fillStyle = '#4b4f55'; for (let i = 0; i < NX; i++) c.fillRect(ix(i) - 16, iy(0) - 16, 32, iy(NY - 1) - iy(0) + 32); for (let j = 0; j < NY; j++) c.fillRect(ix(0) - 16, iy(j) - 16, ix(NX - 1) - ix(0) + 32, 32);
         c.strokeStyle = 'rgba(255,255,255,.35)'; c.setLineDash([8, 10]); c.lineWidth = 2; for (let i = 0; i < NX; i++) { c.beginPath(); c.moveTo(ix(i), iy(0)); c.lineTo(ix(i), iy(NY - 1)); c.stroke(); } for (let j = 0; j < NY; j++) { c.beginPath(); c.moveTo(ix(0), iy(j)); c.lineTo(ix(NX - 1), iy(j)); c.stroke(); } c.setLineDash([]);
-        c.font = '26px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(job.phase === 'pick' ? '🧍' : '🏁', tx, ty - 4);
-        c.strokeStyle = '#ffd23f'; c.lineWidth = 3; c.beginPath(); c.arc(tx, ty, 16 + Math.sin(t * 6) * 3, 0, 7); c.stroke();
+        c.font = '22px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('⛽', ix(GAS[0]), iy(GAS[1]));
+        if (job.phase !== 'offer') { c.font = '26px sans-serif'; c.fillText(job.phase === 'pick' ? '🧍' : '🏁', tx, ty - 4); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; c.beginPath(); c.arc(tx, ty, 16 + Math.sin(t * 6) * 3, 0, 7); c.stroke(); }
         traffic.forEach((o) => { c.fillStyle = o.col; c.fillRect(o.x - (o.h ? 13 : 8), o.y - (o.h ? 8 : 13), o.h ? 26 : 16, o.h ? 16 : 26); });
         c.fillStyle = car.hit > 0 && Math.floor(t * 10) % 2 ? '#fff' : '#18b45b'; c.beginPath(); c.arc(car.x, car.y, 11, 0, 7); c.fill(); c.font = '16px sans-serif'; c.fillText(job.phase === 'drop' ? '🧑' : '🛵', car.x, car.y + 1);
         if (flash) big(c, 'Ầm! −1 sao', 60, '#ff6b6b', 30);
+        if (offer) { c.fillStyle = 'rgba(8,12,22,.85)'; c.fillRect(120, 150, 400, 78); c.fillStyle = '#ffd23f'; c.font = '800 18px sans-serif'; c.fillText('🔔 Cuốc mới ' + Math.round(offer.fare / 1000) + 'k' + (rush() ? ' (giờ cao điểm ×1.5)' : '') + ' · ' + (Math.abs(offer.from[0] - offer.to[0]) + Math.abs(offer.from[1] - offer.to[1])) + ' ô', 320, 176); c.fillStyle = '#fff'; c.font = '700 14px sans-serif'; c.fillText('Space = Nhận · X = Bỏ qua · ' + Math.ceil(offer.ttl) + 's', 320, 204); c.strokeStyle = '#ffd23f'; c.strokeRect(120, 150, 400 * offer.ttl / 6, 3); const ox = ix(offer.from[0]), oy = iy(offer.from[1]); c.font = '22px sans-serif'; c.fillText('🧍', ox, oy); }
+        if (toastT > 0) big(c, toast, 110, '#45c486', 26);
+        c.fillStyle = 'rgba(8,12,22,.7)'; c.fillRect(14, 12, 150, 22); c.fillStyle = '#232d40'; c.fillRect(20, 20, 138, 8); c.fillStyle = fuel > 30 ? '#45c486' : '#ef6a62'; c.fillRect(20, 20, 138 * fuel / 100, 8);
         const left = Math.max(0, dur - t);
-        hud('⏱ ' + Math.ceil(left) + 's · ' + rides.length + ' cuốc · ⭐ ' + (rides.length ? (rides.reduce((a, b) => a + b, 0) / rides.length).toFixed(1) : '–'));
+        hud('⏱ ' + Math.ceil(left) + 's · ' + Math.round(income / 1000) + 'k · ' + rides.length + ' cuốc · ⭐ ' + (rides.length ? (rides.reduce((a, b) => a + b, 0) / rides.length).toFixed(1) : '–'));
         if (left <= 0) {
           done = true; const avg = rides.length ? rides.reduce((a, b) => a + b, 0) / rides.length : 0;
-          res({ score: clamp(rides.length / 4 * (avg / 5) * 1.1, 0, 1), text: 'Bạn chạy được ' + rides.length + ' cuốc, đánh giá trung bình ' + (avg ? avg.toFixed(1) : 0) + ' sao' + (crash ? ', va quẹt ' + crash + ' lần' : '') + '.' });
+          res({ score: clamp(income / RD.target, 0, 1), text: 'Ca chạy: ' + rides.length + ' cuốc, thu nhập ròng ' + Math.round(income / 1000) + 'k (đã trừ xăng ' + Math.round(fuelPaid / 1000) + 'k), đánh giá TB ' + (avg ? avg.toFixed(1) : 0) + ' sao' + (skipped ? ', bỏ ' + skipped + ' cuốc' : '') + (crash ? ', va quẹt ' + crash + ' lần' : '') + '.' });
           return false;
         }
       });
@@ -98,21 +112,24 @@
       const P0 = [140, 230 + (Math.random() - 0.5) * 60], P1 = [260, 120 + Math.random() * 60], P2 = [380, 300 - Math.random() * 60], P3 = [500, 190 + (Math.random() - 0.5) * 60];
       const pt = (u) => { const a = 1 - u; return [a * a * a * P0[0] + 3 * a * a * u * P1[0] + 3 * a * u * u * P2[0] + u * u * u * P3[0], a * a * a * P0[1] + 3 * a * a * u * P1[1] + 3 * a * u * u * P2[1] + u * u * u * P3[1]]; };
       const path = Array.from({ length: 80 }, (_, i) => pt(i / 79));
-      let phase = 'cut', drawing = false, trail = [], prog = 0, err = 0, errN = 0, hr = 82, t = 0, cutAcc = 0, stitches = [], si = 0, stitchScore = 0, msg = '', msgT = 0, done = false;
+      let bleeds = [], phase = 'cut', drawing = false, trail = [], prog = 0, err = 0, errN = 0, hr = 82, t = 0, cutAcc = 0, stitches = [], si = 0, stitchScore = 0, msg = '', msgT = 0, done = false;
       const near = (x, y) => { let best = 1e9, bi = 0; path.forEach(([px, py], i) => { const d = Math.hypot(px - x, py - y); if (d < best) { best = d; bi = i; } }); return { d: best, i: bi }; };
       const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * 640 / r.width, (e.clientY - r.top) * 400 / r.height]; };
       cv.addEventListener('pointerdown', (e) => {
         e.preventDefault(); const [x, y] = pos(e);
         if (phase === 'cut') { if (Math.hypot(x - P0[0], y - P0[1]) < 26) { drawing = true; trail = [[x, y]]; cv.setPointerCapture(e.pointerId); } else { msg = 'Bắt đầu từ chấm xanh!'; msgT = 1; } }
+        else if (phase === 'clamp') { const b = bleeds.find((q) => q.on && Math.hypot(q.p[0] - x, q.p[1] - y) < 24); if (b) { b.on = false; sfx('click'); if (bleeds.every((q) => !q.on)) startStitch(); } else { sfx('bad'); } }
         else if (phase === 'stitch') stitchTap();
       });
-      cv.addEventListener('pointermove', (e) => { if (!drawing) return; const [x, y] = pos(e); trail.push([x, y]); const n = near(x, y); err += Math.min(60, n.d); errN++; prog = Math.max(prog, n.i / 79); if (n.d > tol * 2.2) { msg = 'Lệch quá! Cẩn thận!'; msgT = 0.6; hr -= 0.4; } });
+      cv.addEventListener('pointermove', (e) => { if (!drawing) return; let [x, y] = pos(e); const tre = (100 - s.health) / 100 * 5 + (hr < 55 ? 3 : 0); x += (Math.random() - 0.5) * tre * 2; y += (Math.random() - 0.5) * tre * 2; trail.push([x, y]); const n = near(x, y); err += Math.min(60, n.d); errN++; prog = Math.max(prog, n.i / 79); if (n.d > tol * 2.2) { msg = 'Lệch quá! Cẩn thận!'; msgT = 0.6; hr -= 0.4; } });
       cv.addEventListener('pointerup', () => { if (!drawing) return; drawing = false; if (prog > 0.95) finishCut(); else { msg = 'Chưa rạch hết đường! Làm lại từ chấm xanh.'; msgT = 1.2; } });
       const finishCut = () => {
         const avg = errN ? err / errN : 60; cutAcc = clamp(1 - (avg - tol * 0.4) / (tol * 2.2), 0, 1);
         sfx(cutAcc > 0.6 ? 'good' : 'bad'); msg = cutAcc > 0.8 ? 'Đường rạch hoàn hảo!' : cutAcc > 0.5 ? 'Đường rạch tạm ổn' : 'Đường rạch xấu quá…'; msgT = 1.2;
-        phase = 'stitch'; stitches = [0.12, 0.27, 0.42, 0.57, 0.72, 0.87].map((u) => ({ p: pt(u), r: 46, hit: null })); si = 0;
+        // bước giữa: kẹp cầm máu — các điểm chảy máu làm tụt nhịp tim nếu để lâu
+        phase = 'clamp'; bleeds = [0.2, 0.5, 0.8].map((u) => ({ p: pt(u), on: true })); msg = 'Máu chảy! Bấm vào các điểm đỏ để kẹp cầm máu'; msgT = 1.6;
       };
+      const startStitch = () => { phase = 'stitch'; stitches = [0.12, 0.27, 0.42, 0.57, 0.72, 0.87].map((u) => ({ p: pt(u), r: 46, hit: null })); si = 0; msg = 'Giờ khâu lại'; msgT = 0.8; };
       const stitchTap = () => {
         const sk = stitches[si]; if (!sk || sk.hit != null) return;
         const d = Math.abs(sk.r - 14); sk.hit = d < 4 ? 1 : d < 10 ? 0.6 : 0.15; stitchScore += sk.hit; sfx(sk.hit >= 0.6 ? 'click' : 'bad');
@@ -124,7 +141,7 @@
       loop((dt) => {
         if (done && msgT <= 0) return false;
         t += dt; msgT = Math.max(0, msgT - dt);
-        hr = Math.max(30, hr - dt * (phase === 'cut' ? 0.9 : 0.6));
+        hr = Math.max(30, hr - dt * (phase === 'cut' ? 0.9 : 0.6) - (phase === 'clamp' ? bleeds.filter((q) => q.on).length * 2.2 * dt : 0));
         if (hr <= 30 && !done) { cutAcc *= 0.5; end(); }
         if (phase === 'stitch' && stitches[si]) { const sk = stitches[si]; sk.r -= dt * (34 + (1 - s.smarts / 100) * 26); if (sk.r < 2) { sk.hit = 0; si++; sfx('bad'); msg = 'Lỡ mũi khâu!'; msgT = 0.5; if (si >= stitches.length) end(); else stitches[si].r = 46; } }
         // vẽ: da, khăn mổ, đường kẻ
@@ -134,11 +151,12 @@
         c.fillStyle = '#39cf98'; c.beginPath(); c.arc(P0[0], P0[1], 10, 0, 7); c.fill(); c.fillStyle = '#ff5c5c'; c.beginPath(); c.arc(P3[0], P3[1], 10, 0, 7); c.fill();
         if (trail.length > 1) { c.strokeStyle = '#b3122b'; c.lineWidth = 4; c.beginPath(); trail.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); }
         stitches.forEach((sk, k) => { const [x, y] = sk.p; if (sk.hit != null) { c.strokeStyle = sk.hit >= 0.6 ? '#1b3d8f' : '#777'; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 9, y - 9); c.lineTo(x + 9, y + 9); c.stroke(); } else if (k === si) { c.strokeStyle = '#ffd23f'; c.lineWidth = 3; c.beginPath(); c.arc(x, y, Math.max(2, sk.r), 0, 7); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.stroke(); } });
+        bleeds.forEach((q) => { if (q.on) { c.fillStyle = 'rgba(214,40,60,' + (0.55 + 0.35 * Math.sin(t * 8)) + ')'; c.beginPath(); c.arc(q.p[0], q.p[1], 14 + Math.sin(t * 8) * 2, 0, 7); c.fill(); } });
         // máy đo nhịp tim
         c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(470, 12, 158, 54); c.strokeStyle = hr > 60 ? '#39cf98' : '#ff5c5c'; c.lineWidth = 2; c.beginPath(); for (let k = 0; k < 140; k++) { const ph = (t * hr / 60 + k / 40) % 1; const y = 44 - (ph < 0.06 ? 18 : ph < 0.1 ? -8 : 0); k ? c.lineTo(480 + k, y) : c.moveTo(480, y); } c.stroke();
         c.fillStyle = '#fff'; c.font = '700 13px sans-serif'; c.textAlign = 'left'; c.fillText('♥ ' + Math.round(hr), 478, 24);
         if (msgT > 0) big(c, msg, 360, '#ffd23f', 26);
-        hud(phase === 'cut' ? 'Bước 1/2: rạch theo đường kẻ' : 'Bước 2/2: khâu ' + Math.min(si + 1, stitches.length) + '/' + stitches.length);
+        hud(phase === 'cut' ? 'Bước 1/3: rạch theo đường kẻ' : phase === 'clamp' ? 'Bước 2/3: kẹp cầm máu (' + bleeds.filter((q) => q.on).length + ' điểm)' : 'Bước 3/3: khâu ' + Math.min(si + 1, stitches.length) + '/' + stitches.length);
       });
     });
   }
@@ -164,6 +182,8 @@
         ['scene', '🔍 Khám hiện trường', () => 'Dấu giày để lại khá ' + (culprit.h === 'cao' ? 'to và sải bước dài: thủ phạm dáng người CAO.' : 'nhỏ, bước ngắn: thủ phạm dáng người THẤP.')],
         ['cam', '📹 Xem camera an ninh', () => 'Camera mờ, nhưng thấy rõ thủ phạm mặc áo màu ' + culprit.shirt.toUpperCase() + '.'],
         ['wit', '🗣️ Hỏi nhân chứng', () => 'Bà bán xôi đầu ngõ kể: kẻ đó rời đi bằng ' + culprit.veh.toUpperCase() + '.'],
+        // thẩm vấn: một nghi phạm vô tội khai mâu thuẫn rồi lộ ra là không khớp manh mối → tự loại
+        ['grill', '🧑‍⚖️ Thẩm vấn nghi phạm', () => { const c = sus.filter((x) => x !== culprit && !x.out); if (!c.length) return 'Ai cũng đã được thẩm vấn, không thêm gì mới.'; const x = pick(c); x.out = true; return x.n + ' khai mâu thuẫn (lúc nói ở nhà, lúc nói đi chợ) nhưng lộ ra: ' + (x.h !== culprit.h ? 'dáng ' + x.h + ' không khớp dấu giày' : x.shirt !== culprit.shirt ? 'áo ' + x.shirt + ' không khớp camera' : 'đi ' + x.veh + ' không khớp nhân chứng') + '. Loại ' + x.n + '.'; }],
         ['alibi', '🕰️ Kiểm tra bằng chứng ngoại phạm', () => { const ok = sus.filter((x) => x.alibi); ok.forEach((x) => (x.out = true)); return ok.length ? ok.map((x) => x.n).join(', ') + ' có bằng chứng ngoại phạm rõ ràng (bị loại).' : 'Không ai trong số họ có bằng chứng ngoại phạm.'; }],
       ];
       let ap = ap0, notes = [], used = {}, done = false;
@@ -300,7 +320,7 @@
   if (KN.Mini && KN.Mini.onAbort) KN.Mini.onAbort.push(close);
   if (KN.Mini && KN.Mini.register) {
     const R = (id, fn, name, how, hint) => KN.Mini.register(id, (p) => fn(p).then((r) => { close(); return r; }), name, how, hint);
-    R('ride', ride, '🚕 Chạy xe công nghệ', '45 giây chạy trên lưới phố. Tới 🧍 đón khách, chở tới 🏁. Chở nhanh, không va quẹt thì được 5 sao. Phím mũi tên hoặc WASD, điện thoại dùng nút.', (p) => 'Sức khỏe ' + Math.round(st(p).health) + ': xe chạy ' + (st(p).health >= 70 ? 'nhanh, lách tốt' : 'vừa phải'));
+    R('ride', ride, '🚕 Chạy xe công nghệ', 'Ca 60 giây. Có cuốc thì Space (hoặc chạm màn hình) để nhận, X để bỏ qua. Đón 🧍, chở tới 🏁: nhanh và không va quẹt thì 5 sao. Giờ cao điểm cước ×1.5, nhớ ghé ⛽ khi sắp hết xăng. Phím mũi tên/WASD, điện thoại dùng nút.', (p) => 'Sức khỏe ' + Math.round(st(p).health) + ': xe chạy ' + (st(p).health >= 70 ? 'nhanh, lách tốt' : 'vừa phải'));
     R('surgery', surgery, '🔪 Phẫu thuật', 'Bước 1: giữ và kéo dao mổ dọc đường nét đứt từ chấm xanh tới chấm đỏ. Bước 2: bấm từng mũi khâu khi vòng vàng thu nhỏ vừa khít vòng trắng. Nhịp tim bệnh nhân tụt dần, đừng chậm quá!', (p) => 'Trí tuệ ' + Math.round(st(p).smarts) + ': sai số cho phép ' + (st(p).smarts >= 75 ? 'rộng, tay vững' : 'hẹp'));
     R('detective', detective, '🕵️ Phá án', 'Có 4 nghi phạm. Mỗi lượt điều tra cho một manh mối (dáng người, màu áo, phương tiện, chứng cứ ngoại phạm). Gạch tên người không khớp và chỉ đúng thủ phạm. Bắt nhầm là thất bại!', (p) => 'Trí tuệ ' + Math.round(st(p).smarts) + ': ' + (st(p).smarts >= 75 ? '4 lượt điều tra' : '3 lượt điều tra'));
     R('fishing', fishing, '🎣 Câu cá', 'Quăng câu (vạch xa = cá to), chờ phao chìm thì giật ngay, rồi giữ Space để kéo — thả ra khi thanh độ căng đỏ kẻo đứt dây.', (p) => 'Sức khỏe ' + Math.round(st(p).health) + ': phản xạ giật cần ' + (st(p).health >= 70 ? 'nhanh' : 'vừa'));
