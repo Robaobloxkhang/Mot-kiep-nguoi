@@ -66,7 +66,7 @@
     // chưa qua vạch xuất phát lần nào (đứng sau vạch) thì tiến độ là số âm, không phải gần hết vòng
     b.prog = b.lap * NPT + (b.lap === 0 && !b.half && b.s > NPT / 2 ? b.s - NPT : b.s);
     b.off = off ? 1 : 0;
-    const boosting = b.boost > 0, vmax = (off ? 4.2 : 9.6) * (boosting ? 1.45 : 1) * (b.skill || 1);
+    const boosting = b.boost > 0, vmax = (off ? 4.2 : 9.6) * (boosting ? 1.45 : 1) * (b.skill || 1) * (b.slip && !off ? 1.07 : 1); // hít gió: bám đuôi xe phía trước (<110px, thẳng hướng) được +7% tốc độ tối đa
     if (inp.n && b.nitro > 0 && !boosting) { b.nitro--; b.boost = 100; if (!b.bot) sfx('whoosh'); }
     if (inp.u) b.v += boosting ? 0.32 : 0.2; else if (inp.d) b.v -= b.v > 0 ? 0.32 : 0.08; else b.v *= 0.99;
     b.v = Math.max(-2.2, Math.min(vmax, b.v)); if (b.v > vmax) b.v = vmax;
@@ -85,12 +85,22 @@
       b.hitCool = 40; break;
     }
   }
+  // hít gió: đánh dấu xe nào đang bám đuôi xe khác
+  function slipstream(list) {
+    list.forEach((b) => {
+      b.slip = 0; if (b.fin) return;
+      for (const o of list) { if (o === b || o.fin || o.v < 5) continue; const dx = o.x - b.x, dy = o.y - b.y, d = Math.hypot(dx, dy); if (d < 26 || d > 110) continue; if ((dx * Math.cos(b.a) + dy * Math.sin(b.a)) / d > 0.93) { b.slip = 1; break; } }
+    });
+  }
+  // 3 tính cách bot: liều (phanh muộn, hay dùng nitro, hơi nhanh hơn), thận trọng (phanh sớm, ít nitro), cân bằng
+  const BOT_STYLE = { aggr: { brake: 0.9, nitro: 2.5, sk: 1.02 }, safe: { brake: 0.55, nitro: 0.5, sk: 0.99 }, bal: { brake: 0.7, nitro: 1, sk: 1 } };
   function botInput(b, lvl) {
     const tgtI = Math.floor(b.s + 3 + b.v * 0.25) % NPT, nx = (tgtI + 1) % NPT, p = TK.pts[tgtI], pn = TK.pts[nx];
     const ang = Math.atan2(pn[1] - p[1], pn[0] - p[0]), off = b.lat * TK.d.w * 0.6;
     const tx = p[0] - Math.sin(ang) * off, ty = p[1] + Math.cos(ang) * off;
     let da = Math.atan2(ty - b.y, tx - b.x) - b.a; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
-    return { u: !(Math.abs(da) > 0.7 && b.v > 6), d: Math.abs(da) > 1.1 && b.v > 5, jx: Math.max(-1, Math.min(1, da * 2.2)), n: b.nitro > 0 && Math.abs(da) < 0.12 && Math.random() < 0.02 * (lvl + 1) };
+    const sty = BOT_STYLE[b.style] || BOT_STYLE.bal;
+    return { u: !(Math.abs(da) > sty.brake && b.v > 6), d: Math.abs(da) > 1.1 && b.v > 5, jx: Math.max(-1, Math.min(1, da * 2.2)), n: b.nitro > 0 && Math.abs(da) < 0.12 && Math.random() < 0.02 * (lvl + 1) * sty.nitro };
   }
   function collideBikes(list, onlyMe) {
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
@@ -197,7 +207,7 @@
   function runRace(o) {
     buildTrack(o.track);
     const bikes = o.roster.map((r, i) => newBike(i, r.name, r.bot));
-    bikes.forEach((b) => { if (b.bot) b.skill = [0.86, 0.93, 1.0][o.lvl ?? 1] * (0.96 + Math.random() * 0.06); });
+    let bn = 0; bikes.forEach((b) => { if (b.bot) { b.style = ['aggr', 'safe', 'bal'][bn++ % 3]; b.skill = [0.86, 0.93, 1.0][o.lvl ?? 1] * (0.96 + Math.random() * 0.06) * BOT_STYLE[b.style].sk; } });
     open(raceHtml(o.title)); bindControls();
     const cv = document.getElementById('rcCv'), c = cv.getContext('2d');
     document.getElementById('rcQuit').onclick = () => (o.onQuit ? o.onQuit() : menu());
@@ -209,6 +219,7 @@
       while (acc >= 1 / 60) {
         acc -= 1 / 60;
         if (now < t0) continue;
+        slipstream(bikes.filter((b, i) => !(o.remote && o.remote[i])));
         bikes.forEach((b, i) => {
           if (o.remote && o.remote[i]) { const r = o.remote[i](); if (r) Object.assign(b, r); return; } // người chơi online: vị trí do họ gửi
           stepBike(b, i === me ? myInput() : b.bot ? botInput(b, o.lvl ?? 1) : {}, now);
@@ -394,6 +405,6 @@
     document.getElementById('rcClose').onclick = () => close();
   }
   // đăng ký minigame cho các tình huống "đua xe" trong đời
-  if (KN.Mini && KN.Mini.register) KN.Mini.register('race', (p) => playCareer({ title: p.title, need: p.need }), '🏍️ Đua xe', 'Một vòng đua với 3 tay đua khác. ↑/W ga · ↓/S phanh · ←→/AD lái · Space nitro. Về nhất 100%, về nhì 67%…');
+  if (KN.Mini && KN.Mini.register) KN.Mini.register('race', (p) => playCareer({ title: p.title, need: p.need }), '🏍️ Đua xe', 'Một vòng đua với 3 tay đua khác. ↑/W ga · ↓/S phanh · ←→/AD lái · Space nitro. Bám đuôi xe trước để “hít gió” (+7% tốc độ). Các tay đua có tính cách: liều, thận trọng, cân bằng. Về nhất 100%, về nhì 67%…');
   KN.Race = { open: menu, close, playCareer, TRACKS, _sim: { buildTrack, newBike, stepBike, botInput } };
 })();
