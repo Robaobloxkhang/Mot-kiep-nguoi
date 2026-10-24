@@ -196,7 +196,7 @@
     swim: 'Quạt tay luân phiên ← → đúng lúc vòng tròn khép lại (bấm loạn sẽ mất sức). Hết ô-xy thì bấm ↑ hoặc Space để ngoi lên thở, để cạn là sặc nước!',
     chase: '← → đổi làn, ↑ nhảy qua vật thấp, ↓ trượt dưới xà ngang, Space tăng tốc. Thu hẹp khoảng cách để tóm hắn (hoặc giữ khoảng cách để thoát) trong 45 giây!',
     drive: '← → đổi làn, ↑ ga, ↓ phanh. Né ô tô/ổ gà/chó (có ⚠ báo trước), giữ đúng tốc độ biển báo, dừng khi đèn đỏ, cẩn thận lúc mưa. Va 3 lần là hỏng chuyến. Trụ hết 36 giây.',
-    fight: '← → di chuyển · J/Z đấm · K/X đá · L/C đỡ · Space né. Trên điện thoại dùng các nút bên dưới. Hạ đối thủ hoặc còn nhiều máu hơn khi hết giờ.',
+    fight: '← → di chuyển · J đấm · K đá (phá thế đỡ) · L đỡ · Space né đòn nặng có dấu ! đỏ · F bỏ chạy. Có thanh thể lực (vàng): đòn càng mạnh càng tốn; đấm 3 cú liên tiếp ra COMBO. Trên điện thoại dùng các nút bên dưới. Hạ đối thủ hoặc còn nhiều máu hơn khi hết giờ.',
     interview: '4 câu hỏi từ nhà tuyển dụng. Chọn câu trả lời khéo nhất trước khi hết giờ (phím 1–3).',
     cook: 'Khách tới gọi món. Bấm nguyên liệu đúng thứ tự công thức để làm món cho khách đang chọn. Sai là làm lại! Khách chờ lâu sẽ bỏ về. 45 giây.',
     stock: 'Giá chạy trong 25 giây. MUA khi đoán giá sắp lên, BÁN khi sắp xuống (↑/↓ hoặc nút). Cuối phiên tính lãi lỗ so với vốn ban đầu.',
@@ -890,18 +890,26 @@
       const foeLvl = clamp(p.need, 0.3, 0.85);
       const foe = mk(460, -1, (60 + foeLvl * 80) * F.hp, (0.55 + foeLvl * 0.8) * F.pow, F.col, F.skin);
       const keys = {}; let t = 0, over = false, floating = [];
-      const ATK = { punch: { t: 0.28, hit: 0.14, reach: 70, dmg: 7, cd: 0.35 }, kick: { t: 0.5, hit: 0.3, reach: 95, dmg: 13, cd: 0.7 } };
-      const start = (f, a) => { if (f.act || f.cd > 0 || f.hurt > 0) return; if (a === 'dodge') { f.dodge = 0.35; f.cd = 0.6; f.x -= f.dir * 40; return; } f.act = a; f.actT = 0; f.hitDone = false; };
-      const press = (k, down) => { if (k === 'left' || k === 'right' || k === 'block') keys[k] = down; else if (down) start(me, k); };
+      // tam giác khắc chế: ĐỠ chặn đấm (còn 20%) nhưng ĐÁ phá thế đỡ (70%); đòn NẶNG của địch báo trước bằng dấu ! đỏ → né (Space) là trượt hoàn toàn và địch hở 0.6s.
+      // thể lực: đấm −8, đá −16, giữ đỡ −10/s, hồi 14/s khi đứng yên; cạn thể lực thì đòn yếu đi một nửa. Đấm 3 cú liên tiếp (<0.9s) ra COMBO +60%.
+      const ATK = { punch: { t: 0.28, hit: 0.14, reach: 70, dmg: 7, cd: 0.35, st: 8 }, kick: { t: 0.5, hit: 0.3, reach: 95, dmg: 13, cd: 0.7, st: 16 }, heavy: { t: 0.95, hit: 0.7, reach: 105, dmg: 22, cd: 0.9, st: 0 } };
+      me.st = 100; let combo = 0, comboT = 0, fled = false;
+      const start = (f, a) => { if (f.act || f.cd > 0 || f.hurt > 0) return; if (f === me && a !== 'dodge' && me.st < ATK[a].st) return; if (f === me && a !== 'dodge') me.st -= ATK[a].st; if (a === 'dodge') { f.dodge = 0.35; f.cd = 0.6; f.x -= f.dir * 40; return; } f.act = a; f.actT = 0; f.hitDone = false; };
+      const press = (k, down) => { if (k === 'flee') { if (down) flee(); return; } if (k === 'left' || k === 'right' || k === 'block') keys[k] = down; else if (down) start(me, k); };
       box.querySelectorAll('[data-k]').forEach((b) => { b.onpointerdown = (e) => { e.preventDefault(); press(b.dataset.k, true); }; b.onpointerup = b.onpointerleave = () => press(b.dataset.k, false); });
-      const map = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', j: 'punch', J: 'punch', z: 'punch', Z: 'punch', k: 'kick', K: 'kick', x: 'kick', X: 'kick', l: 'block', L: 'block', c: 'block', C: 'block', ' ': 'dodge' };
+      const fb = document.createElement('button'); fb.type = 'button'; fb.textContent = '🏃 Chạy'; fb.dataset.k = 'flee'; const padF = box.querySelector('.mini-pad'); if (padF) padF.appendChild(fb); fb.onpointerdown = (e) => { e.preventDefault(); press('flee', true); };
+      const flee = () => { if (over || fled) return; fled = true; over = true; setTimeout(() => res({ score: 0.18, text: 'Bạn bỏ chạy khỏi cuộc ẩu đả — an toàn, nhưng mất mặt.' }), 600); };
+      const map = { f: 'flee', F: 'flee', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', j: 'punch', J: 'punch', z: 'punch', Z: 'punch', k: 'kick', K: 'kick', x: 'kick', X: 'kick', l: 'block', L: 'block', c: 'block', C: 'block', ' ': 'dodge' };
       onKeys((e) => { const k = map[e.key]; if (!k) return false; if (e.repeat && k !== 'left' && k !== 'right' && k !== 'block') return true; press(k, e.type === 'keydown'); return true; });
       const hitCheck = (a, b) => {
         if (!a.act || a.hitDone) return; const A = ATK[a.act];
         if (a.actT >= A.hit) {
           a.hitDone = true;
+          if (a.act === 'heavy' && b.dodge > 0) { a.cd = 1.2; floating.push({ x: b.x, y: 120, txt: 'NÉ!', life: 0.8, col: '#9ad1ff' }); }
           if (Math.abs(a.x - b.x) <= A.reach && b.dodge <= 0) {
-            let d = A.dmg * a.pow * rand(0.85, 1.15); if (b.block) d *= 0.2;
+            let d = A.dmg * a.pow * rand(0.85, 1.15) * (a === me && me.st < 10 ? 0.5 : 1);
+            if (a === me && a.act === 'punch') { combo = comboT > 0 ? combo + 1 : 1; comboT = 0.9; if (combo >= 3) { d *= 1.6; combo = 0; floating.push({ x: a.x, y: 100, txt: 'COMBO!', life: 0.9, col: '#ffd23f' }); sfx('good'); } }
+            if (b.block) d *= (a.act === 'punch' ? 0.2 : a.act === 'kick' ? 0.7 : 0.5);
             b.hp = Math.max(0, b.hp - d); b.hurt = b.block ? 0.08 : 0.3; b.x += a.dir * (b.block ? 6 : 22); sfx(b.block ? 'click' : 'bad');
             floating.push({ x: b.x, y: 130, txt: b.block ? 'đỡ' : '-' + Math.round(d), life: 0.8, col: b.block ? '#9ad1ff' : '#ff6b6b' });
           }
@@ -910,6 +918,7 @@
       let aiT = 0;
       loop((dt) => {
         if (!over) t += dt;
+        comboT = Math.max(0, comboT - dt); if (!over) me.st = clamp(me.st + (keys.block ? -10 : (me.act || keys.left || keys.right) ? 5 : 14) * dt, 0, 100); if (me.st <= 0) keys.block = false;
         [me, foe].forEach((f) => { f.cd = Math.max(0, f.cd - dt); f.hurt = Math.max(0, f.hurt - dt); f.dodge = Math.max(0, f.dodge - dt); if (f.act) { f.actT += dt; if (f.actT >= ATK[f.act].t) { f.cd = ATK[f.act].cd; f.act = null; } } });
         if (!over) {
           me.block = !!keys.block && !me.act;
@@ -920,7 +929,7 @@
           foe.block = false;
           if (foe.hurt <= 0 && !foe.act) {
             if (dist > 80) foe.x += (me.x > foe.x ? 1 : -1) * (90 + foeLvl * 80) * F.spd * dt;
-            else if (aiT <= 0) { aiT = (rand(0.6, 1.25) - foeLvl * 0.3) / F.rate; const r = rnd(); if (me.act && r < (0.35 + foeLvl * 0.3) * Math.min(1.6, F.guard)) foe.block = true; else start(foe, dist < 72 && r < 0.65 ? 'punch' : 'kick'); }
+            else if (aiT <= 0) { aiT = (rand(0.6, 1.25) - foeLvl * 0.3) / F.rate; const r = rnd(); if (me.act && r < (0.35 + foeLvl * 0.3) * Math.min(1.6, F.guard)) foe.block = true; else start(foe, dist < 72 && r < 0.65 ? 'punch' : rnd() < 0.2 + foeLvl * 0.2 ? 'heavy' : 'kick'); }
             else if (me.act && rnd() < foeLvl * 0.05 * F.guard) foe.block = true;
           }
           if (F.wobble) foe.x += Math.sin(t * 2.7) * 40 * dt;
@@ -943,7 +952,7 @@
           c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(x, y + 4, 30, 7, 0, 0, 7); c.fill();
           c.strokeStyle = '#2b2b2b'; c.lineWidth = 9; c.lineCap = 'round';
           c.beginPath(); c.moveTo(x - 6, y - 52); c.lineTo(x - 14, y); c.moveTo(x + 6, y - 52);
-          if (f.act === 'kick') c.lineTo(x + d * (20 + a * 60), y - 30 - a * 25); else c.lineTo(x + 14, y); c.stroke();
+          if (f.act === 'kick' || f.act === 'heavy') c.lineTo(x + d * (20 + a * 60), y - 30 - a * 25); else c.lineTo(x + 14, y); c.stroke();
           c.fillStyle = f.col; c.fillRect(x - 17, y - 112, 34, 62);
           c.strokeStyle = f.skin; c.lineWidth = 8; c.beginPath();
           let hx = x + d * 26, hy = y - 82;
@@ -952,6 +961,7 @@
           else { c.moveTo(x + d * 12, y - 100); c.lineTo(x + d * 26, y - 82); c.moveTo(x - d * 10, y - 100); c.lineTo(x + d * 4, y - 82); }
           c.stroke();
           if (knife) { c.strokeStyle = '#d8dde6'; c.lineWidth = 3; c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx + d * 18, hy - 6); c.stroke(); }
+          if (f.act === 'heavy' && f.actT < ATK.heavy.hit) { c.fillStyle = '#ff3b3b'; c.font = '800 38px sans-serif'; c.textAlign = 'center'; c.fillText('!', x, y - 160); }
           c.fillStyle = f.skin; c.beginPath(); c.arc(x, y - 128, 16, 0, 7); c.fill();
           c.fillStyle = '#111'; c.beginPath(); c.arc(x + d * 6, y - 131, 2.5, 0, 7); c.fill();
           c.restore();
@@ -960,12 +970,13 @@
         drawF(foe, F.name, F.knife); drawF(me, 'BẠN');
         const bar = (x, f, col) => { c.fillStyle = '#111'; c.fillRect(x, 20, 260, 18); c.fillStyle = col; c.fillRect(x + 2, 22, 256 * f.hp / f.max, 14); };
         bar(20, me, '#39cf98'); bar(360, foe, '#ff5c5c');
+        c.fillStyle = '#111'; c.fillRect(20, 62, 160, 8); c.fillStyle = me.st < 20 ? '#ef6a62' : '#ffd23f'; c.fillRect(21, 63, 158 * me.st / 100, 6);
         c.fillStyle = '#fff'; c.font = '700 14px sans-serif'; c.textAlign = 'left'; c.fillText('BẠN ' + Math.round(me.hp), 22, 56); c.textAlign = 'right'; c.fillText(F.name.toUpperCase() + ' ' + Math.round(foe.hp), 618, 56);
         c.textAlign = 'center'; c.font = '800 26px "Baloo 2", sans-serif'; c.fillText(String(Math.max(0, Math.ceil(45 - t))), 320, 36);
         floating = floating.filter((f) => (f.life -= dt) > 0);
         floating.forEach((f) => { c.globalAlpha = Math.min(1, f.life * 2); c.fillStyle = f.col; c.font = '800 22px "Baloo 2", sans-serif'; c.fillText(f.txt, f.x, f.y - (0.8 - f.life) * 50); c.globalAlpha = 1; });
         if (over) bigText(c, foe.hp <= 0 ? 'K.O.!' : me.hp <= 0 ? 'Bị hạ!' : 'Hết giờ!', 210, foe.hp <= 0 ? '#ffd23f' : me.hp <= 0 ? '#ff6b6b' : '#fff', 54);
-        hud.textContent = 'J/Z đấm · K/X đá · L/C đỡ · Space né';
+        hud.textContent = 'J đấm · K đá (phá đỡ) · L đỡ · Space né đòn ! đỏ · F bỏ chạy';
       });
     });
   }
@@ -1448,49 +1459,99 @@
   }
 
   // ------------------------------------------------------------------ 17. vượt ngục (đèn xanh – đèn đỏ)
+  // Vượt ngục — nhìn từ trên xuống, lưới 16×10 ô. Lính canh tuần tra có tầm nhìn hình quạt (bị tường chắn). Thanh nghi ngờ đầy → bị bắt.
+  // Độ khó: màn theo need (0..2), tầm nhìn +need×30, tốc độ đi: sức khỏe. Bò (giữ Space) chậm nhưng tầm nhìn bị thu 40% và gần như không ồn.
+  // Tiếng ồn: đi bình thường ồn bán kính 90px; lính nghe thấy sẽ nghi ngờ dù không thấy. Đá (E) ném về hướng đang đi để dụ lính tới xem.
+  const SN_CFG = { tile: 40, cone: 0.55, range: 150, walk: 105, crawl: 52, noiseWalk: 90, noiseCrawl: 18, guardSpeed: 55, lives: 2, dur: 60, stones: 2 };
+  const SN_LEVELS = [
+    { map: ['################', '#S.............#', '#..........#...#', '#..####....#...#', '#..........#...#', '#...#####......#', '#..............#', '#....#####.....#', '#.............X#', '################'], guards: [[[2, 2], [10, 2], [10, 6], [2, 6]]] },
+    { map: ['################', '#S.....#.......#', '#......#...#...#', '#..##..#...#...#', '#..##......#...#', '#......###.....#', '#..#...........#', '#..#..####..#..#', '#.....#.....#.X#', '################'], guards: [[[2, 2], [6, 2], [6, 5], [2, 5]], [[10, 1], [14, 1], [14, 6], [10, 6]]] },
+    { map: ['################', '#S..#.....#....#', '#...#.....#....#', '#...#..#..#..#.#', '#......#.....#.#', '#..###.#.###.#.#', '#......#.....#.#', '#.####.#####.#.#', '#.............X#', '################'], guards: [[[1, 4], [6, 4], [6, 8], [1, 8]], [[8, 1], [8, 4]], [[4, 8], [12, 8]]] }
+  ];
+  // thuần túy: BFS ô đi được từ S tới X (kiểm tra màn chơi giải được)
+  function sneakSolvable(map) {
+    let s, x; map.forEach((r, y) => r.split('').forEach((ch, i) => { if (ch === 'S') s = [i, y]; if (ch === 'X') x = [i, y]; }));
+    const seen = new Set([s.join()]), q = [s];
+    while (q.length) { const [a, b] = q.shift(); if (a === x[0] && b === x[1]) return true; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const n = [a + dx, b + dy]; if (map[n[1]] && map[n[1]][n[0]] && map[n[1]][n[0]] !== '#' && !seen.has(n.join())) { seen.add(n.join()); q.push(n); } }); }
+    return false;
+  }
   function sneak(p) {
     return new Promise((res) => {
-      const st = p.ctx.stats, DUR = 40;
-      const { box, c, hud } = canvasGame('🌙 Vượt ngục', '<div class="mini-pad"><button type="button" data-go>🦶 GIỮ ĐỂ BÒ <kbd>Space</kbd></button></div>', 'Giữ <kbd>Space</kbd> (hoặc giữ nút) để bò về phía hàng rào. Khi đèn pha chuyển <b style="color:#ffd23f">vàng</b> là lính gác sắp quay lại — thả tay ra ngay! Đang <b style="color:#ff5c5c">đỏ</b> mà còn bò là bị phát hiện.');
-      const speed = 5 + st.health / 100 * 4; // % quãng đường mỗi giây
-      const warn = 0.45 + st.smarts / 100 * 0.45 - p.need * 0.15; // thời gian báo trước (đèn vàng)
-      let t = -2, pos = 0, holding = false, state = 'green', stT = rand(1.5, 3), lives = 2, done = false, flash = 0, msg = '';
-      const hold = (v) => { holding = v; };
-      const b = box.querySelector('[data-go]');
-      b.onpointerdown = (e) => { e.preventDefault(); hold(true); }; b.onpointerup = b.onpointerleave = () => hold(false);
-      onKeys((e) => { if (e.key !== ' ' && e.key !== 'ArrowUp' && e.key !== 'w' && e.key !== 'W') return false; hold(e.type === 'keydown'); return true; });
+      const st = p.ctx.stats, T = SN_CFG.tile;
+      const lvIdx = p.need < 0.4 ? 0 : p.need < 0.62 ? 1 : 2, LV = SN_LEVELS[lvIdx];
+      const { box, c, hud } = canvasGame('🌙 Vượt ngục · Màn ' + (lvIdx + 1), '<div class="mini-pad"><button type="button" data-m="-1,0">◀</button><button type="button" data-m="0,-1">▲</button><button type="button" data-m="0,1">▼</button><button type="button" data-m="1,0">▶</button><button type="button" data-crawl>🦶 Bò <kbd>Space</kbd></button><button type="button" data-stone>🪨 Ném đá <kbd>E</kbd></button></div>',
+        '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> di chuyển · giữ <kbd>Space</kbd> để bò (chậm, gần như không ồn, khó bị thấy) · <kbd>E</kbd> ném đá dụ lính. Tránh quạt tầm nhìn của lính, chạm ô <b style="color:#39cf98">EXIT</b> để thoát.');
+      const walls = (x, y) => { const cx = Math.floor(x / T), cy = Math.floor(y / T); return !LV.map[cy] || LV.map[cy][cx] !== '.' && LV.map[cy][cx] !== 'S' && LV.map[cy][cx] !== 'X'; };
+      let sx = 60, sy = 60, ex = 0, ey = 0; LV.map.forEach((r, y) => r.split('').forEach((ch, x) => { if (ch === 'S') { sx = x * T + T / 2; sy = y * T + T / 2; } if (ch === 'X') { ex = x * T + T / 2; ey = y * T + T / 2; } }));
+      const guards = LV.guards.map((path) => ({ path: path.map(([a, b]) => [a * T + T / 2, b * T + T / 2]), i: 1, x: path[0][0] * T + T / 2, y: path[0][1] * T + T / 2, face: 0, wait: 0, look: null }));
+      const range = SN_CFG.range + p.need * 30, spd = SN_CFG.walk * (0.85 + st.health / 100 * 0.3);
+      let px = sx, py = sy, fx = 1, fy = 0, t = -1.2, susp = 0, lives = SN_CFG.lives, stones = SN_CFG.stones, done = false, crawl = false, flash = 0, msg = '', rocks = [], noise = 0;
+      const dirs = { l: 0, r: 0, u: 0, d: 0 };
+      const sight = (g, tx, ty) => { // đường nhìn không bị tường chắn
+        const dx = tx - g.x, dy = ty - g.y, n = Math.ceil(Math.hypot(dx, dy) / 8);
+        for (let k = 1; k < n; k++) if (walls(g.x + dx * k / n, g.y + dy * k / n)) return false; return true;
+      };
+      const stone = () => { if (stones <= 0 || done || t < 0) return; stones--; const tx = clamp(px + fx * 200, 50, 590), ty = clamp(py + fy * 200, 50, 350); rocks.push({ x: tx, y: ty, t: 0.6 }); sfx('click'); };
+      box.querySelectorAll('[data-m]').forEach((b) => { const [dx, dy] = b.dataset.m.split(',').map(Number); const set = (v) => () => { if (dx < 0) dirs.l = v; if (dx > 0) dirs.r = v; if (dy < 0) dirs.u = v; if (dy > 0) dirs.d = v; }; b.onpointerdown = (e) => { e.preventDefault(); set(1)(); }; b.onpointerup = b.onpointerleave = set(0); });
+      const cb = box.querySelector('[data-crawl]'); cb.onpointerdown = (e) => { e.preventDefault(); crawl = true; }; cb.onpointerup = cb.onpointerleave = () => { crawl = false; };
+      box.querySelector('[data-stone]').onpointerdown = (e) => { e.preventDefault(); stone(); };
+      onKeys((e) => {
+        const k = e.key, dn = e.type === 'keydown';
+        const m = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r', ArrowUp: 'u', w: 'u', W: 'u', ArrowDown: 'd', s: 'd', S: 'd' }[k];
+        if (m) { dirs[m] = dn ? 1 : 0; return true; }
+        if (k === ' ') { crawl = dn; return true; }
+        if ((k === 'e' || k === 'E') && dn && !e.repeat) { stone(); return true; }
+        return false;
+      });
       const end = (score, text) => { done = true; setTimeout(() => res({ score, text }), 900); };
+      const respawn = () => { px = sx; py = sy; susp = 0; flash = 1; };
       loop((dt) => {
-        t += dt; flash = Math.max(0, flash - dt);
+        t += dt; flash = Math.max(0, flash - dt); noise = Math.max(0, noise - dt * 200);
         if (t > 0 && !done) {
-          stT -= dt;
-          if (stT <= 0) {
-            if (state === 'green') { state = 'yellow'; stT = Math.max(0.25, warn); }
-            else if (state === 'yellow') { state = 'red'; stT = rand(1.2, 2.6); }
-            else { state = 'green'; stT = rand(1.2, 3.2) - p.need; stT = Math.max(0.8, stT); }
-          }
-          if (holding) {
-            if (state === 'red') { lives--; flash = 0.8; msg = lives > 0 ? 'SUÝT BỊ PHÁT HIỆN!' : 'BỊ PHÁT HIỆN!'; sfx('bad'); holding = false; pos = Math.max(0, pos - 12); state = 'green'; stT = 1.5; if (lives <= 0) end(clamp(pos / 100 * 0.45, 0, 0.45), 'Đèn pha rọi thẳng vào bạn khi mới bò được ' + Math.round(pos) + '% quãng đường.'); }
-            else pos = Math.min(100, pos + speed * dt);
-          }
-          if (pos >= 100 && !done) end(clamp(0.6 + 0.4 * (1 - t / DUR), 0.6, 1), 'Bạn lách qua hàng rào sau ' + t.toFixed(1) + ' giây. Tự do!');
-          else if (t >= DUR && !done) end(clamp(pos / 100 * 0.5, 0, 0.5), 'Trời sáng mất rồi. Bạn mới bò được ' + Math.round(pos) + '%, đành quay về buồng giam.');
+          // người chơi
+          let mx = (dirs.r - dirs.l), my = (dirs.d - dirs.u); const mm = Math.hypot(mx, my);
+          const sp = crawl ? SN_CFG.crawl : spd;
+          if (mm) { mx /= mm; my /= mm; fx = mx; fy = my; const nx = px + mx * sp * dt, ny = py + my * sp * dt; if (!walls(nx + Math.sign(mx) * 9, py)) px = nx; if (!walls(px, ny + Math.sign(my) * 9)) py = ny; noise = crawl ? SN_CFG.noiseCrawl : SN_CFG.noiseWalk; }
+          // lính canh
+          let seen = 0;
+          guards.forEach((g) => {
+            rocks.forEach((r) => { if (r.t <= 0 && !r.used && Math.hypot(r.x - g.x, r.y - g.y) < 260 && !g.look) { g.look = { x: r.x, y: r.y, w: 2.2 }; } });
+            let tx, ty;
+            if (g.look) { tx = g.look.x; ty = g.look.y; if (Math.hypot(tx - g.x, ty - g.y) < 8) { g.look.w -= dt; if (g.look.w <= 0) g.look = null; tx = null; } }
+            else { const w = g.path[g.i]; tx = w[0]; ty = w[1]; if (Math.hypot(tx - g.x, ty - g.y) < 6) { g.i = (g.i + 1) % g.path.length; g.wait = 0.5; tx = null; } }
+            if (g.wait > 0) { g.wait -= dt; tx = null; }
+            if (tx != null) { const a = Math.atan2(ty - g.y, tx - g.x); let da = a - g.face; da = Math.atan2(Math.sin(da), Math.cos(da)); g.face += da * Math.min(1, dt * 8); if (Math.abs(da) < 0.6) { g.x += Math.cos(g.face) * SN_CFG.guardSpeed * dt; g.y += Math.sin(g.face) * SN_CFG.guardSpeed * dt; } }
+            const dx = px - g.x, dy = py - g.y, dist = Math.hypot(dx, dy), rng = range * (crawl ? 0.6 : 1);
+            let ad = Math.atan2(dy, dx) - g.face; ad = Math.abs(Math.atan2(Math.sin(ad), Math.cos(ad)));
+            if (dist < rng && ad < SN_CFG.cone && sight(g, px, py)) seen = Math.max(seen, 1.3 + (1 - dist / rng) * 1.5);
+            else if (dist < noise && sight(g, px, py)) { seen = Math.max(seen, 0.5); g.face += (Math.atan2(dy, dx) - g.face) * Math.min(1, dt * 3); }
+          });
+          rocks.forEach((r) => { r.t -= dt; if (r.t <= 0) r.used = r.used || false; }); rocks = rocks.filter((r) => r.t > -0.1 || guards.some((g) => g.look));
+          susp = seen ? Math.min(1, susp + seen * dt * 0.55) : Math.max(0, susp - dt * 0.45);
+          if (susp >= 1) { lives--; msg = lives > 0 ? 'BỊ PHÁT HIỆN! Về điểm xuất phát' : 'BỊ BẮT!'; sfx('bad'); if (lives <= 0) end(clamp(0.1 + 0.25 * (1 - Math.hypot(ex - px, ey - py) / 600), 0, 0.35), 'Bạn bị lính canh tóm lại (màn ' + (lvIdx + 1) + ').'); else respawn(); }
+          if (!done && Math.hypot(px - ex, py - ey) < 22) end(clamp(0.6 + 0.3 * (1 - t / SN_CFG.dur) + 0.1 * (lives / SN_CFG.lives), 0.6, 1), 'Bạn lách qua trại giam sau ' + t.toFixed(1) + ' giây (màn ' + (lvIdx + 1) + '). Tự do!');
+          else if (!done && t >= SN_CFG.dur) end(0.2, 'Trời sáng mất rồi, bạn đành quay về buồng giam.');
         }
-        // vẽ: sân trại giam ban đêm, tháp canh, đèn pha
         c.fillStyle = '#0d1020'; c.fillRect(0, 0, 640, 400);
-        c.fillStyle = '#1b2033'; c.fillRect(0, 250, 640, 150);
-        c.strokeStyle = '#555c7a'; c.lineWidth = 2; for (let x = 560; x < 640; x += 12) { c.beginPath(); c.moveTo(x, 150); c.lineTo(x, 330); c.stroke(); }
-        c.fillStyle = '#2b3150'; c.fillRect(270, 40, 100, 120); c.fillStyle = '#3a4166'; c.fillRect(260, 30, 120, 18);
-        const col = state === 'red' ? 'rgba(255,92,92,.35)' : state === 'yellow' ? 'rgba(255,210,63,.3)' : 'rgba(57,207,152,.12)';
-        c.fillStyle = col; c.beginPath(); c.moveTo(320, 60); c.lineTo(state === 'red' ? 40 : 600, 360); c.lineTo(state === 'red' ? 600 : 640, 360); c.closePath(); c.fill();
-        c.fillStyle = state === 'red' ? '#ff5c5c' : state === 'yellow' ? '#ffd23f' : '#39cf98'; c.beginPath(); c.arc(320, 60, 14, 0, 7); c.fill();
-        c.font = '800 20px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.fillText(state === 'red' ? 'ĐỨNG IM!' : state === 'yellow' ? 'SẮP QUAY LẠI…' : 'BÒ ĐI!', 320, 196);
-        const x = 40 + pos / 100 * 510;
-        c.fillStyle = '#e66b2f'; c.beginPath(); c.ellipse(x, 320, 24, 10, 0, 0, 7); c.fill(); c.fillStyle = (p.ctx.appearance && p.ctx.appearance.skin) || '#e6b48f'; c.beginPath(); c.arc(x + 22, 314, 9, 0, 7); c.fill();
-        c.fillStyle = '#39cf98'; c.fillRect(40, 372, 510 * pos / 100, 8); c.strokeStyle = '#555'; c.strokeRect(40, 372, 510, 8);
-        if (flash > 0) { c.globalAlpha = Math.min(1, flash * 2); bigText(c, msg, 120, '#ff6b6b', 34); c.globalAlpha = 1; }
+        LV.map.forEach((r, y) => r.split('').forEach((ch, x) => { if (ch === '#') { c.fillStyle = '#2b3150'; c.fillRect(x * T, y * T, T, T); c.fillStyle = '#3a4166'; c.fillRect(x * T, y * T, T, 5); } else { c.fillStyle = (x + y) % 2 ? '#161b2e' : '#1a2036'; c.fillRect(x * T, y * T, T, T); } }));
+        c.fillStyle = 'rgba(57,207,152,.35)'; c.fillRect(ex - 18, ey - 18, 36, 36); c.fillStyle = '#39cf98'; c.font = '700 11px sans-serif'; c.textAlign = 'center'; c.fillText('EXIT', ex, ey + 4);
+        // quạt tầm nhìn bị tường cắt
+        guards.forEach((g) => {
+          const rng = range * (crawl ? 0.6 : 1); c.fillStyle = susp > 0.5 ? 'rgba(255,92,92,.30)' : 'rgba(255,210,63,.20)'; c.beginPath(); c.moveTo(g.x, g.y);
+          for (let k = -12; k <= 12; k++) { const a = g.face + k / 12 * SN_CFG.cone; let d = 6; while (d < rng && !walls(g.x + Math.cos(a) * d, g.y + Math.sin(a) * d)) d += 6; c.lineTo(g.x + Math.cos(a) * d, g.y + Math.sin(a) * d); }
+          c.closePath(); c.fill();
+          c.fillStyle = '#d63c3c'; c.beginPath(); c.arc(g.x, g.y, 11, 0, 7); c.fill(); c.fillStyle = '#fff'; c.fillRect(g.x + Math.cos(g.face) * 6 - 2, g.y + Math.sin(g.face) * 6 - 2, 4, 4);
+          if (g.look) { c.fillStyle = '#ffd23f'; c.font = '800 18px sans-serif'; c.fillText('?', g.x, g.y - 16); }
+        });
+        rocks.forEach((r) => { c.fillStyle = '#9aa3b8'; c.beginPath(); c.arc(r.x, r.y, 5, 0, 7); c.fill(); });
+        if (noise > 20) { c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 2; c.beginPath(); c.arc(px, py, noise, 0, 7); c.stroke(); }
+        c.fillStyle = (p.ctx.appearance && p.ctx.appearance.top) || '#e66b2f'; c.beginPath(); c.arc(px, py, crawl ? 8 : 11, 0, 7); c.fill(); c.fillStyle = (p.ctx.appearance && p.ctx.appearance.skin) || '#e6b48f'; c.beginPath(); c.arc(px + fx * 5, py + fy * 5, 5, 0, 7); c.fill();
+        // thanh nghi ngờ
+        c.fillStyle = 'rgba(8,12,22,.8)'; c.fillRect(14, 8, 190, 24); c.fillStyle = '#232d40'; c.fillRect(20, 20, 178, 8); c.fillStyle = susp > 0.66 ? '#ef6a62' : susp > 0.33 ? '#ffb547' : '#45c486'; c.fillRect(20, 20, 178 * susp, 8);
+        c.fillStyle = '#9fb0cc'; c.font = '700 10px sans-serif'; c.textAlign = 'left'; c.fillText('NGHI NGỜ' + (crawl ? ' · đang bò' : ''), 22, 17);
+        if (flash > 0) { c.globalAlpha = Math.min(1, flash * 2); bigText(c, msg, 190, '#ff6b6b', 28); c.globalAlpha = 1; }
         countdown(c, t, 'ĐI!');
-        hud.textContent = Math.round(pos) + '% · còn ' + Math.max(0, Math.ceil(DUR - Math.max(0, t))) + 's · ' + '❤️'.repeat(Math.max(0, lives));
+        hud.textContent = 'Màn ' + (lvIdx + 1) + '/3 · còn ' + Math.max(0, Math.ceil(SN_CFG.dur - Math.max(0, t))) + 's · ' + '❤️'.repeat(Math.max(0, lives)) + ' · 🪨' + stones;
       });
     });
   }
