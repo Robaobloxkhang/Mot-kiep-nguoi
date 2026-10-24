@@ -202,13 +202,13 @@
     stock: 'Giá chạy trong 25 giây. MUA khi đoán giá sắp lên, BÁN khi sắp xuống (↑/↓ hoặc nút). Cuối phiên tính lãi lỗ so với vốn ban đầu.',
     love: '3 câu hỏi thả thính: chọn câu trả lời ghi điểm. Cuối cùng là khoảnh khắc quyết định: bấm đúng lúc vạch vào vùng hồng.',
     haggle: 'Kéo thanh để chọn giá rồi bấm “Trả giá”. Trả quá thấp người bán sẽ mất kiên nhẫn và bỏ đi. Tối đa 6 lượt.',
-    cpr: 'Bấm ÉP (Space) đúng nhịp khi vòng tròn khép lại, 15 lần mỗi chu kỳ. Sau đó bấm THỔI NGẠT (↑) 2 lần. Làm 2 chu kỳ.',
+    cpr: 'Trước hết chọn đúng thứ tự: an toàn → gọi 115 → kiểm tra hơi thở (phím 1–3). Sau đó bấm ÉP (Space) đúng nhịp khi vòng tròn khép lại, 30 lần mỗi chu kỳ, rồi THỔI NGẠT (↑) 2 lần. Chu kỳ 2 mệt hơn nên nhịp khó hơn.',
     hoops: '6 cú ném: lên rổ, tầm trung, ba điểm, ném phạt, ba điểm có hậu vệ và cú ném quyết định. Giữ Space để thanh lực dâng lên, thả tay khi vạch trắng nằm trong vùng xanh (ném càng xa càng cần nhiều lực). Có hậu vệ thì ném trước khi hắn bật nhảy!',
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
     hax: 'Trận đấu nhìn từ trên xuống, 60 giây (trận lớn có đồng đội máy đá cùng). WASD / ↑↓←→ để chạy, Space / X để sút khi bóng sát người (giữ sút thì chạy chậm lại). Đưa bóng vào khung thành bên phải!',
     scamchat: 'Một ca làm việc trong khu lừa đảo: KPI năm nay là lừa đủ số người, không đạt sẽ bị đánh đập. Mỗi nạn nhân đi theo một kịch bản 3 bước (làm quen, giới thiệu lợi ích, xin thông tin thẻ nhận tiền). Chọn câu gợi ý đúng ngữ cảnh hoặc tự gõ. Khi nạn nhân đọc số thẻ, gõ đúng 16 số vào cửa sổ Hồ sơ rồi xác nhận. Quản lý luôn nhìn Camera: bấm nút 📞 ở cửa sổ Chỉ tiêu để họ bớt nghi ngờ. Bạn cũng có thể lén cảnh báo nạn nhân để cứu họ, nhưng bị bắt gặp là bị đánh.',
     clutch: '3 tình huống clutch liên tiếp (1v3, đồng đội gục hết, hết đạn, giành rồng…). Mỗi ca: đọc tình huống, chọn hướng xử lý đúng ngữ cảnh (phím 1–3), rồi bấm hạ từng địch trước khi chúng tránh đi hoặc hết giờ. Quyết định đúng thì mục tiêu to và nhiều thời gian hơn; bấm trượt hoặc để địch thoát sẽ mất máu.',
-    aim: 'Các mục tiêu tròn xuất hiện rồi mờ dần trong 25 giây. Bấm chuột (hoặc chạm) vào từng mục tiêu trước khi nó biến mất. Bấm trượt hoặc để mục tiêu biến mất sẽ mất combo.',
+    aim: '3 bài liên tiếp (~25 giây): Flick — bấm mục tiêu trước khi mờ, trúng tâm đỏ là headshot; Tracking — giữ trỏ trên mục tiêu đang di chuyển; Đổi mục tiêu — bấm số 1 → 5 theo thứ tự. Điểm là trung bình 3 bài, kỷ lục được lưu trên máy.',
     cards: 'Xì dách 5 ván với nhà cái. Rút thêm (H) hoặc dằn (S). Quá 21 là quắc. Dưới 16 điểm chưa được dằn.',
   };
   // màn giới thiệu: giải thích rõ cách chơi (mục tiêu · từng bước · phím) rồi mới cho chơi; có nút chơi thử không tính điểm
@@ -1294,45 +1294,60 @@
   function haggle(p) {
     return new Promise((res) => {
       const st = p.ctx.stats, buyMode = p.mode === 'buy';
-      const floor = clamp(0.86 + (p.need || 0.4) * 0.06 + rand(-0.03, 0.02) - (st.smarts - 50) / 1500, 0.8, 0.95);
-      let ask = 1, pat = 100, round = 0, done = false;
+      // tính cách người bán: cứng (giá sàn +2%, kiên nhẫn tụt ×1.5) · dễ tính (tụt ×0.6) · nóng tính (chê hàng là nổi cáu). Giá sàn ẩn (≈ giá vốn) quanh 0.86–0.95 × giá hỏi.
+      const PERS = { cung: { n: 'Cứng đầu', fl: 0.02, pm: 1.5 }, de: { n: 'Dễ tính', fl: -0.01, pm: 0.6 }, nong: { n: 'Nóng tính', fl: 0, pm: 1 } }, pk = pick(Object.keys(PERS)), PS = PERS[pk];
+      let floor = clamp(0.86 + (p.need || 0.4) * 0.06 + rand(-0.03, 0.02) - (st.smarts - 50) / 1500 + PS.fl, 0.8, 0.96);
+      let ask = 1, pat = 100, round = 0, done = false, praised = 0, bulk = false, bluffed = false;
       const fmt = (f) => (buyMode && p.price ? money(p.price * f) : Math.round(f * 100) + '% giá gốc');
       const seller = pick(['🧑‍🌾', '👨‍💼', '👩‍💼', '👵', '🧔']);
-      const box = open('<div class="mini-head"><b>🧧 Mặc cả</b><small>' + esc(p.item || p.label) + ' · lượt <span id="hgN">1</span>/6</small></div>' +
+      const box = open('<div class="mini-head"><b>🧧 Mặc cả</b><small>' + esc(p.item || p.label) + ' · lượt <span id="hgN">1</span>/8</small></div>' +
         '<div class="iv-boss"><span>' + seller + '</span><p id="hgS">“' + (buyMode ? 'Giá này là chuẩn rồi, mua đi kẻo hết!' : 'Hàng tốt, giá mềm, không nói thách!') + '”</p></div>' +
         '<div class="hg-row"><small>Kiên nhẫn người bán</small><div class="mini-bar"><i id="hgP" style="width:100%;background:#39cf98"></i></div></div>' +
-        '<p class="mini-goal">Người bán đang hỏi: <b id="hgA"></b></p>' +
+        '<p class="mini-goal">Người bán đang hỏi: <b id="hgA"></b> · <small>Tính: ' + PS.n + '</small></p>' +
         '<input type="range" id="hgR" class="hg-range" min="60" max="100" step="1" value="85"><p class="mini-goal">Bạn trả: <b id="hgO"></b></p>' +
         '<p class="mini-tip" id="hgM"></p>' +
-        '<div class="mini-btns"><button type="button" class="btn btn-ghost" data-deal>🤝 Chốt giá đang hỏi</button><button type="button" class="btn btn-primary" data-offer>💬 Trả giá <kbd>Enter</kbd></button></div>' +
+        '<div class="mini-btns hg-acts"><button type="button" class="btn btn-soft" data-act="praise">😊 Khen hàng</button><button type="button" class="btn btn-soft" data-act="crit">🧐 Chê hàng</button><button type="button" class="btn btn-soft" data-act="else">🏪 Chỗ khác rẻ hơn</button><button type="button" class="btn btn-soft" data-act="bulk">🛒 Mua thêm</button><button type="button" class="btn btn-soft" data-act="leave">🚶 Giả vờ bỏ đi</button></div><div class="mini-btns"><button type="button" class="btn btn-ghost" data-deal>🤝 Chốt giá đang hỏi</button><button type="button" class="btn btn-primary" data-offer>💬 Trả giá <kbd>Enter</kbd></button></div>' +
         '<p class="mini-keys">⌨️ Kéo thanh (hoặc <kbd>←</kbd> <kbd>→</kbd>) để chọn giá, <kbd>Enter</kbd> để trả giá. Trả thấp quá thanh kiên nhẫn tụt mạnh, về 0 là người bán bỏ đi.</p>');
       const R = box.querySelector('#hgR');
       const say = (s) => { box.querySelector('#hgS').textContent = '“' + s + '”'; };
       const upd = () => {
         R.max = String(Math.round(ask * 100)); if (+R.value > ask * 100) R.value = String(Math.round(ask * 100));
         box.querySelector('#hgA').textContent = fmt(ask); box.querySelector('#hgO').textContent = fmt(+R.value / 100);
-        box.querySelector('#hgN').textContent = String(Math.min(6, round + 1));
+        box.querySelector('#hgN').textContent = String(Math.min(8, round + 1));
         const pb = box.querySelector('#hgP'); pb.style.width = Math.max(0, pat) + '%'; pb.style.background = pat < 35 ? '#ff5c5c' : pat < 65 ? '#ffb347' : '#39cf98';
         box.querySelector('#hgM').textContent = st.smarts >= 70 ? (ask - floor > 0.05 ? '😏 Nhìn mặt người bán: còn bớt được kha khá' : ask - floor > 0.015 ? '🤔 Có vẻ còn bớt được chút ít' : '😤 Sát giá vốn rồi, đừng ép nữa') : '';
       };
-      const deal = (f, why) => { if (done) return; done = true; const d = 1 - f; sfx(d > 0.05 ? 'cheer' : 'coin'); setTimeout(() => res({ score: clamp(buyMode ? d / 0.15 : d / 0.12, 0, 1), text: why + ' Giá chốt ' + fmt(f) + (d > 0.004 ? ' (bớt ' + Math.round(d * 100) + '%)' : '') + '.' }), 700); };
+      const deal = (f, why) => { if (done) return; done = true; const d = 1 - f; sfx(d > 0.05 ? 'cheer' : 'coin'); const rate = d >= 0.08 ? '🟢 Giá RẺ' : d >= 0.03 ? '🟡 Giá HỢP LÝ' : '🔴 HƠI HỚ'; setTimeout(() => res({ score: clamp(buyMode ? d / 0.15 : d / 0.12, 0, 1), text: why + ' Giá chốt ' + fmt(f) + (d > 0.004 ? ' (bớt ' + Math.round(d * 100) + '%)' : '') + ' — ' + rate + (bulk ? ' (kèm mua thêm hàng)' : '') + '.' }), 700); };
       const walk = () => { if (done) return; done = true; sfx('bad'); say('Thôi không bán nữa, đi chỗ khác mà mua!'); setTimeout(() => res({ score: 0, text: 'Người bán phẩy tay bỏ đi.' + (buyMode ? ' Bạn năn nỉ mãi mới được mua lại đúng giá gốc.' : '') }), 900); };
       const offer = () => {
         if (done) return;
         const o = Math.min(ask, +R.value / 100); round++;
         if (o >= ask - 0.004) { deal(o, 'Người bán gật đầu.'); return; }
         if (o >= floor) {
-          const na = o + (ask - o) * rand(0.35, 0.6); pat -= 6;
+          const na = o + (ask - o) * rand(0.35, 0.6); pat -= 6 * PS.pm;
           if (na - o < 0.015) { deal(o, 'Người bán thở dài: “Thôi, bán cho lấy may!”'); return; }
           ask = na; say(pick(['Thêm chút nữa đi, lời lãi gì đâu!', 'Bớt thế này là hết cỡ rồi đấy!', fmt(ask) + ' thì lấy, không là thôi.'])); sfx('click');
         } else {
-          pat -= 12 + (floor - o) * 260; ask = Math.max(floor, ask - rand(0.004, 0.012));
+          pat -= (12 + (floor - o) * 260) * PS.pm; ask = Math.max(floor, ask - rand(0.004, 0.012));
           say(pick(['Trả thế thì lỗ vốn à!', 'Đùa à? Giá đó tôi nhập còn không được!', 'Trả giá kiểu đấy ai bán!'])); sfx('bad');
         }
         if (pat <= 0) { walk(); return; }
-        if (round >= 6) { deal(ask, 'Người bán chốt: “Giá cuối rồi đấy!”'); return; }
+        if (round >= 8) { deal(ask, 'Người bán chốt: “Giá cuối rồi đấy!”'); return; }
         upd();
       };
+      // hành động ngoài trả giá
+      const act = (a) => {
+        if (done) return; round++; sfx('click');
+        if (a === 'praise') { if (praised >= 2) { say('Khen mãi cũng không bớt đâu nhé!'); } else { praised++; pat = Math.min(100, pat + 12); ask = Math.max(floor, ask - 0.004); say('Cậu khéo nói chuyện đấy, để tôi tính lại cho!'); } }
+        else if (a === 'crit') { const hot = pk === 'nong'; if (ask - floor > 0.02 && !hot) { ask = Math.max(floor, ask - rand(0.012, 0.028)); pat -= 8 * PS.pm; say('Hàng này mà chê à? Thôi bớt chút…'); } else { pat -= (hot ? 26 : 16); say(hot ? 'Chê hàng tôi hả?! Ra chỗ khác!' : 'Sát giá vốn rồi, chê cũng vậy thôi.'); sfx('bad'); } }
+        else if (a === 'else') { if (rnd() < 0.42 + st.smarts / 250 - (pk === 'cung' ? 0.2 : 0)) { ask = Math.max(floor, ask - rand(0.02, 0.04)); say('Thôi được, bán cho cậu giá này, đừng qua bên kia!'); } else { pat -= 22 * PS.pm; say('Chỗ kia rẻ thì cậu qua đó mà mua!'); sfx('bad'); } }
+        else if (a === 'bulk') { if (bulk) { say('Mua thêm rồi còn gì nữa?'); } else { bulk = true; floor = Math.max(0.78, floor - 0.02); ask = Math.max(floor, ask - 0.02); say('Lấy nhiều à? Vậy tôi bớt cho!'); } }
+        else if (a === 'leave') { if (bluffed) { say('Lần này tôi không gọi lại đâu.'); pat -= 25; } else { bluffed = true; if (ask - floor < 0.035) { ask = Math.max(floor + 0.003, ask - 0.02); say('Ơ khoan! Thôi quay lại, tôi chịu thiệt chút!'); } else { return walk(); } } }
+        if (pat <= 0) return walk();
+        if (round >= 8) return deal(ask, 'Người bán chốt: “Giá cuối rồi đấy!”');
+        upd();
+      };
+      box.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => act(b.dataset.act)));
       R.oninput = upd;
       box.querySelector('[data-offer]').onclick = offer;
       box.querySelector('[data-deal]').onclick = () => deal(ask, 'Bạn đồng ý giá người bán đưa ra.');
@@ -1345,36 +1360,42 @@
   function cpr(p) {
     return new Promise((res) => {
       const st = p.ctx.stats, T = 60 / 110, tol = 0.07 + st.smarts / 100 * 0.06;
-      const { box, c, hud } = canvasGame('🫀 Cấp cứu', '<div class="mini-pad"><button type="button" data-k="push">🫸 ÉP TIM <kbd>Space</kbd></button><button type="button" data-k="air">🌬️ THỔI NGẠT <kbd>↑</kbd></button></div>', '<kbd>Space</kbd> ép tim mỗi khi vòng cam co sát vòng trắng (15 lần) · khi hiện chữ THỔI NGẠT thì bấm <kbd>↑</kbd> 2 lần. Làm 2 chu kỳ.');
-      let t = -2, cyc = 0, cycStart = 0.4, k = 0, mode = 'c', bStart = 0, bCount = 0, breaths = 0, comp = [], squeeze = 0, done = false, msg = '', msgT = 0, ecg = [];
+      const { box, cv, c, hud } = canvasGame('🫀 Cấp cứu', '<div class="mini-pad"><button type="button" data-k="push">🫸 ÉP TIM <kbd>Space</kbd></button><button type="button" data-k="air">🌬️ THỔI NGẠT <kbd>↑</kbd></button></div>', '<kbd>Space</kbd> ép tim mỗi khi vòng cam co sát vòng trắng (30 lần; trước đó chọn đúng quy trình bằng phím 1–3) · khi hiện chữ THỔI NGẠT thì bấm <kbd>↑</kbd> 2 lần. Làm 2 chu kỳ.');
+      // quy trình thật: an toàn hiện trường → gọi 115 → kiểm tra ý thức/hô hấp → ép tim 30 lần : thổi ngạt 2 lần (2 chu kỳ). Mệt dần: chu kỳ 2 dung sai nhịp hẹp 20%.
+      const STEPS = ['Đảm bảo an toàn hiện trường', 'Gọi 115 (nhờ người xung quanh)', 'Kiểm tra ý thức & hơi thở (≤10 giây)'];
+      let order = shuffle([0, 1, 2]), stepN = 0, mistakes = 0, prepMsg = '';
+      const pickStep = (idx) => { if (mode !== 'prep') return; const v = order[idx]; if (v === stepN) { stepN++; sfx('good'); prepMsg = '✔ ' + STEPS[v]; if (stepN >= 3) { mode = 'c'; t = -2; } } else { mistakes++; sfx('bad'); prepMsg = '✖ Chưa đúng thứ tự! Cần: ' + STEPS[stepN]; } };
+      cv.addEventListener('pointerdown', (e) => { if (mode !== 'prep') return; const r = cv.getBoundingClientRect(), y = (e.clientY - r.top) / r.height * 400, i = Math.floor((y - 90) / 80); if (i >= 0 && i < 3) pickStep(i); });
+      let t = -2, cyc = 0, cycStart = 0.4, k = 0, mode = 'prep', bStart = 0, bCount = 0, breaths = 0, comp = [], squeeze = 0, done = false, msg = '', msgT = 0, ecg = [];
       const say = (m) => { msg = m; msgT = 0.6; };
-      const grade = (err) => (err < tol ? 1 : err < tol * 2 ? 0.5 : 0);
+      const tolNow = () => tol * (cyc >= 1 ? 0.8 : 1);
+      const grade = (err) => (err < tolNow() ? 1 : err < tolNow() * 2 ? 0.5 : 0);
       const push = () => {
-        if (done || t < 0) return;
+        if (done || t < 0 || mode === 'prep') return;
         if (mode !== 'c') { say('Đang tới lượt thổi ngạt!'); return; }
         squeeze = 0.18;
         const rel = t - cycStart, kk = Math.round(rel / T);
-        if (kk < k || kk > 14) { say('Nhanh quá!'); return; }
+        if (kk < k || kk > 29) { say('Nhanh quá!'); return; }
         while (k < kk) { comp.push(0); k++; }
         const g = grade(Math.abs(rel - kk * T)); comp.push(g); k = kk + 1;
         if (g === 1) sfx('click'); else say(rel < kk * T ? 'Hơi sớm' : 'Hơi trễ');
       };
       const air = () => { if (done || t < 0) return; if (mode === 'b' && bCount < 2) { bCount++; sfx('click'); say('Thổi ' + bCount + '/2'); } else if (mode === 'c') say('Chưa tới lượt thổi!'); };
       padBind(box, '[data-k]', (b) => (b.dataset.k === 'push' ? push() : air()));
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const kk = e.key; if (kk === ' ' || kk === 'Enter' || kk === 'j' || kk === 'J') push(); else if (kk === 'ArrowUp' || kk === 'b' || kk === 'B' || kk === 'w' || kk === 'W') air(); else return false; return true; });
+      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const kk = e.key; if (mode === 'prep' && /^[1-3]$/.test(kk)) { pickStep(+kk - 1); return true; } if (kk === ' ' || kk === 'Enter' || kk === 'j' || kk === 'J') push(); else if (kk === 'ArrowUp' || kk === 'b' || kk === 'B' || kk === 'w' || kk === 'W') air(); else return false; return true; });
       loop((dt) => {
-        t += dt; squeeze = Math.max(0, squeeze - dt); msgT = Math.max(0, msgT - dt);
+        if (mode === 'prep') t = -2; else t += dt; squeeze = Math.max(0, squeeze - dt); msgT = Math.max(0, msgT - dt);
         if (t > 0 && !done) {
           if (mode === 'c') {
             const rel = t - cycStart;
-            while (k <= 14 && rel > k * T + T / 2) { comp.push(0); k++; say('Lỡ nhịp!'); }
-            if (k > 14) { mode = 'b'; bStart = t; bCount = 0; say('THỔI NGẠT 2 LẦN!'); }
+            while (k <= 29 && rel > k * T + T / 2) { comp.push(0); k++; say('Lỡ nhịp!'); }
+            if (k > 29) { mode = 'b'; bStart = t; bCount = 0; say('THỔI NGẠT 2 LẦN!'); }
           } else if (mode === 'b' && t - bStart > 2.6) {
             breaths += bCount; cyc++;
             if (cyc >= 2) {
-              done = true; const cs = comp.reduce((a, b) => a + b, 0) / Math.max(30, comp.length);
-              const score = clamp(cs * 0.85 + breaths / 4 * 0.15, 0, 1);
-              setTimeout(() => res({ score, text: 'Ép tim đúng nhịp ' + Math.round(cs * 100) + '%, thổi ngạt ' + breaths + '/4 lần.' }), 600);
+              done = true; const cs = comp.reduce((a, b) => a + b, 0) / Math.max(60, comp.length);
+              const score = clamp(cs * 0.85 + breaths / 4 * 0.15 - mistakes * 0.06, 0, 1);
+              setTimeout(() => res({ score, text: 'Ép tim đúng nhịp ' + Math.round(cs * 100) + '%, thổi ngạt ' + breaths + '/4 lần' + (mistakes ? ', sai quy trình ' + mistakes + ' lần' : '') + '. 💡 Nhớ: an toàn → gọi 115 → kiểm tra thở → ép tim 30 : thổi 2, ép sâu ~5cm, 100–120 lần/phút.' }), 600);
             } else { mode = 'c'; cycStart = t + 0.8; k = 0; }
           }
         }
@@ -1388,12 +1409,17 @@
         c.fillStyle = 'rgba(69,196,134,.08)'; c.fillRect(330, 28, 280, 80); c.strokeStyle = '#45c486'; c.lineWidth = 2; c.beginPath(); ecg.forEach((v, i) => { const x = 330 + i, y = 70 - v * 40; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
         c.fillStyle = '#9fb0cc'; c.font = '700 14px sans-serif'; c.textAlign = 'left'; c.fillText('Nhịp tim bệnh nhân', 330, 128);
         c.fillStyle = '#232d40'; c.fillRect(330, 140, 280, 10); c.fillStyle = avg > 0.6 ? '#45c486' : avg > 0.3 ? '#ffb547' : '#ef6a62'; c.fillRect(330, 140, 280 * Math.min(1, avg), 10); c.fillStyle = '#9fb0cc'; c.fillText('Hồi phục', 330, 170);
-        if (mode === 'c' && t > 0) { const ph = (((t - cycStart) % T) + T) % T / T; beatRing(c, 80, 70, ph, Math.min(ph, 1 - ph) * T < tol); }
+        if (mode === 'prep') {
+          c.fillStyle = '#e8ecf6'; c.font = '800 20px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.fillText('Phát hiện người ngã gục! Bước ' + (stepN + 1) + '/3 — làm gì trước?', 320, 60);
+          order.forEach((v, i) => { const y = 90 + i * 80; c.fillStyle = v < stepN ? 'rgba(69,196,134,.35)' : '#1d2a44'; c.fillRect(100, y, 440, 62); c.strokeStyle = '#3b6ea5'; c.strokeRect(100, y, 440, 62); c.fillStyle = '#fff'; c.font = '700 16px sans-serif'; c.fillText((i + 1) + '. ' + STEPS[v], 320, y + 37); });
+          if (prepMsg) { c.fillStyle = prepMsg[0] === '✔' ? '#45c486' : '#ff8a80'; c.font = '700 15px sans-serif'; c.fillText(prepMsg, 320, 360); }
+        }
+        else if (mode === 'c' && t > 0) { const ph = (((t - cycStart) % T) + T) % T / T; beatRing(c, 80, 70, ph, Math.min(ph, 1 - ph) * T < tolNow()); }
         else if (mode === 'b') { c.font = '40px sans-serif'; c.textAlign = 'center'; c.fillText('🌬️', 80, 85); }
         c.fillStyle = '#e8ecf6'; c.font = '800 20px "Baloo 2", sans-serif'; c.textAlign = 'center';
-        c.fillText(mode === 'c' ? 'Ép tim ' + Math.min(15, k) + '/15 · chu kỳ ' + (cyc + 1) + '/2' : 'Thổi ngạt ' + bCount + '/2', 320, 390);
+        c.fillText(mode === 'c' ? 'Ép tim ' + Math.min(30, k) + '/30 · chu kỳ ' + (cyc + 1) + '/2' : 'Thổi ngạt ' + bCount + '/2', 320, 390);
         if (msgT > 0) bigText(c, msg, 160, msg.startsWith('THỔI') ? '#1d6fa5' : '#d63c3c', 30);
-        countdown(c, t, 'ÉP!');
+        if (mode !== 'prep') countdown(c, t, 'ÉP!');
         hud.textContent = 'Đúng nhịp ' + comp.filter((x) => x === 1).length + '/' + comp.length;
       });
     });
@@ -1867,33 +1893,63 @@
     });
   }
   // ------------------------------------------------------------------ 13. tập ngắm / phản xạ (leo rank, thi đấu eSports)
+  // Tập ngắm — 3 bài: Flick (bắn mục tiêu hiện ngẫu nhiên, tâm đỏ = headshot ×2), Tracking (giữ trỏ trên mục tiêu di chuyển), Đổi mục tiêu (bấm 1→5 theo thứ tự).
+  // Độ khó: thời gian sống mục tiêu = 1.25 + sức khỏe/220 + trí tuệ/400 − need×0.35; tốc độ mục tiêu tracking tăng theo need. Điểm = trung bình 3 bài. Kỷ lục lưu máy.
+  const AIM_CFG = { flick: 9, track: 8, swap: 8, head: 0.38, key: 'kn_aim_best' };
+  function aimScore(hits, heads, target) { return clamp((hits + heads * 0.5) / target, 0, 1); } // thuần túy
   function aim(p) {
     return new Promise((res) => {
-      const st = p.ctx.stats, DUR = 25, target = Math.round(14 + p.need * 10), life = 1.25 + st.health / 220 + st.smarts / 400 - p.need * 0.35;
-      let hits = 0, miss = 0, t = 0, done = false, combo = 0, uid = 0, next = 0.6, balls = [];
-      const box = open('<div class="mini-head"><b>🎯 Tập ngắm</b><small id="amH"></small></div><div class="mini-bar"><i id="amT" style="width:100%"></i></div><div class="am-arena" id="amA"></div><p class="mini-keys">🖱️ Bấm vào mục tiêu trước khi nó biến mất · bấm liền mạch để tăng combo.</p>');
-      const arena = box.querySelector('#amA');
-      const spawn = () => {
-        const el = document.createElement('button'); el.type = 'button'; el.className = 'am-t'; el.dataset.id = ++uid;
-        const r = 26 + rnd() * 14; el.style.width = el.style.height = r * 2 + 'px'; el.style.left = (4 + rnd() * 88) + '%'; el.style.top = (6 + rnd() * 80) + '%';
-        arena.appendChild(el); balls.push({ el, id: uid, left: life });
-      };
-      const hud = () => { box.querySelector('#amH').textContent = 'Trúng ' + hits + '/' + target + ' · combo ×' + combo + ' · còn ' + Math.max(0, Math.ceil(DUR - t)) + 's'; box.querySelector('#amT').style.width = Math.max(0, (1 - t / DUR) * 100) + '%'; };
+      const st = p.ctx.stats, target = Math.round(8 + p.need * 6), life = 1.25 + st.health / 220 + st.smarts / 400 - p.need * 0.35;
+      let phase = 'flick', t = 0, done = false, hits = 0, heads = 0, miss = 0, onT = 0, sets = 0, swapOk = 0, uid = 0, next = 0.5, balls = [], mx = -1, my = -1, expect = 1, trk = null;
+      const sc = { flick: 0, track: 0, swap: 0 };
+      let best = 0; try { best = +localStorage.getItem(AIM_CFG.key) || 0; } catch (e) {}
+      const box = open('<div class="mini-head"><b>🎯 Tập ngắm</b><small id="amH"></small></div><div class="mini-bar"><i id="amT" style="width:100%"></i></div><div class="am-arena" id="amA"></div><p class="mini-keys" id="amK"></p>');
+      const arena = box.querySelector('#amA'), KEYS = { flick: '🖱️ Bài 1/3 FLICK: bấm vào mục tiêu trước khi biến mất. Bắn trúng <b>chấm đỏ giữa</b> = headshot (×2).', track: '🖱️ Bài 2/3 TRACKING: giữ trỏ chuột/ngón tay <b>trên mục tiêu đang di chuyển</b>, càng lâu càng tốt.', swap: '🖱️ Bài 3/3 ĐỔI MỤC TIÊU: bấm các mục tiêu theo thứ tự <b>1 → 5</b>, hết bộ thì có bộ mới.' };
+      const setKeys = () => { box.querySelector('#amK').innerHTML = KEYS[phase]; };
+      const mk = (txt, r, x, y) => { const el = document.createElement('button'); el.type = 'button'; el.className = 'am-t'; el.dataset.id = ++uid; el.style.width = el.style.height = r * 2 + 'px'; el.style.left = x + '%'; el.style.top = y + '%'; if (txt) { el.textContent = txt; el.style.fontWeight = '800'; } arena.appendChild(el); return el; };
+      const spawn = () => { const r = 26 + rnd() * 14, el = mk('', r, 4 + rnd() * 88, 6 + rnd() * 80); el.insertAdjacentHTML('beforeend', '<i style="position:absolute;left:50%;top:50%;width:' + Math.round(r * 0.5) + 'px;height:' + Math.round(r * 0.5) + 'px;margin:-' + Math.round(r * 0.25) + 'px 0 0 -' + Math.round(r * 0.25) + 'px;border-radius:50%;background:#ff3b3b;pointer-events:none"></i>'); balls.push({ el, id: uid, left: life, r }); };
+      const clear = () => { balls.forEach((o) => o.el.remove()); balls = []; if (trk) { trk.el.remove(); trk = null; } };
+      const swapSet = () => { clear(); const spots = []; for (let n = 1; n <= 5; n++) { let x, y, ok; do { x = 8 + rnd() * 80; y = 10 + rnd() * 72; ok = spots.every(([a, b]) => Math.hypot(a - x, b - y) > 20); } while (!ok); spots.push([x, y]); const el = mk(String(n), 28, x, y); balls.push({ el, id: uid, n, left: 99 }); } expect = 1; };
+      const phaseLen = () => AIM_CFG[phase === 'swap' ? 'swap' : phase];
+      const startPhase = (ph) => { clear(); phase = ph; t = 0; setKeys(); if (ph === 'track') { const el = mk('', 38, 50, 50); trk = { el, ph: rnd() * 6 }; } if (ph === 'swap') swapSet(); sfx('notify'); };
+      const hud = () => { box.querySelector('#amH').textContent = (phase === 'flick' ? 'Flick · trúng ' + hits + ' (HS ' + heads + ')' : phase === 'track' ? 'Tracking · ' + Math.round(onT / AIM_CFG.track * 100) + '% đúng mục tiêu' : 'Đổi mục tiêu · ' + swapOk + ' mục tiêu') + ' · còn ' + Math.max(0, Math.ceil(phaseLen() - t)) + 's'; box.querySelector('#amT').style.width = Math.max(0, (1 - t / phaseLen()) * 100) + '%'; };
+      arena.addEventListener('pointermove', (e) => { const r = arena.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; });
       arena.addEventListener('pointerdown', (e) => {
-        if (done) return; e.preventDefault();
+        if (done || phase === 'track') return; e.preventDefault();
         const b = e.target.closest('.am-t'); const o = b && balls.find((x) => x.id === +b.dataset.id);
-        if (o) { hits++; combo++; sfx(combo >= 3 ? 'coin' : 'click'); o.el.classList.add('hit'); setTimeout(() => o.el.remove(), 120); balls = balls.filter((x) => x !== o); }
-        else { combo = 0; miss++; sfx('bad'); }
+        if (phase === 'flick') {
+          if (o) { const rc = o.el.getBoundingClientRect(), d = Math.hypot(e.clientX - (rc.left + rc.width / 2), e.clientY - (rc.top + rc.height / 2)) / (rc.width / 2), hs = d < AIM_CFG.head; hits++; if (hs) heads++; sfx(hs ? 'coin' : 'click'); o.el.classList.add('hit'); setTimeout(() => o.el.remove(), 120); balls = balls.filter((x) => x !== o); }
+          else { miss++; sfx('bad'); }
+        } else if (phase === 'swap') {
+          if (o && o.n === expect) { swapOk++; sfx('click'); o.el.classList.add('hit'); setTimeout(() => o.el.remove(), 120); balls = balls.filter((x) => x !== o); expect++; if (expect > 5) { sets++; swapSet(); } }
+          else { miss++; sfx('bad'); }
+        }
         hud();
       });
-      hud();
+      setKeys(); hud();
       every(() => {
-        if (done) return; t += 0.05; next -= 0.05;
-        if (next <= 0) { spawn(); next = rand(0.55, 0.9) - p.need * 0.12; }
-        balls.forEach((o) => { o.left -= 0.05; o.el.style.opacity = Math.min(1, o.left / 0.4); });
-        const gone = balls.filter((o) => o.left <= 0); if (gone.length) { gone.forEach((o) => o.el.remove()); balls = balls.filter((o) => o.left > 0); combo = 0; miss += gone.length; }
+        if (done) return; t += 0.05;
+        if (phase === 'flick') {
+          next -= 0.05; if (next <= 0) { spawn(); next = rand(0.45, 0.75) - p.need * 0.1; }
+          balls.forEach((o) => { o.left -= 0.05; o.el.style.opacity = Math.min(1, o.left / 0.4); });
+          const gone = balls.filter((o) => o.left <= 0); if (gone.length) { gone.forEach((o) => o.el.remove()); balls = balls.filter((o) => o.left > 0); miss += gone.length; }
+        } else if (phase === 'track' && trk) {
+          const sp = 0.9 + p.need * 1.1, a = arena.getBoundingClientRect(); trk.ph += 0.05 * sp;
+          const x = 50 + 36 * Math.sin(trk.ph * 1.3), y = 50 + 30 * Math.sin(trk.ph * 0.9 + 1.2) * Math.cos(trk.ph * 0.4);
+          trk.el.style.left = x + '%'; trk.el.style.top = y + '%';
+          const cx = x / 100 * a.width, cy = y / 100 * a.height, on = mx >= 0 && Math.hypot(mx - cx, my - cy) < 38; if (on) onT += 0.05; trk.el.classList.toggle('on', on);
+        }
         hud();
-        if (t >= DUR) { done = true; const score = clamp(hits / target - miss * 0.015, 0, 1); setTimeout(() => res({ score, text: 'Bạn bắn trúng ' + hits + ' mục tiêu (cần khoảng ' + target + ')' + (miss ? ', trượt ' + miss + ' lần' : '') + '.' }), 400); }
+        if (t >= phaseLen()) {
+          if (phase === 'flick') { sc.flick = aimScore(hits, heads, target); startPhase('track'); }
+          else if (phase === 'track') { sc.track = clamp(onT / AIM_CFG.track / 0.8, 0, 1); startPhase('swap'); }
+          else {
+            sc.swap = clamp(swapOk / (10 + p.need * 6), 0, 1); done = true; clear();
+            const score = clamp((sc.flick + sc.track + sc.swap) / 3 - miss * 0.01, 0, 1), pct = Math.round(score * 100);
+            let rec = ''; try { if (pct > best) { localStorage.setItem(AIM_CFG.key, String(pct)); rec = best ? ' 🏅 Kỷ lục mới (cũ ' + best + '%)!' : ''; } } catch (e) {}
+            setTimeout(() => res({ score, text: 'Flick: ' + hits + ' trúng (' + heads + ' headshot) · Tracking: ' + Math.round(onT / AIM_CFG.track * 100) + '% · Đổi mục tiêu: ' + swapOk + ' · trượt ' + miss + '.' + rec }), 400);
+          }
+        }
       }, 50);
     });
   }
@@ -1909,6 +1965,8 @@
   function clutch(p) {
     return new Promise((res) => {
       const st = p.ctx.stats, ROUNDS = 3, seq = shuffle(CL_SCEN.slice()).slice(0, ROUNDS), hint = st.smarts >= 70;
+      // tiếng bước chân: ~70% đúng hướng địch thật sự xuất hiện (còn lại đánh lạc hướng); trí tuệ ≥ 70 cho linh cảm
+      const SIDES = ['trái', 'giữa', 'phải']; let cue = { say: 1, real: 1 };
       let ri = 0, wins = 0, partial = 0, hp = 100, done = false, balls = [], hitsR = 0, nR = 0, timeLeft = 0, secs = 0, q = 0, spawnT = 0, queue = 0, uid = 0, phase = 'pick', log = [];
       const box = open('<div class="mini-head"><b>⚡ Clutch</b><small id="clH"></small></div>' +
         '<div class="cl-top"><div class="cl-hp"><span>❤️ Máu</span><div class="mini-bar"><i id="clHp" style="width:100%"></i></div></div><div class="cl-hp"><span>⏳ Thời gian</span><div class="mini-bar"><i id="clT" style="width:100%"></i></div></div></div>' +
@@ -1927,10 +1985,10 @@
       };
       const startAct = (qq) => {
         if (phase !== 'pick') return; q = qq; phase = 'act'; sfx(q === 2 ? 'good' : q === 1 ? 'click' : 'bad');
-        const sc = seq[ri]; nR = sc.n; hitsR = 0; queue = nR; spawnT = 0.3; secs = sc.secs * (q === 2 ? 0.62 : q === 1 ? 0.5 : 0.4) + st.health / 60 - p.need * 2; timeLeft = secs;
+        const sc = seq[ri]; cue.real = Math.floor(rnd() * 3); cue.say = rnd() < 0.7 ? cue.real : (cue.real + 1 + Math.floor(rnd() * 2)) % 3; nR = sc.n; hitsR = 0; queue = nR; spawnT = 0.3; secs = sc.secs * (q === 2 ? 0.62 : q === 1 ? 0.5 : 0.4) + st.health / 60 - p.need * 2; timeLeft = secs;
         box.querySelector('#clO').hidden = true; arena.hidden = false; arena.innerHTML = '';
         box.querySelector('#clC').innerHTML += '<p class="cl-note">' + (q === 2 ? '✅ Quyết định hợp lý: địch lộ sơ hở.' : q === 1 ? '⚠️ Cách này tạm được, địch khó bắt hơn.' : '❌ Quyết định liều lĩnh: địch đã sẵn sàng!') + ' Hạ ' + nR + ' mục tiêu trước khi hết giờ.</p>';
-        box.querySelector('#clK').textContent = '🖱️ Bấm vào từng địch trước khi nó tránh đi. Bấm trượt hoặc để địch thoát thì mất máu.';
+        box.querySelector('#clK').textContent = '🎧 Nghe tiếng bước chân phía ' + SIDES[cue.say] + ' (không phải lúc nào cũng đúng). 🖱️ Bấm vào từng địch trước khi nó tránh đi. Bấm trượt hoặc để địch thoát thì mất máu.';
         onKeys(() => true); hud();
       };
       const endRound = (ok) => {
@@ -1943,7 +2001,7 @@
       const finishAll = () => { if (done) return; done = true; const score = clamp((wins + partial) / ROUNDS, 0, 1); res({ score, text: 'Bạn xử lý thành công ' + wins + '/' + ROUNDS + ' tình huống clutch' + (wins === ROUNDS ? ' — xứng đáng MVP trận!' : wins ? '.' : ', cần bình tĩnh hơn.') }); };
       const spawn = () => {
         const el = document.createElement('button'); el.type = 'button'; el.className = 'am-t cl-e'; el.dataset.id = ++uid;
-        const r = (q === 2 ? 28 : q === 1 ? 23 : 18) + rnd() * 10; el.style.width = el.style.height = r * 2 + 'px'; el.style.left = (6 + rnd() * 86) + '%'; el.style.top = (8 + rnd() * 78) + '%'; el.textContent = '👤';
+        const r = (q === 2 ? 28 : q === 1 ? 23 : 18) + rnd() * 10; el.style.width = el.style.height = r * 2 + 'px'; const lo = [6, 34, 62][cue.real], xx = rnd() < 0.7 ? lo + rnd() * 30 : 6 + rnd() * 86; el.style.left = xx + '%'; el.style.top = (8 + rnd() * 78) + '%'; el.textContent = '👤';
         arena.appendChild(el); balls.push({ el, id: uid, left: (q === 2 ? 1.9 : q === 1 ? 1.5 : 1.15) + st.health / 300 });
       };
       arena.addEventListener('pointerdown', (e) => {

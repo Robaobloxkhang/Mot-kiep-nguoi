@@ -212,33 +212,47 @@
 
   // ================================================================ 🎣 CÂU CÁ
   const FISH_SIZE = ['', 'cá nhỏ', 'cá vừa', 'cá to', 'cá rất to', 'cá cực hiếm'];
+  // Sổ cá: 10 loài, mỗi loài thích một loại mồi và một vùng nước (gần/giữa/xa). Chọn mồi 1–3 trước khi quăng; cá cắn giả (?) thì đừng giật; khi kéo cá có lúc giật mạnh, có lúc mệt.
+  const BAITS = [['🪱', 'giun'], ['🦐', 'tôm'], ['🍞', 'bánh mì']];
+  const SPECIES = [
+    { n: 'Cá bống', t: 1, b: 0, z: 0 }, { n: 'Cá rô phi', t: 1, b: 0, z: 0 }, { n: 'Cá diếc', t: 2, b: 2, z: 0 }, { n: 'Cá chép', t: 2, b: 2, z: 1 }, { n: 'Cá trê', t: 2, b: 0, z: 1 },
+    { n: 'Cá lóc', t: 3, b: 1, z: 1 }, { n: 'Cá trắm', t: 3, b: 2, z: 2 }, { n: 'Cá chình', t: 4, b: 1, z: 2 }, { n: 'Cá tra dầu', t: 4, b: 0, z: 2 }, { n: 'Cá hô', t: 5, b: 1, z: 2, rare: 1 }
+  ];
+  function fishPick(bait, dist, rng) { // thuần túy: chọn loài theo mồi + vùng nước
+    const z = dist < 0.35 ? 0 : dist < 0.7 ? 1 : 2, w = SPECIES.map((f) => (f.b === bait ? 3 : 1) * (f.z === z ? 3 : 1) * (f.rare ? 0.4 : 1)), sum = w.reduce((a, b) => a + b, 0);
+    let r = rng() * sum; for (let i = 0; i < SPECIES.length; i++) { r -= w[i]; if (r <= 0) return SPECIES[i]; } return SPECIES[0];
+  }
   function fishing(p) {
     return new Promise((res) => {
       const s = st(p);
-      const box = open('🎣 Câu cá', '<canvas class="mini-cv" width="640" height="400"></canvas><div class="mini-pad"><button type="button" data-f>🎣 QUĂNG · GIẬT · KÉO <kbd>Space</kbd></button></div>', 'Bấm <kbd>Space</kbd> để quăng câu (vạch càng xa càng dễ gặp cá to) → chờ phao chìm thì bấm thật nhanh để giật → <b>giữ</b> Space để kéo, thả ra khi dây căng đỏ kẻo đứt.');
+      const box = open('🎣 Câu cá', '<canvas class="mini-cv" width="640" height="400"></canvas><div class="mini-pad"><button type="button" data-f>🎣 QUĂNG · GIẬT · KÉO <kbd>Space</kbd></button></div>', 'Chọn mồi <kbd>1</kbd> giun · <kbd>2</kbd> tôm · <kbd>3</kbd> bánh mì (mỗi loài cá thích một mồi, xa bờ cá to hơn). Bấm <kbd>Space</kbd> để quăng câu (vạch càng xa càng dễ gặp cá to) → chờ phao chìm thì bấm thật nhanh để giật → <b>giữ</b> Space để kéo, thả ra khi dây căng đỏ kẻo đứt.');
       const cv = box.querySelector('canvas'), c = cv.getContext('2d');
+      let bait = 0, nib = -1, nibT = 0, species = null, tired = 0, tiredCd = 5, book = {}; try { book = JSON.parse(localStorage.getItem('kn_fish_book') || '{}'); } catch (e) {}
       let phase = 'aim', pw = 0, dir = 1, dist = 0, wait = 0, biteT = 0, prog = 0, ten = 0, hold = false, t = 0, tier = 0, msg = '', msgT = 0, done = false, pull = 0;
       const say = (m) => { msg = m; msgT = 1.4; };
       const press = (down) => {
         if (done) return;
-        if (phase === 'aim' && down) { dist = pw; phase = 'wait'; wait = 1.5 + Math.random() * 3.5; sfx('whoosh'); }
-        else if (phase === 'bite' && down) { phase = 'reel'; prog = 10; ten = 30; tier = clamp(1 + Math.floor(dist * 3 + Math.random() * 1.6 + (Math.random() < 0.08 ? 1 : 0)), 1, 5); sfx('click'); }
-        else if (phase === 'wait' && down) say('Từ từ, cá chưa cắn!');
+        if (phase === 'aim' && down) { dist = pw; phase = 'wait'; wait = 1.8 + Math.random() * 3.5; nib = Math.random() < 0.6 ? wait * (0.35 + Math.random() * 0.3) : -1; nibT = 0; sfx('whoosh'); }
+        else if (phase === 'bite' && down) { phase = 'reel'; prog = 10; ten = 30; species = fishPick(bait, dist, Math.random); tier = species.t; tired = 0; tiredCd = 4 + Math.random() * 2; sfx('click'); }
+        else if (phase === 'wait' && down) { if (nibT > 0) { say('Giật sớm làm cá sợ mất rồi!'); phase = 'aim'; nibT = 0; sfx('bad'); } else say('Từ từ, cá chưa cắn!'); }
         if (phase === 'reel') hold = down;
       };
       const b = box.querySelector('[data-f]'); b.onpointerdown = (e) => { e.preventDefault(); press(true); }; b.onpointerup = b.onpointerleave = () => press(false);
-      cv.addEventListener('pointerdown', (e) => { e.preventDefault(); press(true); }); cv.addEventListener('pointerup', () => press(false));
-      onKeys((e) => { if (e.key !== ' ') return false; if (e.repeat) return true; press(e.type === 'keydown'); return true; });
-      const end = (ok, why) => { if (done) return; done = true; sfx(ok ? 'cheer' : 'bad'); msg = why || 'Lên rồi! 🐟'; msgT = 99; setTimeout(() => res({ score: ok ? tier / 5 : 0, text: ok ? 'Bạn câu được một con ' + FISH_SIZE[tier] + '!' : why }), 1200); };
+      cv.addEventListener('pointerdown', (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(), y = (e.clientY - r.top) / r.height * 400; if (phase === 'aim' && y > 345) { bait = clamp(Math.floor((e.clientX - r.left) / r.width * 3), 0, 2); sfx('click'); return; } press(true); }); cv.addEventListener('pointerup', () => press(false));
+      onKeys((e) => { if (/^[1-3]$/.test(e.key) && e.type === 'keydown') { if (phase === 'aim') { bait = +e.key - 1; sfx('click'); } return true; } if (e.key !== ' ') return false; if (e.repeat) return true; press(e.type === 'keydown'); return true; });
+      const end = (ok, why) => { if (done) return; done = true; sfx(ok ? 'cheer' : 'bad'); msg = why || 'Lên rồi! 🐟'; msgT = 99; let isNew = false; if (ok && species) { isNew = !book[species.n]; book[species.n] = (book[species.n] || 0) + 1; try { localStorage.setItem('kn_fish_book', JSON.stringify(book)); } catch (e) {} }
+        const got = Object.keys(book).length;
+        setTimeout(() => res({ score: ok ? tier / 5 : 0, text: ok ? 'Bạn câu được ' + (species ? species.n : FISH_SIZE[tier]) + ' (' + FISH_SIZE[tier] + ')' + (isNew ? ' — 📖 loài MỚI trong sổ cá!' : '!') + ' Sổ cá: ' + got + '/' + SPECIES.length + '.' : why }), 1200); };
       loop((dt) => {
         t += dt;
         if (phase === 'aim') { pw += dir * dt * 0.9; if (pw > 1) { pw = 1; dir = -1; } if (pw < 0) { pw = 0; dir = 1; } }
-        if (phase === 'wait') { wait -= dt; if (wait <= 0) { phase = 'bite'; biteT = 0.45 + s.health / 400; sfx('notify'); } }
+        if (phase === 'wait') { wait -= dt; if (nib > 0 && wait < nib) { nib = -1; nibT = 0.8; } nibT = Math.max(0, nibT - dt); if (wait <= 0) { phase = 'bite'; biteT = 0.45 + s.health / 400; sfx('notify'); } }
         if (phase === 'bite') { biteT -= dt; if (biteT <= 0) { phase = 'aim'; say('Cá ăn mồi mất rồi! Quăng lại nhé.'); } }
         if (phase === 'reel' && !done) {
-          pull = Math.max(0, pull - dt) ; if (Math.random() < dt * (0.6 + tier * 0.25)) pull = 0.5 + Math.random() * 0.6;
-          const fishF = (pull > 0 ? 55 : 8) * (0.6 + tier * 0.2);
-          if (hold) { prog += dt * (22 - tier * 2); ten += dt * (38 + tier * 6) + fishF * dt * 0.6; } else { prog -= dt * (5 + tier * 2); ten -= dt * 55; }
+          tiredCd -= dt; if (tiredCd <= 0) { tired = tired > 0 ? 0 : 1.8; tiredCd = tired > 0 ? 1.8 : 4 + Math.random() * 2.5; } if (tired > 0) tired = Math.max(0, tired - dt);
+          pull = Math.max(0, pull - dt) ; if (!tired && Math.random() < dt * (0.6 + tier * 0.25)) pull = 0.5 + Math.random() * 0.6; if (tired) pull = 0;
+          const fishF = (pull > 0 ? 55 : tired ? 0 : 8) * (0.6 + tier * 0.2);
+          if (hold) { prog += dt * (22 - tier * 2) * (tired ? 1.7 : 1); ten += dt * (38 + tier * 6) + fishF * dt * 0.6; } else { prog -= dt * (5 + tier * 2); ten -= dt * 55; }
           ten = clamp(ten, 0, 120); prog = clamp(prog, 0, 100);
           if (ten >= 100) end(false, 'Phựt! Dây căng quá nên đứt mất rồi…');
           else if (prog <= 0) end(false, 'Cá vùng thoát mất…');
@@ -254,11 +268,13 @@
         if (phase !== 'aim') { c.fillStyle = '#ff4d4d'; c.beginPath(); c.arc(bx, by, 7, 0, 7); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(bx, by - 4, 4, Math.PI, 0); c.fill(); }
         if (phase === 'aim') { c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(160, 40, 420, 14); c.fillStyle = '#ffd23f'; c.fillRect(160, 40, 420 * pw, 14); c.fillStyle = '#fff'; c.font = '700 13px sans-serif'; c.textAlign = 'left'; c.fillText('Lực quăng — xa hơn = dễ gặp cá to', 160, 32); }
         if (phase === 'bite') big(c, 'CÁ CẮN! BẤM NGAY!', 90, '#ffd23f', 34);
+        if (phase === 'wait' && nibT > 0) big(c, '… cá rỉa mồi (đừng giật!)', 90, '#cfd8e8', 22);
+        if (phase === 'aim') { c.font = '700 14px sans-serif'; c.textAlign = 'center'; BAITS.forEach((b, k) => { c.fillStyle = k === bait ? '#ffd23f' : 'rgba(0,0,0,.45)'; c.fillRect(150 + k * 130, 358, 120, 30); c.fillStyle = k === bait ? '#222' : '#fff'; c.fillText((k + 1) + ' ' + b[0] + ' ' + b[1], 210 + k * 130, 378); }); c.textAlign = 'left'; }
         if (phase === 'reel') {
           c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(160, 40, 420, 14); c.fillStyle = '#39cf98'; c.fillRect(160, 40, 4.2 * prog, 14);
           c.fillRect(600, 80, 18, 220); c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(600, 80, 18, 220); c.fillStyle = ten > 80 ? '#ff5c5c' : ten > 55 ? '#ffb347' : '#39cf98'; c.fillRect(600, 300 - ten * 2.2, 18, ten * 2.2);
           c.fillStyle = '#fff'; c.font = '700 12px sans-serif'; c.textAlign = 'left'; c.fillText('Kéo cá vào bờ', 160, 32); c.textAlign = 'center'; c.fillText('Độ căng', 609, 72);
-          if (pull > 0) big(c, 'Cá đang giật mạnh!', 120, '#ffb347', 24);
+          if (pull > 0) big(c, 'Cá đang giật mạnh! — nhả dây', 120, '#ffb347', 24); else if (tired > 0) big(c, 'Cá mệt rồi — kéo mạnh!', 120, '#45c486', 24);
         }
         msgT = Math.max(0, msgT - dt); if (msgT > 0 && msg) big(c, msg, 360, '#fff', 22);
         hud(phase === 'aim' ? 'Canh lực quăng' : phase === 'wait' ? 'Chờ cá cắn câu…' : phase === 'bite' ? 'Giật cần!' : 'Đang kéo cá');
