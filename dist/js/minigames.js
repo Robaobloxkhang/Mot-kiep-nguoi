@@ -147,7 +147,7 @@
     return root;
   }
   // nút ✖ Thoát góc trên: bỏ dở minigame → kết quả do số phận quyết định (thách đấu thì tính thua)
-  function addQuit(el) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mini-quit'; b.textContent = '✖ Thoát'; b.title = 'Bỏ dở minigame, để số phận quyết định'; b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); sfx('click'); if (abortFn) abortFn(); }; (el.querySelector('.mini-box') || el).appendChild(b); }
+  function addQuit(el) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mini-quit'; b.textContent = '✖ Thoát'; b.title = 'Bỏ dở minigame, để số phận quyết định'; let armed = 0; b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); sfx('click'); if (!armed) { armed = 1; b.textContent = '❓ Bấm lần nữa để thoát'; b.classList.add('arm'); setTimeout(() => { armed = 0; b.textContent = '✖ Thoát'; b.classList.remove('arm'); }, 3000); return; } if (abortFn) abortFn(); }; (el.querySelector('.mini-box') || el).appendChild(b); }
   function close() {
     cancelAnimationFrame(rafId); rafId = 0;
     timers.forEach((id) => clearInterval(id)); timers = [];
@@ -254,7 +254,10 @@
       if (ok && !duel) (KN.Weekly && KN.Weekly.track('minigame'));
       const line = duel ? '⏳ Đang chờ kết quả của đối thủ…' : buy ? (score > 0.01 ? '✅ Được giảm ' + Math.round(score * 15) + '% giá' : '😅 Không bớt được đồng nào') : ok ? '✅ Đạt yêu cầu (' + Math.round(p.need * 100) + '%)' : '❌ Chưa đạt yêu cầu (' + Math.round(p.need * 100) + '%)';
       const verdict = duel ? (ok ? 'Chiến thắng' : 'Thất bại') : buy ? (score > 0.01 ? 'Mặc cả thành công' : 'Không bớt được') : ok ? (score >= 0.9 ? 'Xuất sắc' : 'Thành công') : 'Chưa đạt';
-      const box = open('<div class="mini-result"><div class="mini-ring ' + (ok ? 'ok' : 'bad') + '" style="--p:' + pct + '"><div><b>' + pct + '<small>%</small></b><span>' + verdict + '</span></div></div><p class="mini-rtext">' + esc(text) + '</p><p class="mini-goal">' + line + '</p><div class="mini-btns"><button type="button" class="btn btn-primary" data-ok>' + (duel ? 'Xong' : buy ? 'Xuống tiền 💸' : 'Tiếp tục') + '</button></div></div>');
+      // ghi kỷ lục / thành tựu (mỗi lượt đúng một lần) rồi hiện tóm tắt thật trên màn kết quả
+      let rec = null; try { rec = KN.MiniMeta && KN.MiniMeta.record(p, score, ok); } catch (e) { rec = null; }
+      const metaHtml = rec ? '<div class="mini-meta">' + (rec.isBest ? '<span class="gold">🏅 Kỷ lục mới! (cũ ' + rec.prev + '%)</span>' : rec.firstTime ? '<span>🆕 Lần đầu chơi trò này</span>' : '<span>Kỷ lục: <b>' + rec.best + '%</b></span>') + '<span>Lần chơi #' + rec.plays + '</span>' + (rec.streak >= 2 ? '<span>🔥 Chuỗi thắng ' + rec.streak + '</span>' : '') + (rec.dailyDoneNow ? '<span class="gold">🎯 Hoàn thành thử thách hôm nay!</span>' : '') + rec.fresh.map((a) => '<span class="gold">' + a.icon + ' Thành tựu: ' + esc(a.name) + '</span>').join('') + '</div>' : '';
+      const box = open('<div class="mini-result"><div class="mini-ring ' + (ok ? 'ok' : 'bad') + '" style="--p:' + pct + '"><div><b>' + pct + '<small>%</small></b><span>' + verdict + '</span></div></div><p class="mini-rtext">' + esc(text) + '</p><p class="mini-goal">' + line + '</p>' + metaHtml + '<div class="mini-btns"><button type="button" class="btn btn-primary" data-ok>' + (duel ? 'Xong' : buy ? 'Xuống tiền 💸' : 'Tiếp tục') + '</button></div></div>');
       sfx(ok ? 'cheer' : 'fail');
       const done = () => { close(); res(score); };
       box.querySelector('[data-ok]').onclick = done;
@@ -2057,9 +2060,9 @@
     plan, planJob, planPropose, planHaggle, planDuel, run, NAME, DUEL_TYPES,
     // file khác đăng ký thêm minigame (js/showbiz.js): fn(p) → Promise<{score, text}>, tự mở khung riêng
     register(type, fn, name, how, hint) { GAMES[type] = (p) => { close(); return fn(p); }; NAME[type] = name; HOWTO[type] = how; if (hint) EXTRA_HINT[type] = hint; },
-    busy: () => !!root,
+    busy: () => !!root, HOWTO,
     abort() { if (abortFn) abortFn(); }, playing: () => !!abortFn, onAbort: [],
     setEnabled(b) { KN.store.set(PREF, !!b); }, isEnabled: enabled,
-    test(type, need, stats, extra) { const ctx = Object.assign({ stats: { happy: 60, health: 70, smarts: 70, looks: 60 }, appearance: { top: '#2d6cdf', skin: '#e6b48f' }, age: 20 }, stats ? { stats } : {}); return run(Object.assign({ type, need: need ?? 0.5, ctx, title: 'Thử minigame', label: NAME[type], level: 2, mode: 'event', foe: 'thug' }, extra || {})); },
+    test(type, need, stats, extra) { const ctx = Object.assign({ stats: { happy: 60, health: 70, smarts: 70, looks: 60 }, appearance: { top: '#2d6cdf', skin: '#e6b48f' }, age: 20 }, stats ? { stats } : {}); return run(Object.assign({ type, need: need ?? 0.5, ctx, title: 'Thử minigame', label: NAME[type], level: 2, mode: 'event', foe: 'thug', practice: true }, extra || {})); },
   };
 })();
