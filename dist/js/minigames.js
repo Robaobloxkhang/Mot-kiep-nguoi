@@ -194,8 +194,8 @@
 
     sprint: 'Bấm luân phiên ← → (hoặc hai nút trái/phải) thật nhanh để về đích trước đối thủ.',
     swim: 'Quạt tay luân phiên ← → đúng lúc vòng tròn khép lại (bấm loạn sẽ mất sức). Hết ô-xy thì bấm ↑ hoặc Space để ngoi lên thở, để cạn là sặc nước!',
-    chase: 'Bấm luân phiên ← → để chạy, bấm ↑ hoặc Space để nhảy qua chướng ngại. Tóm được tên kia trước khi hết giờ!',
-    drive: '← → để chuyển làn, né ô tô, ổ gà, chó chạy qua đường. Va chạm 3 lần là hỏng chuyến. Trụ hết 25 giây.',
+    chase: '← → đổi làn, ↑ nhảy qua vật thấp, ↓ trượt dưới xà ngang, Space tăng tốc. Thu hẹp khoảng cách để tóm hắn (hoặc giữ khoảng cách để thoát) trong 45 giây!',
+    drive: '← → đổi làn, ↑ ga, ↓ phanh. Né ô tô/ổ gà/chó (có ⚠ báo trước), giữ đúng tốc độ biển báo, dừng khi đèn đỏ, cẩn thận lúc mưa. Va 3 lần là hỏng chuyến. Trụ hết 36 giây.',
     fight: '← → di chuyển · J/Z đấm · K/X đá · L/C đỡ · Space né. Trên điện thoại dùng các nút bên dưới. Hạ đối thủ hoặc còn nhiều máu hơn khi hết giờ.',
     interview: '4 câu hỏi từ nhà tuyển dụng. Chọn câu trả lời khéo nhất trước khi hết giờ (phím 1–3).',
     cook: 'Khách tới gọi món. Bấm nguyên liệu đúng thứ tự công thức để làm món cho khách đang chọn. Sai là làm lại! Khách chờ lâu sẽ bỏ về. 45 giây.',
@@ -573,33 +573,49 @@
       const hp = p.ctx.stats.health;
       const { box, cv, c, hud } = canvasGame('🏃 Chạy nước rút', '<div class="mini-pad"><button type="button" data-l>◀ TRÁI <kbd>←</kbd></button><button type="button" data-boost>💥 BÙNG NỔ <kbd>Space</kbd></button><button type="button" data-r>PHẢI ▶ <kbd>→</kbd></button></div>', '<b>Quản lý thể lực</b>: bấm quá dày sẽ cạn sức và chạy chậm lại. <kbd>Space</kbd> bùng nổ (tốn 35 thể lực, hồi chiêu 3 giây) để nước rút cuối. Bấm luân phiên <kbd>←</kbd> <kbd>→</kbd> (hoặc <kbd>A</kbd> <kbd>D</kbd>) thật nhanh. Bấm một phím liên tục sẽ không chạy.');
       const step = 2.4 + hp / 100 * 1.6; // sức khỏe cao → mỗi nhịp chân đi xa hơn
-      const rivals = [0, 1, 2].map((i) => ({ x: 0, v: 7 + p.need * 6 + i * 1.0 + rand(-0.6, 0.6) }));
-      let me = 0, v = 0, last = null, t = -2.5, finished = false, stam = 100, cd = 0, flash = 0;
-      const press = (side) => { if (t < 0 || finished || side === last) return; last = side; const gas = stam <= 0; v += step * (gas ? 0.35 : 1); stam = Math.max(0, stam - 3); sfx('click'); };
-      const boost = () => { if (t < 0 || finished || cd > 0 || stam < 35) return; stam -= 35; cd = 3; v += step * 4.5; flash = 0.5; sfx('kick'); };
+      // 3 đối thủ có phong cách: 0 = lao nhanh đầu (xuống sức cuối), 1 = đều, 2 = về đích mạnh. Độ khó: vận tốc gốc tăng theo need.
+      const SPR_CFG = { lock: 0.8, goMin: 1.8, goMax: 3.4, pbKey: 'kn_sprint_pb' };
+      const STYLE = [(f) => 1.18 - 0.4 * f, () => 1, (f) => 0.82 + 0.4 * f];
+      const rivals = [0, 1, 2].map((i) => ({ x: 0, v: 7 + p.need * 6 + i * 1.0 + rand(-0.6, 0.6), st: i, name: ['Tay lao nhanh', 'Chạy đều', 'Về đích mạnh'][i] }));
+      let pb = 0; try { pb = +localStorage.getItem(SPR_CFG.pbKey) || 0; } catch (e) {}
+      let me = 0, v = 0, last = null, t = -rand(SPR_CFG.goMin, SPR_CFG.goMax), goT = -t, finished = false, stam = 100, cd = 0, flash = 0, lockT = 0, falseStarts = 0, react = 0, msg = '', msgT = 0;
+      const press = (side) => {
+        if (finished) return;
+        if (t < 0) { falseStarts++; lockT = SPR_CFG.lock * falseStarts; msg = 'XUẤT PHÁT SỚM!'; msgT = 1; sfx('bad'); return; }
+        if (lockT > 0 || side === last) return;
+        if (!react) react = Math.round(t * 1000);
+        last = side; const gas = stam <= 0; v += step * (gas ? 0.35 : 1); stam = Math.max(0, stam - 3); sfx('click');
+      };
+      const boost = () => { if (t < 0 || finished || lockT > 0 || cd > 0 || stam < 35) return; stam -= 35; cd = 3; v += step * 4.5; flash = 0.5; sfx('kick'); };
       padBind(box, '[data-l]', () => press('l')); padBind(box, '[data-r]', () => press('r')); padBind(box, '[data-boost]', boost);
       onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { press('l'); return true; } if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { press('r'); return true; } if (e.key === ' ') { boost(); return true; } return false; });
       loop((dt) => {
-        t += dt;
+        t += dt; msgT = Math.max(0, msgT - dt);
         if (t > 0 && !finished) {
-          stam = Math.min(100, stam + 6 * dt); cd = Math.max(0, cd - dt); flash = Math.max(0, flash - dt);
+          stam = Math.min(100, stam + 6 * dt); cd = Math.max(0, cd - dt); flash = Math.max(0, flash - dt); lockT = Math.max(0, lockT - dt);
           v = Math.max(0, v - v * dt * 1.8); me += v * dt;
-          rivals.forEach((r) => (r.x += r.v * dt * (0.9 + Math.sin(t * 3 + r.v) * 0.1)));
-          if (me >= 100) { finished = true; const place = 1 + rivals.filter((r) => r.x >= 100).length; setTimeout(() => res({ score: [1, 0.66, 0.4, 0.15][place - 1], text: 'Bạn về đích thứ ' + place + '/4.' }), 900); }
+          rivals.forEach((r) => (r.x += r.v * dt * STYLE[r.st](Math.min(1, r.x / 100)) * (0.9 + Math.sin(t * 3 + r.v) * 0.1)));
+          if (me >= 100) {
+            finished = true; const place = 1 + rivals.filter((r) => r.x >= 100).length, tt = t;
+            const newPb = !pb || tt < pb; if (newPb) { try { localStorage.setItem(SPR_CFG.pbKey, String(tt.toFixed(2))); } catch (e) {} }
+            setTimeout(() => res({ score: [1, 0.66, 0.4, 0.15][place - 1], text: 'Bạn về đích thứ ' + place + '/4 · ' + tt.toFixed(2) + 's' + (react ? ' · phản xạ ' + react + 'ms' : '') + (falseStarts ? ' · ' + falseStarts + ' lần xuất phát sớm' : '') + (newPb ? ' · 🏅 KỶ LỤC MỚI!' : ''), }), 900);
+          }
           else if (rivals.every((r) => r.x >= 100) && t > 25) { finished = true; setTimeout(() => res({ score: me / 100 * 0.3, text: 'Bạn bị bỏ xa, về cuối.' }), 900); }
         }
         c.fillStyle = '#b5482c'; c.fillRect(0, 0, 640, 400);
         for (let i = 0; i < 4; i++) { c.fillStyle = i % 2 ? '#c4553a' : '#b5482c'; c.fillRect(0, 70 + i * 75, 640, 75); c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 70 + i * 75); c.lineTo(640, 70 + i * 75); c.stroke(); }
         c.fillStyle = '#fff'; c.fillRect(600, 70, 8, 300);
         const px = (x) => 30 + Math.min(100, x) / 100 * 560;
-        rivals.forEach((r, i) => runner(c, px(r.x), 70 + (i + 1) * 75 + 40, ['#5b5fc7', '#2f9e9e', '#9b59b6'][i], 'Đối thủ', r.x));
+        if (pb && t > 0 && !finished) { c.globalAlpha = 0.35; runner(c, px(100 * t / pb), 110, '#ffffff', '👻 Kỷ lục ' + pb + 's', 100 * t / pb); c.globalAlpha = 1; }
+        rivals.forEach((r, i) => runner(c, px(r.x), 70 + (i + 1) * 75 + 40, ['#5b5fc7', '#2f9e9e', '#9b59b6'][i], r.name, r.x));
         runner(c, px(me), 110, (p.ctx.appearance && p.ctx.appearance.top) || '#ffd23f', 'BẠN', me, p.ctx.appearance && p.ctx.appearance.skin);
         c.fillStyle = 'rgba(8,12,22,.7)'; c.fillRect(14, 12, 300, 44); c.fillStyle = '#9fb0cc'; c.font = '700 12px sans-serif'; c.textAlign = 'left'; c.fillText('THỂ LỰC', 24, 28);
         c.fillStyle = '#232d40'; c.fillRect(24, 34, 190, 10); c.fillStyle = stam > 50 ? '#45c486' : stam > 20 ? '#ffb547' : '#ef6a62'; c.fillRect(24, 34, 190 * stam / 100, 10);
         c.fillStyle = cd > 0 ? '#9fb0cc' : stam >= 35 ? '#ffd23f' : '#6f7d99'; c.fillText(cd > 0 ? 'Bùng nổ: ' + cd.toFixed(1) + 's' : stam >= 35 ? '💥 Sẵn sàng bùng nổ!' : 'Chưa đủ thể lực', 224, 43);
         if (flash > 0) { c.fillStyle = 'rgba(255,210,63,' + flash * 0.5 + ')'; c.fillRect(0, 0, 640, 400); }
-        countdown(c, t, 'CHẠY!');
-        hud.textContent = Math.round(Math.min(100, me)) + ' m · tốc độ ' + v.toFixed(1);
+        if (t < 0) bigText(c, 'SẴN SÀNG…', 230, '#fff', 56); else if (t < 0.6) bigText(c, 'CHẠY!', 230, '#ffd23f', 64);
+        if (lockT > 0) bigText(c, 'XUẤT PHÁT SỚM! khựng ' + lockT.toFixed(1) + 's', 300, '#ff6b6b', 26); else if (msgT > 0) bigText(c, msg, 300, '#ff6b6b', 26);
+        hud.textContent = Math.round(Math.min(100, me)) + ' m · tốc độ ' + v.toFixed(1) + (pb ? ' · kỷ lục ' + pb + 's' : '');
       });
     });
   }
@@ -620,7 +636,13 @@
         const ph = phase(), d = Math.min(ph, 1 - ph);
         if (d < tol) { v += step; good++; sfx('click'); } else { v += step * 0.3; say('Lệch nhịp!'); }
       };
-      const breathe = () => { if (t < 0 || done || stall > 0) return; o2 = 100; stall = 0.35; say('Hít…'); };
+      // lật người ở thành hồ (25 m): bấm Space đúng lúc vòng sáng 0.5–0.9s → đạp thành lấy đà; muộn/sớm thì mất nhịp
+      let turning = false, turnT = 0, turned = false;
+      const breathe = () => {
+        if (t < 0 || done) return;
+        if (turning) { turning = false; turned = true; if (turnT > 0.5 && turnT < 0.9) { v += step * 2.2; say('LẬT HOÀN HẢO!'); sfx('good'); } else { v += step * 0.4; say(turnT < 0.5 ? 'Lật sớm — mất đà' : 'Lật muộn — chậm'); sfx('bad'); } return; }
+        if (stall > 0) return; o2 = 100; stall = 0.35; say('Hít…');
+      };
       padBind(box, '[data-s]', (b) => (b.dataset.s === 'b' ? breathe() : stroke(b.dataset.s)));
       onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (k === 'ArrowLeft' || k === 'a' || k === 'A') stroke('l'); else if (k === 'ArrowRight' || k === 'd' || k === 'D') stroke('r'); else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') breathe(); else return false; return true; });
       loop((dt) => {
@@ -629,8 +651,10 @@
           if (stall > 0) { stall -= dt; v *= Math.max(0, 1 - dt * 4); }
           o2 -= dt * 14;
           if (o2 <= 0) { o2 = 45; stall = 1.5; v = 0; say('SẶC NƯỚC!'); sfx('bad'); }
-          v = Math.max(0, v - v * dt * 1.6); me += v * dt * 0.5;
-          rivals.forEach((r) => (r.x += r.v * 0.5 * dt * (0.92 + Math.sin(t * 2 + r.v) * 0.08)));
+          v = Math.max(0, v - v * dt * 1.6);
+          if (turning) { turnT += dt; v = 0; if (turnT > 1.3) { turning = false; turned = true; say('Quên lật! Mất thời gian'); sfx('bad'); } }
+          else { me += v * dt * 0.5; if (!turned && me >= LEN / 2) { me = LEN / 2; turning = true; turnT = 0; } }
+          rivals.forEach((r) => { if (r.pause > 0) { r.pause -= dt; return; } r.x += r.v * 0.5 * dt * (0.92 + Math.sin(t * 2 + r.v) * 0.08); if (!r.tn && r.x >= LEN / 2) { r.tn = true; r.pause = 0.45; } });
           if (me >= LEN) { done = true; const place = 1 + rivals.filter((r) => r.x >= LEN).length; setTimeout(() => res({ score: [1, 0.6, 0.25][place - 1], text: 'Bạn chạm tường thứ ' + place + '/3 · ' + good + '/' + total + ' sải đúng nhịp.' }), 900); }
           else if (rivals.every((r) => r.x >= LEN) && t > 30) { done = true; setTimeout(() => res({ score: me / LEN * 0.25, text: 'Bạn đuối sức, về cuối.' }), 900); }
         }
@@ -638,13 +662,14 @@
         for (let i = 0; i < 3; i++) { c.fillStyle = i % 2 ? '#2280bd' : '#1d6fa5'; c.fillRect(0, 100 + i * 90, 640, 90); }
         c.strokeStyle = '#ffd23f'; c.setLineDash([10, 8]); c.lineWidth = 3; for (let i = 0; i <= 3; i++) { c.beginPath(); c.moveTo(0, 100 + i * 90); c.lineTo(640, 100 + i * 90); c.stroke(); } c.setLineDash([]);
         c.fillStyle = '#fff'; c.fillRect(604, 100, 6, 270);
-        const px = (x) => 30 + Math.min(LEN, x) / LEN * 560;
+        const px = (x) => { const d = Math.min(LEN, x), f = (d % (LEN / 2)) / (LEN / 2); return 30 + (d >= LEN ? 0 : d >= LEN / 2 ? 1 - f : f) * 560; };
         const swimmer = (x, y, col, label, ph) => { c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(x - 24, y + 4, 26, 7, 0, 0, 7); c.fill(); c.fillStyle = col; c.beginPath(); c.arc(x, y, 11, 0, 7); c.fill(); c.strokeStyle = '#f2c39a'; c.lineWidth = 5; c.beginPath(); c.moveTo(x - 4, y); c.lineTo(x + 18 * Math.cos(ph), y - 14 * Math.sin(ph)); c.stroke(); if (label) { c.fillStyle = '#fff'; c.font = '700 13px sans-serif'; c.textAlign = 'center'; c.fillText(label, x, y - 22); } };
         rivals.forEach((r, i) => swimmer(px(r.x), 145 + (i + 1) * 90, ['#9b59b6', '#2f9e9e'][i], 'Đối thủ', r.x * 2));
         swimmer(px(me), 145, '#ffd23f', 'BẠN', me * 2 + (t - lastT < 0.2 ? 2 : 0));
         // nhịp tay + ô-xy
         const ph = phase(); beatRing(c, 580, 50, ph, Math.min(ph, 1 - ph) < tol);
-        c.fillStyle = '#fff'; c.font = '700 12px sans-serif'; c.textAlign = 'center'; c.fillText('Bấm ← → khi vòng khép', 580, 96);
+        c.fillStyle = '#fff'; c.font = '700 12px sans-serif'; c.textAlign = 'center'; c.fillText(turning ? 'LẬT! Space' : 'Bấm khi vòng khép', 580, 96);
+        if (turning) { const k = clamp(turnT / 1.3, 0, 1); c.strokeStyle = turnT > 0.5 && turnT < 0.9 ? '#45c486' : '#fff'; c.lineWidth = 6; c.beginPath(); c.arc(320, 70, 34 * (1.4 - k), 0, 7); c.stroke(); }
         c.fillStyle = '#111'; c.fillRect(20, 30, 200, 16); c.fillStyle = o2 < 30 ? '#ff5c5c' : '#9ad1ff'; c.fillRect(22, 32, 196 * Math.max(0, o2) / 100, 12);
         c.fillStyle = '#fff'; c.font = '700 13px sans-serif'; c.textAlign = 'left'; c.fillText('Ô-xy' + (o2 < 30 ? ' — BẤM SPACE ĐỂ THỞ!' : ' (Space để thở)'), 22, 64);
         if (msgT > 0) bigText(c, msg, 90, msg === 'SẶC NƯỚC!' ? '#ff6b6b' : '#ffd23f', 30);
@@ -655,96 +680,193 @@
   }
 
   // ------------------------------------------------------------------ 7. rượt đuổi (chạy + nhảy chướng ngại)
+  // Rượt đuổi — 3 làn, nhảy (vật thấp) / trượt (xà ngang) / đổi làn (vật chắn). Khoảng cách `gap` (m) là thước đo thắng thua.
+  // Độ khó: tốc độ mình = 8.2 + sức khỏe×0.03; tốc độ đối phương = 8.0 + need×2.2. Mỗi lần va: chậm 1.2s và +gap. Tăng tốc có hồi chiêu.
+  // Vai: 'chaser' (mặc định, tóm tên kia trước khi hết giờ) hoặc 'chased' (chạy trốn: sống sót đến hết giờ, không để bị bắt kịp).
+  const CH_CFG = { dur: 45, gap0: 20, hit: 4.5, lane: 3, boostCd: 6, boostT: 1.2, boostMul: 1.6, catchGap: 1, shortcut: 4, spacing: [9, 15], len: 460 };
+  // sinh chướng ngại thuần túy: luôn chừa ít nhất 1 làn không bị chắn ở mỗi hàng (kiểm tra bằng chaseGenOk)
+  function chaseGen(rng, cfg) {
+    const out = [], kinds = ['low', 'high', 'block'];
+    for (let z = 14; z < cfg.len; z += cfg.spacing[0] + rng() * (cfg.spacing[1] - cfg.spacing[0])) {
+      const lane = Math.floor(rng() * 3), kind = kinds[Math.floor(rng() * 3)];
+      out.push({ z, lane, kind, hit: false });
+      if (kind === 'block' && rng() < 0.4) out.push({ z, lane: (lane + 1 + Math.floor(rng() * 2)) % 3, kind: 'block', hit: false }); // 2 làn chắn, vẫn còn 1 làn
+      else if (kind !== 'block' && rng() < 0.3) out.push({ z, lane: (lane + 1) % 3, kind: kinds[Math.floor(rng() * 2)], hit: false });
+      if (rng() < 0.18) { const sl = (lane + 2) % 3; out.push({ z: z + 3, lane: sl, kind: 'bolt', hit: false }, { z: z + 5.5, lane: sl, kind: 'high', hit: false }); } // lối tắt ⚡: ăn được -gap nhưng ngay sau là xà ngang
+    }
+    return out.sort((a, b) => a.z - b.z);
+  }
+  function chaseGenOk(obs) { const rows = {}; obs.forEach((o) => { if (o.kind === 'block') (rows[o.z] = rows[o.z] || new Set()).add(o.lane); }); return Object.values(rows).every((s) => s.size < 3); }
   function chase(p) {
     return new Promise((res) => {
       const hp = p.ctx.stats.health;
-      const { box, cv, c, hud } = canvasGame('🚓 Rượt đuổi', '<div class="mini-pad"><button type="button" data-k="l">◀ TRÁI <kbd>←</kbd></button><button type="button" data-k="j">⤴ NHẢY <kbd>Space</kbd></button><button type="button" data-k="r">PHẢI ▶ <kbd>→</kbd></button></div>', 'Bấm luân phiên <kbd>←</kbd> <kbd>→</kbd> để chạy · <kbd>Space</kbd> hoặc <kbd>↑</kbd> để nhảy qua thùng, xe đẩy, chó. Vấp là bị khựng lại!');
-      const step = 2.2 + hp / 100 * 1.4, DUR = 22, GAP0 = 25, tv = 7 + p.need * 4;
-      let me = 0, thief = GAP0, v = 0, last = null, t = -2, jump = 0, stun = 0, done = false, msg = '', msgT = 0;
-      const obs = []; for (let x = 12; x < 420; x += rand(9, 17)) obs.push({ x, e: pick(['📦', '🛒', '🐕', '🪣', '🛞']), hit: false });
-      const say = (m) => { msg = m; msgT = 0.8; };
-      const press = (side) => { if (t < 0 || done || stun > 0 || side === last) return; last = side; v += step; sfx('click'); };
-      const hop = () => { if (t < 0 || done || jump > 0 || stun > 0) return; jump = 0.55; sfx('click'); };
-      padBind(box, '[data-k]', (b) => (b.dataset.k === 'j' ? hop() : press(b.dataset.k)));
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (k === 'ArrowLeft' || k === 'a' || k === 'A') press('l'); else if (k === 'ArrowRight' || k === 'd' || k === 'D') press('r'); else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') hop(); else return false; return true; });
+      const tt = fold((p.title || '') + ' ' + (p.label || '')), chased = p.role === 'chased' || /(bo chay|tron|chuon|chay tron|tron thoat|bi duoi)/.test(tt);
+      const { box, cv, c, hud } = canvasGame(chased ? '🏃 Chạy trốn' : '🚓 Rượt đuổi', '<div class="mini-pad"><button type="button" data-k="l">◀ <kbd>←</kbd></button><button type="button" data-k="j">⤴ Nhảy <kbd>↑</kbd></button><button type="button" data-k="s">⤵ Trượt <kbd>↓</kbd></button><button type="button" data-k="b">💥 Tăng tốc <kbd>Space</kbd></button><button type="button" data-k="r">▶ <kbd>→</kbd></button></div>',
+        '<kbd>←</kbd><kbd>→</kbd> đổi làn · <kbd>↑</kbd> nhảy qua vật thấp 📦 · <kbd>↓</kbd> trượt dưới xà ngang · vật chắn 🧱 phải né sang làn khác · <kbd>Space</kbd> tăng tốc · ⚡ là lối tắt (ăn được rút ngắn khoảng cách nhưng ngay sau là xà ngang). Vuốt trên màn hình cũng được.');
+      const sg = chased ? -1 : 1, mySpeed = 8.2 + hp / 100 * 3, tgtSpeed = 8.0 + p.need * 2.2;
+      const obs = chaseGen(rnd, CH_CFG);
+      let z = 0, lane = 1, lx = 1, jump = 0, slide = 0, slow = 0, boost = 0, bcd = 0, gap = chased ? CH_CFG.gap0 * 0.8 : CH_CFG.gap0, t = -1.5, done = false, msg = '', msgT = 0, hits = 0, bolts = 0, tstun = 0;
+      const say = (m) => { msg = m; msgT = 0.7; };
+      const go = (d) => { if (t < 0 || done) return; lane = clamp(lane + d, 0, 2); sfx('click'); };
+      const hop = () => { if (t < 0 || done || jump > 0 || slide > 0) return; jump = 0.55; sfx('click'); };
+      const duck = () => { if (t < 0 || done || jump > 0 || slide > 0) return; slide = 0.55; sfx('click'); };
+      const surge = () => { if (t < 0 || done || bcd > 0) return; boost = CH_CFG.boostT; bcd = CH_CFG.boostCd; sfx('kick'); };
+      padBind(box, '[data-k]', (b) => { const k = b.dataset.k; if (k === 'l') go(-1); else if (k === 'r') go(1); else if (k === 'j') hop(); else if (k === 's') duck(); else surge(); });
+      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (k === 'ArrowLeft' || k === 'a' || k === 'A') go(-1); else if (k === 'ArrowRight' || k === 'd' || k === 'D') go(1); else if (k === 'ArrowUp' || k === 'w' || k === 'W') hop(); else if (k === 'ArrowDown' || k === 's' || k === 'S') duck(); else if (k === ' ' || k === 'Shift' || k === 'b' || k === 'B') surge(); else return false; return true; });
+      let sx0 = 0, sy0 = 0;
+      cv.addEventListener('pointerdown', (e) => { e.preventDefault(); sx0 = e.clientX; sy0 = e.clientY; });
+      cv.addEventListener('pointerup', (e) => { const dx = e.clientX - sx0, dy = e.clientY - sy0; if (Math.abs(dx) < 18 && Math.abs(dy) < 18) surge(); else if (Math.abs(dx) > Math.abs(dy)) go(dx > 0 ? 1 : -1); else if (dy < 0) hop(); else duck(); });
+      const end = (win, text, score) => { done = true; sfx(win ? 'good' : 'bad'); setTimeout(() => res({ score, text }), 800); };
       loop((dt) => {
-        t += dt; msgT = Math.max(0, msgT - dt);
+        t += dt; msgT = Math.max(0, msgT - dt); lx += (lane - lx) * Math.min(1, dt * 14);
         if (t > 0 && !done) {
-          jump = Math.max(0, jump - dt);
-          if (stun > 0) { stun -= dt; v = 0; }
-          v = Math.max(0, v - v * dt * 1.6); me += v * dt;
-          thief += tv * dt * (Math.sin(t * 1.3) > 0.85 ? 0.4 : 1);
-          const o = obs.find((x) => !x.hit && Math.abs(x.x - me) < 0.6);
-          if (o) { o.hit = true; if (jump <= 0.08) { stun = 0.7; v = 0; say('Vấp ngã!'); sfx('bad'); } }
-          if (thief - me <= 1) { done = true; setTimeout(() => res({ score: 0.6 + 0.4 * clamp(1 - t / DUR, 0, 1), text: 'Bạn tóm được hắn sau ' + t.toFixed(1) + ' giây!' }), 700); }
-          else if (t >= DUR) { done = true; const gap = thief - me; setTimeout(() => res({ score: clamp(0.5 * (1 - gap / GAP0), 0, 0.5), text: 'Hắn chạy thoát, bỏ xa bạn ' + Math.round(gap) + ' m.' }), 700); }
+          jump = Math.max(0, jump - dt); slide = Math.max(0, slide - dt); slow = Math.max(0, slow - dt); boost = Math.max(0, boost - dt); bcd = Math.max(0, bcd - dt); tstun = Math.max(0, tstun - dt);
+          const v = mySpeed * (slow > 0 ? 0.35 : 1) * (boost > 0 ? CH_CFG.boostMul : 1);
+          z += v * dt;
+          // đối phương cũng vấp ngẫu nhiên → cơ hội thu hẹp khoảng cách
+          if (rnd() < dt * 0.22) tstun = 1.1;
+          const tv = tgtSpeed * (tstun > 0 ? 0.4 : 1);
+          gap += (chased ? v - tv : tv - v) * dt; // chaser: gap = khoảng tới tên trộm; chased: gap = quãng dẫn trước cảnh sát
+          const o = obs.find((x) => !x.hit && Math.abs(x.z - z) < 0.7 && x.lane === lane);
+          if (o) {
+            o.hit = true;
+            if (o.kind === 'bolt') { gap -= sg * CH_CFG.shortcut; bolts++; say('⚡ Lối tắt! -' + CH_CFG.shortcut + 'm'); sfx('good'); }
+            else if ((o.kind === 'low' && jump > 0.05) || (o.kind === 'high' && slide > 0.05)) { say('Né đẹp!'); }
+            else { slow = 1.2; gap += sg * CH_CFG.hit; hits++; say(o.kind === 'block' ? 'ĐÂM VÀO!' : o.kind === 'low' ? 'VẤP NGÃ!' : 'ĐẬP ĐẦU!'); sfx('bad'); }
+          }
+          if (chased) { if (gap <= CH_CFG.catchGap) end(false, 'Bạn bị tóm sau ' + t.toFixed(1) + ' giây (' + hits + ' lần va).', clamp(0.35 * t / CH_CFG.dur, 0, 0.3)); }
+          else if (gap <= CH_CFG.catchGap) end(true, 'Bạn tóm được hắn sau ' + t.toFixed(1) + ' giây! (' + hits + ' lần va)', 0.6 + 0.4 * clamp(1 - t / CH_CFG.dur, 0, 1));
+          if (!done && t >= CH_CFG.dur) {
+            if (chased) end(true, 'Bạn cắt đuôi thành công, còn cách ' + Math.round(gap) + ' m.', clamp(0.55 + 0.45 * gap / CH_CFG.gap0 / 1.5, 0.55, 1));
+            else end(false, 'Hắn chạy thoát, bỏ xa bạn ' + Math.round(gap) + ' m.', clamp(0.5 * (1 - gap / (CH_CFG.gap0 * 2)), 0, 0.5));
+          }
         }
-        c.fillStyle = '#2b2f45'; c.fillRect(0, 0, 640, 400);
-        for (let i = 0; i < 8; i++) { const bx = ((i * 110 - me * 6) % 880 + 880) % 880 - 100; c.fillStyle = '#353a56'; c.fillRect(bx, 120 + (i % 3) * 20, 90, 200); }
-        c.fillStyle = '#4a4f6a'; c.fillRect(0, 320, 640, 80);
-        const sx = (w) => 140 + (w - me) * 18;
-        obs.forEach((o) => { const x = sx(o.x); if (x > -30 && x < 670) { c.font = '30px sans-serif'; c.textAlign = 'center'; c.globalAlpha = o.hit && x < 140 ? 0.4 : 1; c.fillText(o.e, x, 318); c.globalAlpha = 1; } });
-        const tx = sx(thief);
-        if (tx < 620) runner(c, tx, 300, '#1c1c1c', 'Tên trộm', thief);
-        else { c.fillStyle = '#ffd23f'; c.font = '800 18px sans-serif'; c.textAlign = 'right'; c.fillText('Tên trộm → ' + Math.round(thief - me) + ' m', 630, 290); }
-        const jy = jump > 0 ? Math.sin(Math.PI * (0.55 - jump) / 0.55) * 60 : 0;
-        runner(c, 140, 300 - jy, (p.ctx.appearance && p.ctx.appearance.top) || '#2d6cdf', 'BẠN', me, p.ctx.appearance && p.ctx.appearance.skin);
-        if (msgT > 0) bigText(c, msg, 90, '#ff6b6b', 32);
-        countdown(c, t, 'ĐUỔI!');
-        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(DUR - Math.max(0, t))) + 's · cách ' + Math.max(0, Math.round(thief - me)) + ' m';
+        // đồ họa: nhìn từ trên xuống, làn dọc, vật chạy từ trên xuống
+        c.fillStyle = '#242942'; c.fillRect(0, 0, 640, 400);
+        const LX = 140, LW = 120, GY = 330;
+        c.fillStyle = '#3c4260'; c.fillRect(LX, 0, LW * 3, 400);
+        c.strokeStyle = 'rgba(255,255,255,.35)'; c.setLineDash([22, 22]); c.lineDashOffset = -z * 12; c.lineWidth = 3;
+        [1, 2].forEach((i) => { c.beginPath(); c.moveTo(LX + i * LW, 0); c.lineTo(LX + i * LW, 400); c.stroke(); }); c.setLineDash([]);
+        c.fillStyle = '#1b1f33'; c.fillRect(0, 0, LX - 6, 400); c.fillRect(LX + LW * 3 + 6, 0, 640, 400);
+        obs.forEach((o) => {
+          const y = GY - (o.z - z) * 24; if (y < -40 || y > 440 || (o.hit && o.kind !== 'block' && y > GY + 20)) return;
+          const x = LX + (o.lane + 0.5) * LW; c.globalAlpha = o.hit ? 0.35 : 1;
+          if (o.kind === 'low') { c.font = '38px sans-serif'; c.textAlign = 'center'; c.fillText('📦', x, y); }
+          else if (o.kind === 'block') { c.font = '44px sans-serif'; c.textAlign = 'center'; c.fillText('🧱', x, y + 6); }
+          else if (o.kind === 'high') { c.fillStyle = '#ffb347'; c.fillRect(x - 54, y - 6, 108, 12); c.fillStyle = '#222'; for (let k = 0; k < 6; k++) c.fillRect(x - 54 + k * 18, y - 6, 9, 12); }
+          else { c.font = '34px sans-serif'; c.textAlign = 'center'; c.fillText('⚡', x, y + 6); }
+          c.globalAlpha = 1;
+        });
+        // đối phương hiện ở đầu màn hình theo gap
+        const gy = clamp(GY - gap * 24, 40, GY - 40);
+        const ty = chased ? clamp(GY + gap * 4 + 40, GY + 36, 392) : gy;
+        runner(c, LX + 1.5 * LW + Math.sin(t * 2) * 60, chased ? 392 : ty, chased ? '#2d4fd6' : '#1c1c1c', chased ? 'Cảnh sát' : 'Tên trộm', t * 8);
+        const jy = jump > 0 ? Math.sin(Math.PI * (0.55 - jump) / 0.55) * 34 : 0;
+        const px = LX + (lx + 0.5) * LW;
+        c.save(); if (slide > 0) { c.translate(px, GY + 10); c.scale(1, 0.55); c.translate(-px, -(GY + 10)); }
+        if (boost > 0) { c.fillStyle = 'rgba(255,210,63,.35)'; c.fillRect(px - 18, GY - 6, 36, 90); }
+        runner(c, px, GY - jy, (p.ctx.appearance && p.ctx.appearance.top) || '#2d6cdf', 'BẠN', z * 1.5, p.ctx.appearance && p.ctx.appearance.skin);
+        c.restore();
+        // thước đo khoảng cách
+        const bw = 150; c.fillStyle = 'rgba(8,12,22,.75)'; c.fillRect(480, 14, 150, 62); c.fillStyle = '#9fb0cc'; c.font = '700 11px sans-serif'; c.textAlign = 'left'; c.fillText(chased ? 'CÁCH CẢNH SÁT' : 'CÁCH TÊN TRỘM', 488, 30);
+        c.fillStyle = '#232d40'; c.fillRect(488, 38, bw - 16, 10); c.fillStyle = (chased ? gap < 6 : gap > 30) ? '#ef6a62' : '#45c486'; c.fillRect(488, 38, (bw - 16) * clamp(gap / (CH_CFG.gap0 * 2), 0, 1), 10);
+        c.fillStyle = bcd > 0 ? '#9fb0cc' : '#ffd23f'; c.fillText(bcd > 0 ? 'Tăng tốc: ' + bcd.toFixed(0) + 's' : '💥 Tăng tốc sẵn sàng', 488, 66);
+        if (msgT > 0) bigText(c, msg, 140, /Né|Lối/.test(msg) ? '#ffd23f' : '#ff6b6b', 30);
+        if (t < 0) bigText(c, chased ? 'CHẠY!' : 'ĐUỔI!', 230, '#fff', 56);
+        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(CH_CFG.dur - Math.max(0, t))) + 's · cách ' + Math.max(0, Math.round(gap)) + ' m · va ' + hits;
       });
     });
   }
 
   // ------------------------------------------------------------------ 8. lái xe né chướng ngại
+  // Lái xe — ↑ ga / ↓ phanh thật (tốc độ có quán tính), biển giới hạn tốc độ, đèn đỏ, mưa trơn, chướng ngại có cảnh báo ⚠.
+  // Độ khó: tốc độ nền = (240 + need×170) × (1.15 − sức khỏe×0.3%); vi phạm bị phạt nhưng không kết thúc ván. Va 3 lần thì dừng xe.
+  const DR_CFG = { dur: 36, limits: [{ a: 6, b: 12, v: 40 }, { a: 24, b: 30, v: 45 }], light: { warn: 14, spawn: 16, redFor: 5 }, rainFrom: 19, tol: 6, fine: { speed: 200, light: 400 } };
+  function driveTicket(kmh, limit, tol) { return kmh > limit + tol; } // thuần túy: có quá tốc độ không
   function drive(p) {
     return new Promise((res) => {
       const hp = p.ctx.stats.health;
-      const { box, cv, c, hud } = canvasGame('🛵 Lái xe', '<div class="mini-pad"><button type="button" data-d="-1">◀ Trái <kbd>←</kbd></button><button type="button" data-d="1">Phải ▶ <kbd>→</kbd></button></div>', '<kbd>←</kbd> <kbd>→</kbd> (hoặc <kbd>A</kbd> <kbd>D</kbd>) để chuyển làn, né ô tô, ổ gà, chó, rào chắn. Va 3 lần là hỏng chuyến.');
-      const LX = [220, 320, 420], DUR = 25, PY = 320;
+      const { box, cv, c, hud } = canvasGame('🛵 Lái xe', '<div class="mini-pad"><button type="button" data-d="-1">◀ <kbd>←</kbd></button><button type="button" data-h="brake">🛑 Phanh <kbd>↓</kbd></button><button type="button" data-h="gas">⚡ Ga <kbd>↑</kbd></button><button type="button" data-d="1">▶ <kbd>→</kbd></button></div>', '<kbd>←</kbd><kbd>→</kbd> đổi làn · giữ <kbd>↑</kbd> ga / <kbd>↓</kbd> phanh · Tuân thủ biển giới hạn tốc độ, <b>dừng trước vạch khi đèn đỏ</b>, cẩn thận khi trời mưa. ⚠ báo trước chướng ngại. Va 3 lần là hỏng chuyến.');
+      const LX = [220, 320, 420], PY = 320;
       const base = (240 + p.need * 170) * (1.15 - hp / 100 * 0.3);
       const KINDS = [{ e: '🚗', w: 46, h: 60, car: 1 }, { e: '🚚', w: 52, h: 70, car: 1 }, { e: '🕳️', w: 40, h: 30 }, { e: '🐕', w: 36, h: 32 }, { e: '🚧', w: 46, h: 34 }, { e: '🛵', w: 34, h: 50, car: 1 }];
-      let lane = 1, px = 320, t = -1.5, obs = [], spawn = 0, hits = 0, inv = 0, done = false, scroll = 0;
+      let lane = 1, px = 320, t = -1.5, obs = [], pend = [], spawn = 0, hits = 0, inv = 0, done = false, scroll = 0, spd = 0.9, gas = false, brk = false, light = null, rain = false, over = 0, msg = '', msgT = 0;
+      const viol = [], zoneBad = {}; let lightDone = false, warned = false;
+      const say = (m) => { msg = m; msgT = 1.4; };
       const move = (d) => { if (done) return; lane = clamp(lane + d, 0, 2); sfx('click'); };
       padBind(box, '[data-d]', (b) => move(+b.dataset.d));
+      box.querySelectorAll('[data-h]').forEach((b) => { const on = (v) => () => { if (b.dataset.h === 'gas') gas = v; else brk = v; }; b.addEventListener('pointerdown', on(true)); b.addEventListener('pointerup', on(false)); b.addEventListener('pointerleave', on(false)); });
       cv.addEventListener('pointerdown', (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(); move((e.clientX - r.left) / r.width < 0.5 ? -1 : 1); });
-      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const k = e.key; if (k === 'ArrowLeft' || k === 'a' || k === 'A') move(-1); else if (k === 'ArrowRight' || k === 'd' || k === 'D') move(1); else return false; return true; });
-      const end = (score, text) => { done = true; setTimeout(() => res({ score, text }), 800); };
+      onKeys((e) => {
+        const k = e.key, dn = e.type === 'keydown';
+        if (k === 'ArrowUp' || k === 'w' || k === 'W') { gas = dn; return true; }
+        if (k === 'ArrowDown' || k === 's' || k === 'S') { brk = dn; return true; }
+        if (!dn || e.repeat) return false;
+        if (k === 'ArrowLeft' || k === 'a' || k === 'A') move(-1); else if (k === 'ArrowRight' || k === 'd' || k === 'D') move(1); else return false; return true;
+      });
+      const end = (score, text) => { done = true; setTimeout(() => res({ score: clamp(score - viol.length * 0.12, 0, 1), text: text + (viol.length ? ' Vi phạm: ' + viol.map((v) => v.n + ' (' + v.f + 'k)').join(', ') + '.' : ' Không vi phạm luật.') + ' 💡 Giữ tốc độ theo biển báo và dừng đèn đỏ — an toàn quan trọng hơn đến sớm.' }), 800); };
       loop((dt) => {
-        t += dt;
-        px += (LX[lane] - px) * Math.min(1, dt * 14);
-        const v = base + Math.max(0, t) * 4;
+        t += dt; msgT = Math.max(0, msgT - dt);
+        px += (LX[lane] - px) * Math.min(1, dt * (rain ? 6 : 14));
+        // quán tính: ga → 1.3, phanh → 0 (dừng hẳn được), thả → 0.9
+        const tgt = brk ? 0 : gas ? 1.3 : 0.9; spd += (tgt - spd) * Math.min(1, dt * (brk ? 3.2 : 1.6));
+        const v = (base + Math.max(0, t) * 3) * spd, kmh = Math.round(v / 6);
         if (t > 0 && !done) {
-          scroll += v * dt; spawn -= dt; inv = Math.max(0, inv - dt);
-          if (spawn <= 0) {
-            spawn = rand(0.5, 0.95) * 480 / v;
-            // luôn chừa ít nhất một làn trống
-            const near = [...new Set(obs.filter((o) => o.y < 90).map((o) => o.l))];
+          rain = t >= DR_CFG.rainFrom; scroll += v * dt; spawn -= dt; inv = Math.max(0, inv - dt);
+          if (rain && t < DR_CFG.rainFrom + 0.05) say('☔ Trời mưa — đường trơn, đổi làn chậm hơn!');
+          // giới hạn tốc độ
+          const zone = DR_CFG.limits.find((z) => t >= z.a && t <= z.b);
+          if (zone) { if (driveTicket(kmh, zone.v, DR_CFG.tol)) { over += dt; if (over > 1.2 && !zoneBad[zone.a]) { zoneBad[zone.a] = 1; viol.push({ n: 'quá tốc độ ' + zone.v + 'km/h', f: DR_CFG.fine.speed }); say('📸 Camera phạt nguội!'); sfx('bad'); } } else over = Math.max(0, over - dt); }
+          // đèn đỏ: cảnh báo trước, vạch dừng cuộn xuống theo tốc độ xe
+          if (!warned && t >= DR_CFG.light.warn) { warned = true; say('🚦 Đèn đỏ phía trước — chuẩn bị dừng!'); }
+          if (!light && !lightDone && t >= DR_CFG.light.spawn) light = { y: -260, t: 0, crossed: false, red: true };
+          if (light) {
+            light.y += v * dt; if (light.y > -80 || light.crossed) light.t += dt;
+            if (light.t > DR_CFG.light.redFor) light.red = false;
+            if (!light.crossed && light.y >= PY - 30) { light.crossed = true; if (light.red && kmh > 8) { viol.push({ n: 'vượt đèn đỏ', f: DR_CFG.fine.light }); say('🚨 VƯỢT ĐÈN ĐỎ!'); sfx('bad'); } else if (light.red) say('Dừng đúng vạch ✔'); }
+            if (light.y > 480) { light = null; lightDone = true; }
+            if (light && light.red && light.crossed && kmh <= 8 && light.t > 0) { /* đứng chờ */ }
+          }
+          // sinh chướng ngại: ⚠ báo trước 0.7s rồi mới xuất hiện
+          if (spawn <= 0 && !(light && light.red && !light.crossed)) {
+            spawn = rand(0.5, 0.95) * 480 / Math.max(180, v);
+            const near = [...new Set(obs.concat(pend).filter((o) => o.y == null || o.y < 90).map((o) => o.l))];
             const free = [0, 1, 2].filter((x) => !near.includes(x));
             const l = near.length >= 2 ? pick(near) : pick(free.length ? free : [0, 1, 2]);
-            obs.push(Object.assign({ l, y: -50, hit: false }, pick(KINDS)));
+            pend.push(Object.assign({ l, w8: 0.7 }, pick(KINDS)));
           }
+          pend.forEach((o) => (o.w8 -= dt));
+          pend.filter((o) => o.w8 <= 0).forEach((o) => obs.push(Object.assign(o, { y: -50, hit: false })));
+          pend = pend.filter((o) => o.w8 > 0);
           obs.forEach((o) => (o.y += v * (o.car ? 0.7 : 1) * dt));
           obs = obs.filter((o) => o.y < 470);
           if (inv <= 0) {
             const h = obs.find((o) => !o.hit && Math.abs(LX[o.l] - px) < o.w / 2 + 14 && Math.abs(o.y - PY) < o.h / 2 + 22);
-            if (h) { h.hit = true; hits++; inv = 1.2; sfx('bad'); if (hits >= 3) end(clamp(t / DUR * 0.4, 0, 0.4), 'Bạn va chạm 3 lần, phải dừng xe giữa đường.'); }
+            if (h) { h.hit = true; hits++; inv = 1.2; sfx('bad'); if (hits >= 3) end(clamp(t / DR_CFG.dur * 0.4, 0, 0.4), 'Bạn va chạm 3 lần, phải dừng xe giữa đường.'); }
           }
-          if (t >= DUR && !done) end([1, 0.75, 0.5][hits], hits ? 'Tới nơi, va quệt ' + hits + ' lần.' : 'Tới nơi an toàn, không một vết xước!');
+          if (t >= DR_CFG.dur && !done) end([1, 0.75, 0.5][hits], hits ? 'Tới nơi, va quệt ' + hits + ' lần.' : 'Tới nơi an toàn, không một vết xước!');
         }
-        c.fillStyle = '#4f8a3a'; c.fillRect(0, 0, 640, 400);
+        c.fillStyle = rain ? '#3a5a3a' : '#4f8a3a'; c.fillRect(0, 0, 640, 400);
         c.fillStyle = '#3b3e48'; c.fillRect(160, 0, 320, 400);
         c.fillStyle = '#fff'; c.fillRect(160, 0, 5, 400); c.fillRect(475, 0, 5, 400);
         c.fillStyle = 'rgba(255,255,255,.7)'; for (let i = -1; i < 9; i++) { const y = ((i * 60 + scroll) % 480) - 60; c.fillRect(268, y, 4, 30); c.fillRect(368, y, 4, 30); }
+        if (light) { c.fillStyle = '#fff'; c.fillRect(165, light.y, 310, 6); c.font = '30px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(light.red ? '🔴' : '🟢', 500, light.y); c.textBaseline = 'alphabetic'; }
         c.font = '40px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        pend.forEach((o) => { c.globalAlpha = 0.5 + 0.5 * Math.sin(t * 20); c.fillText('⚠️', LX[o.l], 28); c.globalAlpha = 1; });
         obs.forEach((o) => { c.globalAlpha = o.hit ? 0.4 : 1; c.fillText(o.e, LX[o.l], o.y); c.globalAlpha = 1; });
         c.globalAlpha = inv > 0 && Math.sin(t * 30) > 0 ? 0.4 : 1;
         c.fillStyle = (p.ctx.appearance && p.ctx.appearance.top) || '#2d6cdf'; c.fillRect(px - 12, PY - 22, 24, 44);
         c.fillStyle = '#111'; c.fillRect(px - 5, PY - 34, 10, 14); c.fillRect(px - 5, PY + 20, 10, 14);
         c.fillStyle = (p.ctx.appearance && p.ctx.appearance.skin) || '#f2c39a'; c.beginPath(); c.arc(px, PY - 4, 9, 0, 7); c.fill();
         c.globalAlpha = 1; c.textBaseline = 'alphabetic';
+        if (rain) { c.strokeStyle = 'rgba(180,210,255,.45)'; c.lineWidth = 1; for (let i = 0; i < 40; i++) { const x = (i * 97 + t * 40) % 640, y = (i * 53 + t * 700) % 400; c.beginPath(); c.moveTo(x, y); c.lineTo(x - 4, y + 14); c.stroke(); } }
+        // đồng hồ tốc độ + biển giới hạn
+        const zn = t > 0 && DR_CFG.limits.find((z) => t >= z.a - 1 && t <= z.b);
+        c.fillStyle = 'rgba(8,12,22,.75)'; c.fillRect(14, 12, 120, 44); c.fillStyle = zn && kmh > zn.v + DR_CFG.tol ? '#ff6b6b' : '#fff'; c.font = '800 22px "Baloo 2", sans-serif'; c.textAlign = 'left'; c.fillText(kmh + ' km/h', 24, 40);
+        if (zn) { c.fillStyle = '#fff'; c.beginPath(); c.arc(570, 46, 28, 0, 7); c.fill(); c.strokeStyle = '#d63c3c'; c.lineWidth = 6; c.stroke(); c.fillStyle = '#111'; c.font = '800 22px sans-serif'; c.textAlign = 'center'; c.fillText(String(zn.v), 570, 54); }
+        if (msgT > 0) bigText(c, msg, 150, /✔/.test(msg) ? '#45c486' : '#ffd23f', 26);
         countdown(c, t, 'CHẠY!');
-        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(DUR - Math.max(0, t))) + 's · va chạm ' + hits + '/3 · ' + Math.round(v / 6) + ' km/h';
+        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(DR_CFG.dur - Math.max(0, t))) + 's · va chạm ' + hits + '/3 · vi phạm ' + viol.length;
       });
     });
   }
@@ -1382,23 +1504,26 @@
       const HX = 548, HY = 150; // vành rổ
       // 6 lượt ném: lên rổ, trung bình, ba điểm, ném phạt, ba điểm có hậu vệ, cú ném quyết định
       const SHOTS = [{ x: 420, pts: 2, label: 'Lên rổ' }, { x: 330, pts: 2, label: 'Ném tầm trung' }, { x: 200, pts: 3, label: 'Ném ba điểm' }, { x: 380, pts: 1, label: 'Ném phạt' }, { x: 205, pts: 3, label: 'Ba điểm có hậu vệ', def: true }, { x: 185, pts: 3, label: 'Cú ném quyết định!', def: true, clutch: true }];
-      const zoneW = 0.09 + hp / 100 * 0.07 + sm / 100 * 0.02 - p.need * 0.03; // vùng lực chuẩn rộng/hẹp
+      // CONFIG: độ khó = vùng xanh (sức khỏe/trí tuệ rộng, need hẹp) × “tay nóng” (trúng 2 quả liên tiếp → vùng +20%)
+      const HOOP_CFG = { hot: 1.2, clutchSec: 5, fakeAt: 0.7, realAt: 1.45 };
+      const zoneBase = 0.09 + hp / 100 * 0.07 + sm / 100 * 0.02 - p.need * 0.03; let streak = 0, clutchT = 0;
+      const zoneNow = () => zoneBase * (streak >= 2 ? HOOP_CFG.hot : 1);
       const speed = 1.15 - hp / 100 * 0.35 + p.need * 0.4; // tốc độ thanh lực
       let i = 0, pts = 0, made = 0, holding = false, pw = 0, dir = 1, phase = 'ready', t = 0, ball = null, msg = '', msgT = 0, defX = 0, defJump = 0, defT = 0, done = false;
       const target = (s) => 0.35 + (HX - s.x) / 420 * 0.5; // lực chuẩn tăng theo khoảng cách
-      const startShot = () => { phase = 'ready'; pw = 0; dir = 1; ball = null; const s = SHOTS[i]; defX = s.x + 70; defJump = 0; defT = s.def ? 0 : -1; };
+      const startShot = () => { clutchT = HOOP_CFG.clutchSec; phase = 'ready'; pw = 0; dir = 1; ball = null; const s = SHOTS[i]; defX = s.x + 70; defJump = 0; defT = s.def ? 0 : -1; };
       startShot();
       const press = (down) => {
         if (done || phase === 'fly' || phase === 'res') return;
         if (down && phase === 'ready') { holding = true; phase = 'charge'; return; }
         if (!down && phase === 'charge') {
           holding = false;
-          const s = SHOTS[i], tg = target(s), err = pw - tg;
+          const s = SHOTS[i], tg = target(s), err = pw - tg, zoneW = zoneNow();
           const blocked = s.def && defJump > 0.55;
           const inZone = Math.abs(err) < zoneW / 2;
           const rim = !inZone && Math.abs(err) < zoneW;
           const ok = !blocked && (inZone || (rim && rnd() < 0.45));
-          ball = { x0: s.x + 14, y0: 255, t: 0, ok, blocked, err, dur: 0.9 };
+          ball = { x0: s.x + 14, y0: 255, t: 0, ok, blocked, err, dur: 0.9, ms: Math.round(err / speed * 1000) };
           phase = 'fly'; sfx('click');
         }
       };
@@ -1411,13 +1536,19 @@
         const s = SHOTS[Math.min(i, SHOTS.length - 1)];
         if (phase === 'charge') { pw += dir * dt * speed; if (pw >= 1) { pw = 1; dir = -1; } if (pw <= 0) { pw = 0; dir = 1; } }
         // hậu vệ: lao tới rồi bật nhảy chắn bóng
-        if (s.def && phase === 'charge' && defT >= 0) { defT += dt; defX = Math.max(s.x + 26, defX - dt * 40); defJump = Math.max(0, Math.min(1, (defT - (1.1 - p.need * 0.3)) / 0.4)); }
+        if (s.def && phase === 'charge' && defT >= 0) {
+          defT += dt; defX = Math.max(s.x + 26, defX - dt * 40);
+          const real = (s.clutch ? HOOP_CFG.realAt : 1.1) - p.need * 0.3;
+          defJump = Math.max(0, Math.min(1, (defT - real) / 0.4));
+          if (s.clutch && defT > HOOP_CFG.fakeAt && defT < HOOP_CFG.fakeAt + 0.5) defJump = Math.max(defJump, 0.45 * Math.sin((defT - HOOP_CFG.fakeAt) / 0.5 * Math.PI)); // giả vờ nhảy (chưa đủ cao để chắn)
+        }
+        if (s.clutch && (phase === 'ready' || phase === 'charge') && !done) { clutchT -= dt; if (clutchT <= 0) { if (phase === 'ready') press(true); press(false); } }
         if (phase === 'fly' && ball) {
           ball.t += dt / ball.dur;
           if (ball.t >= 1) {
             phase = 'res';
-            if (ball.ok) { pts += s.pts; made++; msg = s.pts === 3 ? 'BA ĐIỂM!!' : pick(['VÀO!', 'Chuẩn!', 'Swish!']); sfx(s.clutch ? 'cheer' : 'good'); }
-            else { msg = ball.blocked ? 'BỊ CHẮN!' : ball.err > 0 ? 'Mạnh quá, dội bảng!' : 'Yếu quá, chạm vành!'; sfx('bad'); }
+            if (ball.ok) { pts += s.pts; made++; streak++; msg = (s.pts === 3 ? 'BA ĐIỂM!!' : pick(['VÀO!', 'Chuẩn!', 'Swish!'])) + (streak >= 2 ? ' 🔥' : ''); sfx(s.clutch ? 'cheer' : 'good'); }
+            else { streak = 0; msg = ball.blocked ? 'BỊ CHẮN!' : ball.err > 0 ? 'Thả muộn ' + Math.abs(ball.ms) + 'ms — dội bảng!' : 'Thả sớm ' + Math.abs(ball.ms) + 'ms — chạm vành!'; sfx('bad'); }
             msgT = 1.2;
             setTimeout(() => { i++; if (i >= SHOTS.length) { done = true; const max = SHOTS.reduce((a, x) => a + x.pts, 0); res({ score: clamp(pts / max, 0, 1), text: 'Bạn ném vào ' + made + '/' + SHOTS.length + ' quả, ghi ' + pts + '/' + max + ' điểm.' }); } else startShot(); }, 1300);
           }
@@ -1450,7 +1581,7 @@
         c.fillStyle = '#ff8a1e'; c.beginPath(); c.arc(bx, by, 11, 0, 7); c.fill(); c.strokeStyle = '#3b1d00'; c.lineWidth = 1.5; c.beginPath(); c.arc(bx, by, 11, 0, 7); c.moveTo(bx - 11, by); c.lineTo(bx + 11, by); c.moveTo(bx, by - 11); c.lineTo(bx, by + 11); c.stroke();
         // thanh lực
         if (phase === 'charge' || phase === 'ready') {
-          const tg = target(s), X = 24, Y = 70, H = 200;
+          const tg = target(s), X = 24, Y = 70, H = 200, zoneW = zoneNow();
           c.fillStyle = '#111'; c.fillRect(X, Y, 22, H);
           c.fillStyle = '#39cf98'; c.fillRect(X, Y + (1 - tg - zoneW / 2) * H, 22, zoneW * H);
           c.fillStyle = 'rgba(255,179,71,.45)'; c.fillRect(X, Y + (1 - tg - zoneW) * H, 22, zoneW * 0.5 * H); c.fillRect(X, Y + (1 - tg + zoneW / 2) * H, 22, zoneW * 0.5 * H);
@@ -1459,6 +1590,8 @@
         }
         c.fillStyle = '#fff'; c.font = '800 22px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.fillText(s.label + ' (' + s.pts + ' điểm)', 330, 34);
         if (phase === 'ready') { c.font = '700 14px sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('Giữ Space để lấy lực…', 330, 58); }
+        if (s.clutch && (phase === 'ready' || phase === 'charge')) { c.font = '800 26px "Baloo 2", sans-serif'; c.fillStyle = clutchT < 2 ? '#ff6b6b' : '#fff'; c.textAlign = 'right'; c.fillText('⏱ ' + Math.max(0, clutchT).toFixed(1) + 's', 620, 34); c.textAlign = 'center'; }
+        if (streak >= 2 && phase !== 'res') { c.font = '800 14px sans-serif'; c.fillStyle = '#ff9f43'; c.textAlign = 'left'; c.fillText('🔥 TAY NÓNG: vùng xanh +20%', 24, 292); c.textAlign = 'center'; }
         if (msgT > 0) bigText(c, msg, 120, /VÀO|BA|Chuẩn|Swish/.test(msg) ? '#ffd23f' : '#ff6b6b', 40);
         hud.textContent = 'Lượt ' + Math.min(i + 1, SHOTS.length) + '/' + SHOTS.length + ' · ' + pts + ' điểm';
       });
