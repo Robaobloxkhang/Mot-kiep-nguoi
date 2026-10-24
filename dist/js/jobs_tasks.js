@@ -98,8 +98,8 @@
     kientrucsu: { act: ['📐', 'Thiết kế công trình'], tasks: [
       { t: 'Cuộc thi thiết kế quảng trường', i: '🏛️', a: 'study', npc: ['coworker', 'think', 'Đối thủ toàn công ty nước ngoài đấy.'],
         x: 'Thành phố mở cuộc thi thiết kế quảng trường trung tâm. Hạn nộp còn mười ngày.',
-        c: [['✏️ Dồn sức làm phương án táo bạo', 'smarts', 0.35, null, 'Phương án của bạn đoạt giải nhất. Ảnh phối cảnh lên trang nhất báo thành phố.', 'Ban giám khảo đánh giá “đẹp nhưng không khả thi”. Mười ngày thức trắng thành công cốc.', 'big'],
-          ['📏 Làm phương án thực tế, chắc chắn', 'smarts', 0.6, null, 'Bạn đạt giải khuyến khích, được mời tham gia tư vấn dự án.', 'Phương án bị chê nhàm chán, trượt ngay vòng đầu.', 'mid']] },
+        c: [['✏️ Dồn sức làm phương án táo bạo', 'smarts', 0.35, 'interview', 'Phương án của bạn đoạt giải nhất. Ảnh phối cảnh lên trang nhất báo thành phố.', 'Ban giám khảo đánh giá “đẹp nhưng không khả thi”. Mười ngày thức trắng thành công cốc.', 'big'],
+          ['📏 Làm phương án thực tế, chắc chắn', 'smarts', 0.6, 'quiz', 'Bạn đạt giải khuyến khích, được mời tham gia tư vấn dự án.', 'Phương án bị chê nhàm chán, trượt ngay vòng đầu.', 'mid']] },
     ] },
     nhabao: { act: ['📰', 'Đi săn tin'], tasks: [
       { t: 'Đường dây buôn lậu', i: '🕵️', a: 'phone', npc: ['stranger', 'scared', 'Anh/chị đừng nói ai là tôi kể nhé...'],
@@ -117,7 +117,7 @@
     congchuc: { act: ['🗂️', 'Giải quyết hồ sơ'], tasks: [
       { t: 'Hồ sơ “cần đẩy nhanh”', i: '📁', a: 'type', npc: ['stranger', 'talk', 'Chị/anh giúp em cho nhanh, em gửi chút cà phê...'],
         x: 'Một người dân cần gấp giấy phép, đặt phong bì lên bàn. Hồ sơ còn thiếu một giấy tờ.',
-        c: [['📋 Hướng dẫn tận tình bổ sung giấy tờ', 'happy', 0.7, null, 'Người dân bổ sung xong, hồ sơ được duyệt đúng hạn. Họ gửi thư khen lên phường.', 'Họ bực bội vì phải đi lại, phàn nàn bạn hành dân.', 'mid'],
+        c: [['📋 Hướng dẫn tận tình bổ sung giấy tờ', 'happy', 0.7, 'interview', 'Người dân bổ sung xong, hồ sơ được duyệt đúng hạn. Họ gửi thư khen lên phường.', 'Họ bực bội vì phải đi lại, phàn nàn bạn hành dân.', 'mid'],
           ['🧧 Nhận phong bì, “linh động”', null, 0.6, null, 'Hồ sơ đi nhanh, phong bì vào túi.', 'Người dân hoá ra là phóng viên đóng vai. Bạn bị đình chỉ công tác.', 'shady']] },
     ] },
     nganhang: { act: ['🏦', 'Chạy chỉ tiêu'], tasks: [
@@ -206,7 +206,7 @@
     congnhan: { act: ['🏭', 'Làm ca nhà máy'], tasks: [
       { t: 'Máy dây chuyền kẹt', i: '⚙️', a: 'lift', npc: ['coworker', 'scared', 'Dây chuyền kẹt rồi!'],
         x: 'Dây chuyền đang chạy thì kẹt, đơn hàng xuất khẩu phải xong trước 6 giờ sáng.',
-        c: [['🔧 Tự mở máy sửa', 'smarts', 0.45, null, 'Bạn phát hiện bánh răng mòn, thay xong chỉ trong nửa tiếng. Quản đốc đề xuất bạn lên tổ trưởng.', 'Bạn bị kẹp tay khi sửa, phải băng bó và nghỉ cả tuần.', 'big'],
+        c: [['🔧 Tự mở máy sửa', 'smarts', 0.45, 'aim', 'Bạn phát hiện bánh răng mòn, thay xong chỉ trong nửa tiếng. Quản đốc đề xuất bạn lên tổ trưởng.', 'Bạn bị kẹp tay khi sửa, phải băng bó và nghỉ cả tuần.', 'big'],
           ['📢 Gọi kỹ thuật, chờ đúng quy trình', null, 1, null, 'Kỹ thuật đến sửa sau 2 tiếng. Cả tổ tăng ca bù.', '', 'safe']] },
     ] },
     banhang: { act: ['🛍️', 'Đứng quầy bán hàng'], tasks: [
@@ -224,7 +224,7 @@
     nongdan: { act: ['🌾', 'Làm đồng'], tasks: [
       { t: 'Sâu bệnh tràn đồng', i: '🐛', loc: 'countryside', a: 'lift', npc: ['neighbor', 'point', 'Rầy nâu về rồi đấy!'],
         x: 'Rầy nâu bùng phát cả cánh đồng. Hàng xóm phun thuốc liều cao, bạn đang tính cách khác.',
-        c: [['🌿 Dùng thuốc sinh học, thả thiên địch', 'smarts', 0.5, null, 'Lúa nhà bạn sạch rầy mà không độc. Thương lái thu mua giá cao vì lúa “sạch”.', 'Thuốc sinh học tác dụng chậm, mất gần nửa vụ.', 'mid'],
+        c: [['🌿 Dùng thuốc sinh học, thả thiên địch', 'smarts', 0.5, 'quiz', 'Lúa nhà bạn sạch rầy mà không độc. Thương lái thu mua giá cao vì lúa “sạch”.', 'Thuốc sinh học tác dụng chậm, mất gần nửa vụ.', 'mid'],
           ['☠️ Phun thuốc liều cao như mọi người', null, 0.7, null, 'Hết rầy ngay, vụ mùa cứu được.', 'Bạn bị ngộ độc thuốc trừ sâu, nằm viện một tuần.', 'mid']] },
     ] },
     kysunn: { act: ['🧪', 'Thử nghiệm giống mới'], tasks: [
@@ -255,27 +255,27 @@
     casi: { act: ['🎤', 'Chạy show'], tasks: [
       { t: 'Đêm nhạc mất tiếng', i: '🎙️', loc: 'karaoke', a: 'sing', npc: ['coworker', 'scared', 'Giọng em sao vậy?'],
         x: 'Hai giờ trước show lớn, bạn bị viêm họng, giọng khàn đặc. Vé đã bán hết.',
-        c: [['🎶 Hát live dù khàn', 'health', 0.4, null, 'Bạn hát bằng tất cả cảm xúc, khán giả hát cùng át cả tiếng bạn. Đêm nhạc thành huyền thoại.', 'Giọng vỡ giữa bài, clip “hát phô” lên xu hướng.', 'big'],
+        c: [['🎶 Hát live dù khàn', 'health', 0.4, 'sing', 'Bạn hát bằng tất cả cảm xúc, khán giả hát cùng át cả tiếng bạn. Đêm nhạc thành huyền thoại.', 'Giọng vỡ giữa bài, clip “hát phô” lên xu hướng.', 'big'],
           ['🎧 Hát nhép (playback)', null, 0.55, null, 'Không ai phát hiện, show trọn vẹn.', 'Đĩa vấp, nhạc chạy mà miệng bạn đứng yên. Clip lan khắp mạng.', 'shady'],
           ['🙇 Xin lỗi, dời show', null, 1, null, 'Khán giả tiếc nhưng thông cảm. Bạn mất tiền đền vé nhưng giữ được uy tín.', '', 'safe']] },
     ] },
     streamer: { act: ['🎥', 'Lên content'], tasks: [
       { t: 'Ý tưởng clip mới', i: '💡', loc: 'bedroom', a: 'type', npc: ['coworker', 'think', 'Tuần này làm gì cho viral?'],
         x: 'Lượt xem đang giảm. Bạn cần một clip “bùng nổ”.',
-        c: [['🎬 Làm series chất lượng, đầu tư công phu', 'smarts', 0.45, null, 'Series được khen sâu sắc, người xem tăng mạnh và trung thành.', 'Đầu tư nhiều nhưng chẳng ai xem, thuật toán không đẩy.', 'big'],
-          ['🔥 Làm thử thách mạo hiểm câu view', 'health', 0.5, null, 'Clip triệu view, nhãn hàng gọi tới tấp.', 'Bạn bị thương khi quay, còn bị chê “câu view lố”.', 'mid'],
+        c: [['🎬 Làm series chất lượng, đầu tư công phu', 'smarts', 0.45, 'interview', 'Series được khen sâu sắc, người xem tăng mạnh và trung thành.', 'Đầu tư nhiều nhưng chẳng ai xem, thuật toán không đẩy.', 'big'],
+          ['🔥 Làm thử thách mạo hiểm câu view', 'health', 0.5, 'chase', 'Clip triệu view, nhãn hàng gọi tới tấp.', 'Bạn bị thương khi quay, còn bị chê “câu view lố”.', 'mid'],
           ['🎭 Dựng drama giả', null, 0.45, null, 'Drama hút view khủng khiếp.', 'Bị bóc phốt dàn dựng, mất hàng trăm nghìn người theo dõi.', 'shady']] },
     ] },
     hoasi: { act: ['🖼️', 'Sáng tác, bán tranh'], tasks: [
       { t: 'Đại gia đặt tranh', i: '💰', loc: 'studio', a: 'study', npc: ['stranger', 'point', 'Vẽ cho tôi bức to nhất, giống ảnh này.'],
         x: 'Một đại gia muốn đặt bức tranh khổ lớn chép lại ảnh gia đình, trả giá cao.',
-        c: [['🎨 Nhận, nhưng vẽ theo phong cách riêng', 'smarts', 0.5, null, 'Bức tranh vượt xa mong đợi. Đại gia giới thiệu bạn cho cả giới thượng lưu.', 'Đại gia chê “không giống ảnh”, không trả nửa tiền còn lại.', 'big'],
+        c: [['🎨 Nhận, nhưng vẽ theo phong cách riêng', 'smarts', 0.5, 'interview', 'Bức tranh vượt xa mong đợi. Đại gia giới thiệu bạn cho cả giới thượng lưu.', 'Đại gia chê “không giống ảnh”, không trả nửa tiền còn lại.', 'big'],
           ['🖌️ Vẽ đúng ý khách', null, 1, null, 'Khách hài lòng, thanh toán đủ. Bạn thấy mình như thợ chép ảnh.', '', 'safe']] },
     ] },
     nhaccong: { act: ['🎸', 'Chơi nhạc'], tasks: [
       { t: 'Thay người phút chót', i: '🎼', loc: 'karaoke', a: 'guitar', npc: ['coworker', 'scared', 'Tay guitar chính ốm rồi!'],
         x: 'Tay guitar chính của ban nhạc lớn ốm đột ngột. Họ hỏi bạn có dám chơi thay đêm nay, chưa tập buổi nào.',
-        c: [['🔥 Nhận lời, chơi hết mình', 'smarts', 0.45, null, 'Đoạn solo ngẫu hứng của bạn khiến cả khán phòng đứng dậy. Ban nhạc mời bạn vào làm chính thức.', 'Bạn lạc nhịp mấy lần, cả ban nhạc lúng túng.', 'big'],
+        c: [['🔥 Nhận lời, chơi hết mình', 'smarts', 0.45, 'sing', 'Đoạn solo ngẫu hứng của bạn khiến cả khán phòng đứng dậy. Ban nhạc mời bạn vào làm chính thức.', 'Bạn lạc nhịp mấy lần, cả ban nhạc lúng túng.', 'big'],
           ['🙅 Từ chối, sợ làm hỏng', null, 1, null, 'Họ tìm người khác. Bạn tiếc nuối cả tuần.', '', 'safe']] },
     ] },
     dienvien: { act: ['🎬', 'Đóng phim'], tasks: [
@@ -387,7 +387,7 @@
     phucvu: { t: 'Khách quen bo đậm', i: '💵', a: 'talk', npc: ['stranger', 'love', 'Em dễ thương quá, cho anh xin số nhé.'], x: 'Một khách quen hay bo đậm, giờ đòi xin số điện thoại, hẹn đi chơi riêng.',
       c: [['🙂 Từ chối khéo, giữ khách', 'looks', 0.6, 'interview', 'Bạn từ chối tế nhị. Anh ta vẫn quý, vẫn bo đều.', 'Anh ta phật ý, không quay lại quán nữa.', 'mid'], ['🚫 Báo quản lý', null, 1, null, 'Quản lý nhắc nhở khách. Bạn thấy an toàn hơn.', '', 'safe']] },
     shipper: { t: 'Đơn hàng bom', i: '📦', a: 'phone', npc: ['stranger', 'shrug', 'Tôi có đặt đâu?'], x: 'Bạn ứng 2 triệu tiền hàng, giao đến nơi thì khách không nhận, chặn số.',
-      c: [['📞 Liên hệ shop xử lý', 'smarts', 0.6, null, 'Shop hoàn tiền ứng cho bạn, còn tặng thêm tiền xăng.', 'Shop cũng “lặn”, bạn mất trắng 2 triệu.', 'mid'], ['📣 Đăng lên hội nhóm bóc phốt', null, 0.5, null, 'Cộng đồng shipper vào cuộc, khách phải thanh toán.', 'Bài đăng chìm nghỉm, bạn mất tiền.', 'mid']] },
+      c: [['📞 Liên hệ shop xử lý', 'smarts', 0.6, 'interview', 'Shop hoàn tiền ứng cho bạn, còn tặng thêm tiền xăng.', 'Shop cũng “lặn”, bạn mất trắng 2 triệu.', 'mid'], ['📣 Đăng lên hội nhóm bóc phốt', null, 0.5, null, 'Cộng đồng shipper vào cuộc, khách phải thanh toán.', 'Bài đăng chìm nghỉm, bạn mất tiền.', 'mid']] },
     taixe: { t: 'Khách đòi đi đường tắt', i: '🛣️', a: 'drive', npc: ['stranger', 'point', 'Đi lối này nhanh hơn!'], x: 'Khách vội ra sân bay, chỉ đi đường tắt qua khu vực cấm ô tô giờ cao điểm.',
       c: [['🚗 Đi theo ý khách', 'smarts', 0.5, 'drive', 'Bạn luồn lách khéo, khách kịp chuyến bay, bo thêm 500 nghìn.', 'Bị CSGT thổi phạt, khách vẫn lỡ chuyến.', 'mid'], ['🗺️ Đi đường chính theo bản đồ', null, 1, null, 'Đúng luật, khách hơi cằn nhằn nhưng vẫn kịp giờ.', '', 'safe']] },
     congnhan: { t: 'Đình công đòi tăng lương', i: '✊', a: 'talk', npc: ['coworker', 'angry', 'Anh em nghỉ hết đi!'], x: 'Cả xưởng rủ nhau ngừng việc đòi tăng lương. Tổ trưởng nhờ bạn đại diện nói chuyện với ban giám đốc.',
@@ -397,11 +397,11 @@
     daubep: { t: 'Nhà phê bình ẩm thực đến quán', i: '🍽️', a: 'cook', npc: ['stranger', 'think', 'Món đặc biệt của bếp trưởng là gì?'], x: 'Một nhà phê bình ẩm thực nổi tiếng bất ngờ đến quán. Bài viết của ông ấy có thể nâng hoặc dìm cả nhà hàng.',
       c: [['👨‍🍳 Sáng tạo món mới ngay tại chỗ', 'smarts', 0.4, 'cook', 'Món ăn khiến ông ấy gật gù khen “có hồn”. Bài đánh giá 5 sao, quán kín bàn cả tháng.', 'Món thử nghiệm thất bại, bài viết chê thẳng thừng.', 'big'], ['🍜 Nấu món tủ quen tay', 'smarts', 0.65, 'cook', 'Món tủ không làm thất vọng, bài viết khen “đúng vị”.', 'Hôm nay tay run, món tủ cũng hỏng.', 'mid']] },
     thocattoc: { t: 'Làm tóc cô dâu', i: '👰', a: 'idle', npc: ['stranger', 'love', 'Hôm nay em phải đẹp nhất!'], x: '5 giờ sáng, cô dâu đến làm tóc, 7 giờ đón dâu. Tóc cô ấy mỏng, khó búi.',
-      c: [['💇 Làm kiểu búi cầu kỳ', 'smarts', 0.5, null, 'Kiểu tóc đẹp lung linh, ảnh cưới lan truyền, khách đặt lịch kín tháng.', 'Búi tóc tuột giữa lễ, cô dâu khóc.', 'big'], ['🎀 Làm kiểu đơn giản chắc chắn', null, 1, null, 'Đơn giản mà thanh lịch. Cô dâu hài lòng.', '', 'safe']] },
+      c: [['💇 Làm kiểu búi cầu kỳ', 'smarts', 0.5, 'aim', 'Kiểu tóc đẹp lung linh, ảnh cưới lan truyền, khách đặt lịch kín tháng.', 'Búi tóc tuột giữa lễ, cô dâu khóc.', 'big'], ['🎀 Làm kiểu đơn giản chắc chắn', null, 1, null, 'Đơn giản mà thanh lịch. Cô dâu hài lòng.', '', 'safe']] },
     nongdan: { t: 'Thương lái ép giá', i: '🍉', loc: 'countryside', a: 'talk', npc: ['stranger', 'shrug', 'Giá này thôi, không bán thì thôi.'], x: 'Dưa hấu chín rộ, thương lái chỉ trả 2 nghìn một ký, rẻ hơn tiền phân bón.',
       c: [['📱 Livestream bán trực tiếp', 'looks', 0.5, null, 'Phiên live “giải cứu dưa” hút nghìn đơn, bán được giá gấp ba.', 'Ít người xem, dưa thối dần ngoài ruộng.', 'big'], ['🧧 Mặc cả thêm với thương lái', 'smarts', 0.5, 'haggle', 'Bạn thuyết phục được lên 4 nghìn, đủ hoà vốn.', 'Thương lái bỏ đi, sang mua ruộng bên cạnh.', 'mid'], ['😞 Bán luôn cho xong', null, 1, null, 'Bán lỗ, nhưng ít ra không mất trắng.', '', 'safe']] },
     congchuc: { t: 'Cấp trên giao việc ngoài giờ', i: '🕰️', a: 'type', npc: ['boss', 'talk', 'Cuối tuần em soạn giúp anh bài phát biểu nhé.'], x: 'Trưởng phòng giao bạn soạn bài phát biểu cho hội nghị, cuối tuần phải xong.',
-      c: [['✍️ Viết thật hay, tâm huyết', 'smarts', 0.55, null, 'Bài phát biểu được lãnh đạo thành phố khen. Trưởng phòng đề xuất bạn vào diện quy hoạch.', 'Bài viết bị sửa gần hết, trưởng phòng không hài lòng.', 'mid'], ['📋 Sao chép từ bài năm ngoái', null, 0.6, null, 'Không ai phát hiện. Bạn có cuối tuần thảnh thơi.', 'Đại biểu nhận ra bài y hệt năm ngoái, trưởng phòng bị bẽ mặt và trút giận lên bạn.', 'shady']] },
+      c: [['✍️ Viết thật hay, tâm huyết', 'smarts', 0.55, 'quiz', 'Bài phát biểu được lãnh đạo thành phố khen. Trưởng phòng đề xuất bạn vào diện quy hoạch.', 'Bài viết bị sửa gần hết, trưởng phòng không hài lòng.', 'mid'], ['📋 Sao chép từ bài năm ngoái', null, 0.6, null, 'Không ai phát hiện. Bạn có cuối tuần thảnh thơi.', 'Đại biểu nhận ra bài y hệt năm ngoái, trưởng phòng bị bẽ mặt và trút giận lên bạn.', 'shady']] },
     nganhang: { t: 'Hồ sơ vay đáng ngờ', i: '📂', a: 'type', npc: ['boss', 'talk', 'Khách VIP đấy, duyệt nhanh cho anh.'], x: 'Hồ sơ vay 20 tỷ của “khách VIP” có tài sản thế chấp định giá cao bất thường.',
       c: [['🔍 Thẩm định lại kỹ', 'smarts', 0.6, 'quiz', 'Bạn phát hiện tài sản bị định giá khống. Ngân hàng tránh được khoản nợ xấu 20 tỷ.', 'Bạn bị trách làm chậm, khách VIP chuyển sang ngân hàng khác.', 'mid'], ['✅ Duyệt theo chỉ đạo', null, 0.55, null, 'Khoản vay được giải ngân, bạn được thưởng doanh số.', 'Khách vỡ nợ, thanh tra truy trách nhiệm người thẩm định — là bạn.', 'shady']] },
     phiendich: { t: 'Dịch hợp đồng gấp', i: '📄', a: 'type', npc: ['boss', 'point', 'Sáng mai ký rồi!'], x: 'Bản hợp đồng 80 trang cần dịch trong một đêm. Có một điều khoản phạt rất mập mờ.',
@@ -409,7 +409,7 @@
     tiepvien: { t: 'Hành khách lên cơn đau tim', i: '💔', loc: 'airport', a: 'scared', npc: ['stranger', 'sick', 'Tôi… tức ngực quá…'], x: 'Giữa chuyến bay, một hành khách lớn tuổi ngã gục, tím tái.',
       c: [['🫀 Ép tim cấp cứu ngay', 'health', 0.5, 'cpr', 'Bạn ép tim đúng kỹ thuật đến khi ông tỉnh lại. Máy bay hạ cánh khẩn cấp, ông được cứu sống.', 'Bạn cố hết sức, nhưng ông không qua khỏi.', 'big'], ['📢 Tìm bác sĩ trên máy bay', null, 0.7, null, 'Có một bác sĩ trên chuyến bay, cùng bạn cấp cứu thành công.', 'Không có bác sĩ nào, mất thời gian quý báu.', 'mid']] },
     phicong: { t: 'Cảnh báo kỹ thuật', i: '⚠️', loc: 'airport', a: 'think', npc: ['coworker', 'scared', 'Đèn báo động cơ số 2 sáng!'], x: 'Ngay sau cất cánh, đèn cảnh báo động cơ số 2 sáng. Có thể là lỗi cảm biến.',
-      c: [['🔙 Quay đầu hạ cánh', null, 1, null, 'Máy bay hạ cánh an toàn. Kiểm tra cho thấy động cơ có vết nứt thật — bạn đã cứu 180 người.', '', 'safe'], ['✈️ Tiếp tục bay, theo dõi', 'smarts', 0.55, null, 'Đúng là lỗi cảm biến, chuyến bay đến đúng giờ.', 'Động cơ tắt giữa chừng, bạn phải hạ cánh khẩn cấp một động cơ. Bị đình chỉ bay để điều tra.', 'big']] },
+      c: [['🔙 Quay đầu hạ cánh', null, 1, null, 'Máy bay hạ cánh an toàn. Kiểm tra cho thấy động cơ có vết nứt thật — bạn đã cứu 180 người.', '', 'safe'], ['✈️ Tiếp tục bay, theo dõi', 'smarts', 0.55, 'quiz', 'Đúng là lỗi cảm biến, chuyến bay đến đúng giờ.', 'Động cơ tắt giữa chừng, bạn phải hạ cánh khẩn cấp một động cơ. Bị đình chỉ bay để điều tra.', 'big']] },
     cuuhoa: { t: 'Cứu người mắc kẹt trên cây', i: '🌳', a: 'run', npc: ['neighbor', 'scared', 'Cứu ông với!'], x: 'Lũ quét, một cụ ông ôm cây giữa dòng nước xiết suốt hai tiếng.',
       c: [['🏊 Buộc dây bơi ra cứu', 'health', 0.45, 'swim', 'Bạn bơi ra, buộc dây đưa cụ vào bờ an toàn. Clip giải cứu lan khắp cả nước.', 'Dòng nước quá mạnh, bạn bị cuốn trôi một đoạn, đồng đội phải kéo vào.', 'big'], ['🚁 Chờ xuồng chuyên dụng', null, 1, null, 'Xuồng đến sau 30 phút, cụ ông được cứu kịp.', '', 'safe']] },
     huongdanvien: { t: 'Khách nước ngoài bị móc túi', i: '👛', a: 'talk', npc: ['stranger', 'cry', 'My passport is gone!'], x: 'Một du khách trong đoàn bị móc mất ví và hộ chiếu ở phố cổ.',
@@ -417,15 +417,15 @@
     kientrucsu: { t: 'Chủ nhà đòi sửa thiết kế phút chót', i: '🏠', a: 'think', npc: ['stranger', 'point', 'Thầy phong thuỷ bảo phải xoay cửa!'], x: 'Móng đã đổ, chủ nhà nghe thầy phong thuỷ đòi xoay hướng cửa chính 90 độ.',
       c: [['📐 Thiết kế lại khéo, giữ kết cấu', 'smarts', 0.5, null, 'Bạn tìm ra cách xoay cửa mà không phải đập móng. Chủ nhà phục sát đất.', 'Phương án mới phát sinh chi phí lớn, chủ nhà không chịu trả.', 'mid'], ['🙅 Từ chối, giải thích kỹ thuật', 'looks', 0.55, 'interview', 'Chủ nhà nghe theo, giữ nguyên thiết kế.', 'Chủ nhà huỷ hợp đồng, thuê người khác.', 'mid']] },
     khoahoc: { t: 'Lời mời từ viện nước ngoài', i: '🌍', loc: 'university', a: 'study', npc: ['coworker', 'talk', 'Bên đó lương gấp mười lần.'], x: 'Một viện nghiên cứu châu Âu mời bạn sang làm việc. Nhóm nghiên cứu trong nước đang cần bạn.',
-      c: [['🇻🇳 Ở lại cùng nhóm', 'smarts', 0.55, null, 'Bạn ở lại dẫn dắt nhóm, công bố phát minh được cấp bằng sáng chế quốc tế.', 'Kinh phí cạn, đề tài dừng giữa chừng.', 'mid'], ['✈️ Sang châu Âu một thời gian', null, 1, null, 'Bạn sang châu Âu, học hỏi nhiều điều. Nhóm cũ tiếc nuối.', '', 'safe']] },
+      c: [['🇻🇳 Ở lại cùng nhóm', 'smarts', 0.55, 'quiz', 'Bạn ở lại dẫn dắt nhóm, công bố phát minh được cấp bằng sáng chế quốc tế.', 'Kinh phí cạn, đề tài dừng giữa chừng.', 'mid'], ['✈️ Sang châu Âu một thời gian', null, 1, null, 'Bạn sang châu Âu, học hỏi nhiều điều. Nhóm cũ tiếc nuối.', '', 'safe']] },
     chinhtri: { t: 'Dự án nghìn tỷ cần phê duyệt', i: '🏗️', loc: 'office', a: 'think', npc: ['boss', 'talk', 'Doanh nghiệp này là chỗ quen biết đấy.'], x: 'Một dự án lớn cần bạn ký duyệt. Hồ sơ đánh giá môi trường còn nhiều chỗ đáng ngờ.',
-      c: [['🔍 Yêu cầu bổ sung đánh giá', 'smarts', 0.6, null, 'Đánh giá lại phát hiện nguy cơ ô nhiễm. Dự án được điều chỉnh, dân trong vùng cảm ơn.', 'Bạn bị chê cản trở đầu tư, bị điều chuyển công tác.', 'mid'], ['✍️ Ký cho xong', null, 0.5, null, 'Dự án chạy, bạn nhận “quà cảm ơn” hậu hĩnh.', 'Dự án gây ô nhiễm nghiêm trọng, bạn bị kỷ luật và khởi tố.', 'shady']] },
+      c: [['🔍 Yêu cầu bổ sung đánh giá', 'smarts', 0.6, 'interview', 'Đánh giá lại phát hiện nguy cơ ô nhiễm. Dự án được điều chỉnh, dân trong vùng cảm ơn.', 'Bạn bị chê cản trở đầu tư, bị điều chuyển công tác.', 'mid'], ['✍️ Ký cho xong', null, 0.5, null, 'Dự án chạy, bạn nhận “quà cảm ơn” hậu hĩnh.', 'Dự án gây ô nhiễm nghiêm trọng, bạn bị kỷ luật và khởi tố.', 'shady']] },
     hlv: { t: 'Phát hiện tài năng nhí', i: '🌟', a: 'clap', npc: ['stranger', 'run', 'Cháu muốn đá bóng!'], x: 'Một cậu bé ở xóm nghèo có tố chất đặc biệt, nhưng gia đình không có tiền cho cậu theo học.',
-      c: [['🤝 Tự bỏ tiền nuôi cậu bé tập luyện', 'smarts', 0.55, null, 'Mười năm sau cậu bé khoác áo đội tuyển quốc gia, trả lời phỏng vấn: “Nhờ thầy tôi mới có hôm nay.”', 'Cậu bé bỏ tập giữa chừng vì gia đình khó khăn.', 'big'], ['📋 Giới thiệu lên lò đào tạo', null, 1, null, 'Cậu bé được nhận học bổng. Bạn yên tâm.', '', 'safe']] },
+      c: [['🤝 Tự bỏ tiền nuôi cậu bé tập luyện', 'smarts', 0.55, 'interview', 'Mười năm sau cậu bé khoác áo đội tuyển quốc gia, trả lời phỏng vấn: “Nhờ thầy tôi mới có hôm nay.”', 'Cậu bé bỏ tập giữa chừng vì gia đình khó khăn.', 'big'], ['📋 Giới thiệu lên lò đào tạo', null, 1, null, 'Cậu bé được nhận học bổng. Bạn yên tâm.', '', 'safe']] },
     casi: { t: 'Lời mời hát đám cưới đại gia', i: '💍', loc: 'wedding', a: 'sing', npc: ['stranger', 'cheer', 'Hát ba bài, trả nửa tỷ!'], x: 'Một đại gia mời bạn hát đám cưới con gái, cát-xê cao gấp năm lần show thường, trùng lịch với đêm nhạc từ thiện bạn đã nhận.',
       c: [['💝 Giữ lời hứa với đêm từ thiện', null, 1, null, 'Bạn hát cho đêm từ thiện. Khán giả cảm động, báo chí khen bạn có tâm.', '', 'safe'], ['💰 Huỷ từ thiện, đi hát đám cưới', null, 0.5, null, 'Nửa tỷ vào túi.', 'Ban tổ chức từ thiện đăng đàn trách bạn bội tín. Cư dân mạng tẩy chay.', 'shady']] },
     dienvien: { t: 'Vai diễn để đời', i: '🎭', loc: 'studio', a: 'think', npc: ['boss', 'talk', 'Vai này phải tăng 15 ký.'], x: 'Đạo diễn danh tiếng mời bạn vai chính, yêu cầu tăng 15 ký và cạo đầu.',
-      c: [['💪 Nhận vai, hy sinh ngoại hình', 'health', 0.5, null, 'Vai diễn để đời! Bạn đoạt giải Cánh diều vàng.', 'Phim thất bại phòng vé, bạn mất cả năm và vóc dáng.', 'big'], ['🙅 Từ chối', null, 1, null, 'Bạn từ chối, giữ hình ảnh. Một diễn viên khác nhận vai.', '', 'safe']] },
+      c: [['💪 Nhận vai, hy sinh ngoại hình', 'health', 0.5, 'sprint', 'Vai diễn để đời! Bạn đoạt giải Cánh diều vàng.', 'Phim thất bại phòng vé, bạn mất cả năm và vóc dáng.', 'big'], ['🙅 Từ chối', null, 1, null, 'Bạn từ chối, giữ hình ảnh. Một diễn viên khác nhận vai.', '', 'safe']] },
   };
   Object.keys(more).forEach((id) => { if (J[id]) J[id].tasks.push(more[id]); });
 })();
