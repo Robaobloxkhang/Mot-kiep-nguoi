@@ -412,35 +412,45 @@
   }
 
   // ------------------------------------------------------------------ 2. sút phạt đền
+  // Sút phạt đền — CONFIG chỉnh cân bằng. Độ khó: sức khỏe → vùng lực + độ rung tâm ngắm; need (cấp sự kiện) → thủ môn giỏi hơn;
+  // áp lực tăng theo quả (vùng xanh hẹp lại, rung nhiều hơn). Thủ môn có “thói quen” nhảy về 1 bên, lộ dần sau mỗi quả.
+  const PEN_CFG = { shots: 5, sweetBase: 0.2, sweetHp: 0.12, pressure: 0.018, shakeBase: 0.012, habitBase: 0.55, habitNeed: 0.2, cornerSave: 0.25 };
+  // thuần túy, dễ test: trả về 'goal' | 'saved' | 'out'
+  function penaltyResolve(ax, ay, pw, dive, r, sweet) {
+    const col = ax < 1 / 3 ? 0 : ax > 2 / 3 ? 2 : 1;
+    const power = Math.abs(pw - 0.75) < sweet ? 'ok' : pw < 0.75 ? 'weak' : 'over';
+    if (power === 'over' && r < 0.7) return 'out';
+    const topCorner = ay < 0.25 && col !== 1;
+    let pSave = dive === col ? (topCorner ? PEN_CFG.cornerSave : 0.88) : (Math.abs(dive - col) === 1 && power === 'weak' ? 0.4 : 0.03);
+    if (power === 'weak' && dive === col) pSave = Math.min(0.97, pSave + 0.1);
+    return ((r * 7.31) % 1) < pSave ? 'saved' : 'goal';
+  }
   function penalty(p) {
     return new Promise((res) => {
-      const hp = p.ctx.stats.health, { cv, c, hud } = canvasGame('⚽ Sút phạt đền', '', 'Bấm <kbd>Space</kbd> (hoặc chạm màn hình) 3 lần: lần 1 chốt hướng ngang · lần 2 chốt độ cao · lần 3 chốt lực (vạch cam nằm trong vùng xanh)');
-      const speed = 1.6 - hp / 100 * 0.9; // sức khỏe cao → tâm ngắm chạy chậm
-      const keeperSkill = clamp(0.25 + p.need * 0.55, 0.25, 0.75);
-      let shot = 0, goals = 0, phase = 0, t = 0, ax = 0, ay = 0, pw = 0, kx = 320, ky = 200, kTarget = 320, result = '', ball = null;
-      const GX = 140, GY = 90, GW = 360, GH = 170;
-      const next = () => { phase = 0; t = rnd() * 3; ax = ay = pw = 0; kx = 320; ky = 200; ball = null; result = ''; };
+      const hp = p.ctx.stats.health, { cv, c, hud } = canvasGame('⚽ Sút phạt đền', '', 'Space/chạm 3 lần: chốt hướng ngang → độ cao → lực (vạch cam vào vùng xanh). Thủ môn có thói quen nhảy một bên — quan sát!');
+      const speed = 1.6 - hp / 100 * 0.9;
+      const habitSide = Math.random() < 0.5 ? 0 : 2, habitP = clamp(PEN_CFG.habitBase + p.need * PEN_CFG.habitNeed, 0.5, 0.8);
+      const seen = [0, 0, 0];
+      let shot = 0, goals = 0, phase = 0, t = 0, ax = 0, ay = 0, pw = 0, kx = 320, kTarget = 320, result = '', ball = null, shake = 0;
+      const GX = 140, GY = 90, GW = 360, GH = 170, ky = 200;
+      const sweetNow = () => Math.max(0.06, PEN_CFG.sweetBase - PEN_CFG.pressure * shot * 2 + hp / 100 * PEN_CFG.sweetHp - 0.06);
+      const wob = () => (Math.sin(t * 23) + Math.sin(t * 17.3)) * 0.5 * (PEN_CFG.shakeBase + shot * 0.01) * (1.3 - hp / 150);
+      const next = () => { phase = 0; t = rnd() * 3; ax = ay = pw = 0; kx = 320; ball = null; result = ''; };
       tapper(cv, () => {
-        if (phase === 0) { ax = 0.5 + 0.5 * Math.sin(t * 2.6 / speed); phase = 1; sfx('click'); }
-        else if (phase === 1) { ay = 0.5 + 0.5 * Math.sin(t * 2.9 / speed); phase = 2; sfx('click'); }
+        if (phase === 0) { ax = clamp(0.5 + 0.5 * Math.sin(t * 2.6 / speed) + wob(), 0, 1); phase = 1; sfx('click'); }
+        else if (phase === 1) { ay = clamp(0.5 + 0.5 * Math.sin(t * 2.9 / speed) + wob(), 0, 1); phase = 2; sfx('click'); }
         else if (phase === 2) {
           pw = 0.5 + 0.5 * Math.sin(t * 3.4 / speed); phase = 3; sfx('kick');
-          const sweet = 0.18 + hp / 100 * 0.12; // vùng lực chuẩn quanh 0.75
-          const power = Math.abs(pw - 0.75) < sweet ? 'ok' : pw < 0.75 ? 'weak' : 'over';
+          const dive = rnd() < habitP ? habitSide : [0, 1, 2][Math.floor(rnd() * 3)];
+          seen[dive]++;
+          const r = rnd(), out = penaltyResolve(ax, ay, pw, dive, r, sweetNow());
           const tx = GX + ax * GW, ty = GY + ay * GH;
-          const outside = power === 'over' && rnd() < 0.7;
-          // thủ môn đoán hướng: càng giỏi càng hay đoán đúng; bóng sát góc khó cản
-          const corner = Math.abs(ax - 0.5) * 2 * 0.6 + Math.abs(ay - 0.5) * 0.4;
-          const guess = rnd() < keeperSkill ? tx : GX + rnd() * GW;
-          kTarget = guess;
-          const reach = 70 * (power === 'weak' ? 1.5 : 1);
-          const saved = !outside && Math.abs(guess - tx) < reach * (1 - corner * 0.6) && rnd() < 0.85;
-          const goal = !outside && !saved;
-          ball = { x: 320, y: 360, tx: outside ? tx + (ax < 0.5 ? -60 : 60) : tx, ty: outside ? GY - 40 : ty, goal, saved };
-          result = goal ? 'VÀOOOO!' : saved ? 'Thủ môn cản phá!' : 'Ra ngoài!';
-          if (goal) goals++;
+          kTarget = GX + (dive + 0.5) * GW / 3;
+          ball = { x: 320, y: 360, tx: out === 'out' ? tx + (ax < 0.5 ? -60 : 60) : tx, ty: out === 'out' ? GY - 40 : ty, goal: out === 'goal' };
+          result = out === 'goal' ? 'VÀOOOO!' : out === 'saved' ? 'Thủ môn cản phá!' : 'Ra ngoài!';
+          if (out === 'goal') goals++;
           shot++;
-          setTimeout(() => { if (shot >= 5) { setTimeout(() => res({ score: goals / 5, text: 'Bạn sút thành công ' + goals + '/5 quả phạt đền.' }), 300); phase = 9; } else next(); }, 1400);
+          setTimeout(() => { if (shot >= PEN_CFG.shots) { phase = 9; setTimeout(() => res({ score: goals / PEN_CFG.shots, text: 'Bạn sút thành công ' + goals + '/' + PEN_CFG.shots + ' quả phạt đền.' }), 300); } else next(); }, 1300);
         }
       });
       loop((dt) => {
@@ -453,43 +463,52 @@
         if (phase === 3) kx += (kTarget - kx) * Math.min(1, dt * 7); else kx = 320 + Math.sin(t * 1.7) * 40;
         c.fillStyle = '#ffd23f'; c.fillRect(kx - 22, ky - 10, 44, 60); c.fillStyle = '#f2c39a'; c.beginPath(); c.arc(kx, ky - 24, 15, 0, 7); c.fill();
         c.fillStyle = '#ffd23f'; c.fillRect(kx - 46, ky, 24, 12); c.fillRect(kx + 22, ky, 24, 12);
-        const cx = phase >= 1 ? GX + ax * GW : GX + (0.5 + 0.5 * Math.sin(t * 2.6 / speed)) * GW;
-        const cy = phase >= 2 ? GY + ay * GH : phase === 1 ? GY + (0.5 + 0.5 * Math.sin(t * 2.9 / speed)) * GH : GY + GH / 2;
+        const rx = 0.5 + 0.5 * Math.sin(t * 2.6 / speed), ry = 0.5 + 0.5 * Math.sin(t * 2.9 / speed);
+        const cx = GX + (phase >= 1 ? ax : clamp(rx + wob(), 0, 1)) * GW;
+        const cy = GY + (phase >= 2 ? ay : phase === 1 ? clamp(ry + wob(), 0, 1) : 0.5) * GH;
         if (phase < 3) { c.strokeStyle = '#ff3b3b'; c.lineWidth = 3; c.beginPath(); c.arc(cx, cy, 16, 0, 7); c.moveTo(cx - 24, cy); c.lineTo(cx + 24, cy); c.moveTo(cx, cy - 24); c.lineTo(cx, cy + 24); c.stroke(); }
-        if (phase === 2) { const v = 0.5 + 0.5 * Math.sin(t * 3.4 / speed), sweet = 0.18 + hp / 100 * 0.12; c.fillStyle = '#222'; c.fillRect(600, 100, 22, 240); c.fillStyle = '#39cf98'; c.fillRect(600, 100 + (1 - 0.75 - sweet) * 240, 22, sweet * 2 * 240); c.fillStyle = '#ffb347'; c.fillRect(596, 100 + (1 - v) * 240 - 3, 30, 6); }
+        if (phase === 2) { const v = 0.5 + 0.5 * Math.sin(t * 3.4 / speed), sw = sweetNow(); c.fillStyle = '#222'; c.fillRect(600, 100, 22, 240); c.fillStyle = '#39cf98'; c.fillRect(600, 100 + (1 - 0.75 - sw) * 240, 22, sw * 2 * 240); c.fillStyle = '#ffb347'; c.fillRect(596, 100 + (1 - v) * 240 - 3, 30, 6); }
         const bx = ball ? ball.x : 320, by = ball ? ball.y : 360;
         if (ball) { ball.x += (ball.tx - ball.x) * Math.min(1, dt * 6); ball.y += (ball.ty - ball.y) * Math.min(1, dt * 6); }
         c.fillStyle = '#fff'; c.beginPath(); c.arc(bx, by, ball ? 10 : 13, 0, 7); c.fill(); c.fillStyle = '#222'; c.beginPath(); c.arc(bx, by, 4, 0, 7); c.fill();
         if (result) bigText(c, result, 60, ball && ball.goal ? '#ffd23f' : '#fff', 38);
-        hud.textContent = 'Quả ' + Math.min(shot + 1, 5) + '/5 · vào ' + goals + ' · ' + (phase === 0 ? 'chốt hướng ngang' : phase === 1 ? 'chốt độ cao' : phase === 2 ? 'chốt lực' : '');
+        const tot = seen[0] + seen[1] + seen[2], fav = seen.indexOf(Math.max(...seen));
+        const tip = tot >= 2 && seen[fav] / tot >= 0.6 ? ' · 👀 thủ môn hay nhảy ' + ['TRÁI', 'GIỮA', 'PHẢI'][fav] : '';
+        hud.textContent = 'Quả ' + Math.min(shot + 1, PEN_CFG.shots) + '/' + PEN_CFG.shots + ' · vào ' + goals + tip + (phase === 0 ? ' · chốt hướng' : phase === 1 ? ' · chốt độ cao' : phase === 2 ? ' · chốt lực' : '');
       });
     });
   }
 
   // ------------------------------------------------------------------ 3. bắt penalty (thủ môn)
+  // Bắt penalty — CONFIG. Cửa sổ phản xạ = thời gian bóng bay (hp cao → dài). Cầu thủ có “tell” 0.3–0.6s trước khi sút,
+  // một phần tell là đánh lừa (fakeP tăng theo need). Hồ sơ cầu thủ: mỗi người có thiên hướng riêng, lộ qua các quả.
+  const KP_CFG = { shots: 5, runup: 1.4, tellMin: 0.3, tellMax: 0.6, fakeBase: 0.15, fakeNeed: 0.35, bias: 0.55 };
   function keeper(p) {
     return new Promise((res) => {
       const hp = p.ctx.stats.health;
-      const { box, cv, c, hud } = canvasGame('🧤 Bắt penalty', '<div class="mini-pad"><button type="button" data-c="0">◀ Trái <kbd>←</kbd></button><button type="button" data-c="1">⬇ Giữa <kbd>↓</kbd></button><button type="button" data-c="2">Phải ▶ <kbd>→</kbd></button></div>', 'Nhìn bóng bay rồi đổ người: <kbd>←</kbd> trái · <kbd>↓</kbd> giữa · <kbd>→</kbd> phải. Mỗi quả chỉ chọn được một lần.');
-      const win = clamp(0.36 + hp / 100 * 0.3 - p.need * 0.12, 0.3, 0.7); // thời gian bóng bay = thời gian phản xạ
-      const fakeP = clamp(0.15 + p.need * 0.35, 0.15, 0.5); // xác suất cầu thủ chạy đà “lừa” hướng
+      const { box, cv, c, hud } = canvasGame('🧤 Bắt penalty', '<div class="mini-pad"><button type="button" data-c="0">◀ Trái <kbd>←</kbd></button><button type="button" data-c="1">⬇ Giữa <kbd>↓</kbd></button><button type="button" data-c="2">Phải ▶ <kbd>→</kbd></button></div>', 'Dáng chạy đà + ánh nhìn (vạch trắng) báo hướng, nhưng có thể là đánh lừa. Chọn sớm = liều, chọn muộn = không kịp. <kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>');
+      const win = clamp(0.36 + hp / 100 * 0.3 - p.need * 0.12, 0.3, 0.7);
+      const fakeP = clamp(KP_CFG.fakeBase + p.need * KP_CFG.fakeNeed, 0.15, 0.5);
       const GX = 140, GY = 70, GW = 360, GH = 170;
-      let shot = 0, saves = 0, phase = 'run', pt = 0, target = 1, look = 1, dive = null, ball = null, msg = '', t = 0;
-      const next = () => { target = Math.floor(rnd() * 3); look = rnd() < fakeP ? (target + 1 + Math.floor(rnd() * 2)) % 3 : target; phase = 'run'; pt = 0; dive = null; ball = null; msg = ''; };
+      const profiles = [{ n: 'Thích sút góc trái', w: [0.55, 0.15, 0.3] }, { n: 'Thích sút góc phải', w: [0.3, 0.15, 0.55] }, { n: 'Hay sút giữa', w: [0.25, 0.5, 0.25] }, { n: 'Khó đoán', w: [0.34, 0.32, 0.34] }];
+      let prof = pick(profiles), shot = 0, saves = 0, phase = 'run', pt = 0, target = 1, look = 1, dive = null, diveAt = 0, ball = null, msg = '', t = 0, tell = 0.45, early = false;
+      const draw = (w) => { let r = rnd(), i = 0; while (i < 2 && r > w[i]) { r -= w[i]; i++; } return i; };
+      const next = () => { target = draw(prof.w); look = rnd() < fakeP ? (target + 1 + Math.floor(rnd() * 2)) % 3 : target; phase = 'run'; pt = 0; dive = null; ball = null; msg = ''; early = false; tell = rand(KP_CFG.tellMin, KP_CFG.tellMax); };
       next();
-      const choose = (col) => { if (phase === 'end' || phase === 'res' || dive != null) return; dive = col; sfx('click'); };
+      const choose = (col) => { if (phase === 'end' || phase === 'res' || dive != null) return; dive = col; diveAt = phase === 'run' ? pt : -1; early = phase === 'run' && pt < KP_CFG.runup - tell; sfx('click'); };
       padBind(box, '[data-c]', (b) => choose(+b.dataset.c));
       cv.addEventListener('pointerdown', (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(); choose(clamp(Math.floor((e.clientX - r.left) / r.width * 3), 0, 2)); });
       onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const m = { ArrowLeft: 0, a: 0, A: 0, ArrowDown: 1, ArrowUp: 1, s: 1, S: 1, ' ': 1, ArrowRight: 2, d: 2, D: 2 }[e.key]; if (m == null) return false; choose(m); return true; });
       loop((dt) => {
         t += dt; pt += dt;
-        if (phase === 'run' && pt >= 1.4) { phase = 'fly'; pt = 0; ball = { tx: GX + (target + 0.5) * GW / 3 + rand(-35, 35), ty: GY + rand(30, GH - 25) }; sfx('kick'); }
+        if (phase === 'run' && pt >= KP_CFG.runup) { phase = 'fly'; pt = 0; ball = { tx: GX + (target + 0.5) * GW / 3 + rand(-35, 35), ty: GY + rand(30, GH - 25) }; sfx('kick'); }
         else if (phase === 'fly' && pt >= win) {
+          // nhảy sớm (trước tell) mà đúng thì vẫn bắt được; nhảy sớm mà sai thì mất quả — đã nằm trong kết quả đúng/sai
           const saved = dive === target; if (saved) saves++; shot++;
-          msg = saved ? pick(['CẢN PHÁ!', 'BẮT GỌN!', 'XUẤT THẦN!']) : dive == null ? 'Không kịp phản xạ!' : 'VÀO LƯỚI…';
+          msg = saved ? pick(['CẢN PHÁ!', 'BẮT GỌN!', 'XUẤT THẦN!']) : dive == null ? 'Không kịp phản xạ!' : early ? 'Nhảy sớm quá — bị lừa!' : 'VÀO LƯỚI…';
           sfx(saved ? 'good' : 'bad'); phase = 'res'; pt = 0;
         } else if (phase === 'res' && pt >= 1.3) {
-          if (shot >= 5) { phase = 'end'; const score = [0, 0.3, 0.55, 0.75, 0.9, 1][saves]; setTimeout(() => res({ score, text: 'Bạn cản phá ' + saves + '/5 quả.' }), 200); }
+          if (shot >= KP_CFG.shots) { phase = 'end'; const score = [0, 0.3, 0.55, 0.75, 0.9, 1][saves]; setTimeout(() => res({ score, text: 'Bạn cản phá ' + saves + '/' + KP_CFG.shots + ' quả.' }), 200); }
           else next();
         }
         c.fillStyle = '#3f8f3f'; c.fillRect(0, 0, 640, 400);
@@ -497,7 +516,6 @@
         c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(GX, GY, GW, GH);
         c.strokeStyle = '#fff'; c.lineWidth = 6; c.strokeRect(GX, GY, GW, GH);
         c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 2; for (let i = 1; i < 3; i++) { c.beginPath(); c.moveTo(GX + i * GW / 3, GY); c.lineTo(GX + i * GW / 3, GY + GH); c.stroke(); }
-        // thủ môn (bạn)
         const kTx = dive == null ? 320 : GX + (dive + 0.5) * GW / 3;
         const kx = phase === 'run' && dive == null ? 320 + Math.sin(t * 2) * 10 : kTx;
         const tilt = dive == null || dive === 1 ? 0 : (dive === 0 ? -1 : 1) * 0.5;
@@ -506,16 +524,16 @@
         c.fillStyle = (p.ctx.appearance && p.ctx.appearance.skin) || '#f2c39a'; c.beginPath(); c.arc(0, -24, 14, 0, 7); c.fill();
         c.fillStyle = '#39cf98'; c.fillRect(-48, -14, 26, 12); c.fillRect(22, -14, 26, 12);
         c.restore();
-        // cầu thủ đá: dáng chạy đà nghiêng về hướng “look”
-        const kickX = 320 + (phase === 'run' ? (look - 1) * 26 * Math.min(1, pt / 1.1) : 0), kickY = 395 - (phase === 'run' ? Math.min(1, pt / 1.4) * 30 : 30);
+        // “tell” chỉ hiện trong 0.3–0.6s cuối của giai đoạn chạy đà
+        const showTell = phase === 'run' && pt > KP_CFG.runup - tell;
+        const kickX = 320 + (phase === 'run' ? (showTell ? (look - 1) * 26 * Math.min(1, (pt - (KP_CFG.runup - tell)) / (tell * 0.8)) : 0) : 0), kickY = 395 - (phase === 'run' ? Math.min(1, pt / KP_CFG.runup) * 30 : 30);
         c.fillStyle = '#d63c3c'; c.fillRect(kickX - 14, kickY - 50, 28, 36); c.fillStyle = '#c98d64'; c.beginPath(); c.arc(kickX, kickY - 62, 11, 0, 7); c.fill();
-        if (phase === 'run' && pt > 0.5) { c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 3; c.beginPath(); c.moveTo(kickX, kickY - 80); c.lineTo(kickX + (look - 1) * 40, kickY - 100); c.stroke(); }
-        // bóng
+        if (showTell) { c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 3; c.beginPath(); c.moveTo(kickX, kickY - 80); c.lineTo(kickX + (look - 1) * 40, kickY - 100); c.stroke(); }
         let bx = 320, by = 340, br = 12;
         if (ball) { const k = phase === 'fly' ? Math.min(1, pt / win) : 1; bx = 320 + (ball.tx - 320) * k; by = 340 + (ball.ty - 340) * k; br = 12 - 4 * k; if (phase !== 'fly' && dive === target) { bx = kTx; by = GY + GH - 60; } }
         c.fillStyle = '#fff'; c.beginPath(); c.arc(bx, by, br, 0, 7); c.fill(); c.fillStyle = '#222'; c.beginPath(); c.arc(bx, by, br * 0.35, 0, 7); c.fill();
-        if (msg) bigText(c, msg, 40, msg.includes('!') && !msg.startsWith('Không') ? '#ffd23f' : '#fff', 34);
-        hud.textContent = 'Quả ' + Math.min(shot + 1, 5) + '/5 · cản ' + saves + (phase === 'run' ? (dive == null ? ' · nhìn dáng chạy đà…' : ' · đã đoán hướng') : '');
+        if (msg) bigText(c, msg, 40, msg.includes('!') && !msg.startsWith('Không') && !msg.startsWith('Nhảy') ? '#ffd23f' : '#fff', 30);
+        hud.textContent = 'Quả ' + Math.min(shot + 1, KP_CFG.shots) + '/' + KP_CFG.shots + ' · cản ' + saves + ' · 👤 ' + prof.n + (phase === 'run' ? (dive == null ? '' : ' · đã chọn') : '');
       });
     });
   }
