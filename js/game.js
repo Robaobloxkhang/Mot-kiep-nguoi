@@ -5114,14 +5114,17 @@
     const p = kind === 'safe' ? 1 : U.clamp(base + (stat ? (S.stats[stat] - 50) / 150 : 0) + ((job ? job.perf : 50) - 50) / 300 + lvl * 0.025 + karmaLuck(), 0.08, 0.93);
     const out = { key: 'c' + k, label, fn: () => {
       const win = kind === 'safe' ? true : miniWin(p);
+      // minigame nhắn tin dụ nạn nhân: số người bị lừa / lén cứu / bị bắt quả tang ảnh hưởng đức, hiệu suất (đọc một lần rồi xoá để không cộng lặp)
+      const sc = mini === 'scamchat' && KN.Mini && KN.Mini.lastOut && typeof KN.Mini.lastOut.scammedN === 'number' ? KN.Mini.lastOut : null; if (sc) KN.Mini.lastOut = null;
       const r = JT_REWARD[kind][win ? 'win' : 'lose'], eff = {};
       if (r.happy) eff.happy = r.happy; if (r.karma) eff.karma = r.karma;
       if (r.bonus && S.job) eff.money = pay(monthly() * r.bonus);
       if (!win && kind === 'big' && stat === 'health') eff.health = -8;
+      if (sc) { S.flags.scamMade = (S.flags.scamMade || 0) + (sc.scammedN || 0); S.flags.scamSaved = (S.flags.scamSaved || 0) + (sc.warnedN || 0); eff.karma = (eff.karma || 0) - 2 * (sc.scammedN || 0) + 4 * (sc.warnedN || 0); if (sc.caught) { eff.health = (eff.health || 0) - 10; if (eff.money > 0) eff.money = 0; } }
       if (S.job) S.job.perf = r100(S.job.perf + (r.perf || 0));
       S.counters.jobTasks = (S.counters.jobTasks || 0) + 1; if (win && kind !== 'safe') S.counters.jobWins = (S.counters.jobWins || 0) + 1;
       let text = win ? winT : loseT;
-      if (r.bonus > 0 && S.job) text += ' (Thưởng ' + fmtMoney(eff.money) + ')';
+      if (r.bonus > 0 && S.job && eff.money > 0) text += ' (Thưởng ' + fmtMoney(eff.money) + ')';
       if (kind !== 'safe') text += win ? ' 📈 Thành tích công việc tăng.' : ' 📉 Thành tích công việc giảm.';
       if (win && (kind === 'big' || kind === 'mid')) text += addRep(kind === 'big' ? 2 : 1);
       // nghề ↔ MXH: pha xử lý xuất sắc bị quay lại và lan truyền; gian dối bị lộ thì clip “bóc phốt” lan nhanh hơn

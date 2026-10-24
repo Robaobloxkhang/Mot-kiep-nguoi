@@ -429,3 +429,28 @@
   };
   Object.keys(more).forEach((id) => { if (J[id]) J[id].tasks.push(more[id]); });
 })();
+
+/* ---- bổ sung: nghề ĐƯỜNG DÂY LỪA ĐẢO — ca làm việc dùng minigame nhắn tin dụ nạn nhân (scamchat). Chỉ mang tính phản ánh tác hại, không hướng dẫn thủ đoạn. ---- */
+(function () {
+  'use strict';
+  const J = (window.KN || {}).JOB_TASKS; if (!J) return;
+  J.luadao = { act: ['📞', 'Làm ca gọi điện'], tasks: [
+    { t: 'Ca gọi điện đêm khuya', i: '📞', a: 'type', loc: 'office', npc: ['boss', 'point', 'Tối nay phải chốt đủ khách!'],
+      x: 'Quản lý đặt trước mặt bạn tờ danh sách số điện thoại và một kịch bản in sẵn. Mỗi người “chốt” được là một khoản thưởng, nhưng bên kia màn hình là những người thật.',
+      c: [['📞 Làm ca: dụ nạn nhân cho đủ KPI', 'smarts', 0.5, 'scamchat', 'Bạn chốt đủ KPI, quản lý vỗ vai thưởng nóng. Tiền vào tài khoản, nhưng có những gia đình vừa mất tiền vì bạn.', 'Bạn nói vấp, nạn nhân nghi ngờ rồi cúp máy. Quản lý ghi tên bạn vào sổ đen.', 'shady'],
+        ['🙈 Gọi cho có, không dụ ai', null, 1, null, 'Bạn hỏi han vài câu rồi cúp máy. Không ai bị hại, nhưng hiệu suất của bạn bị ghi nhận thấp.', '', 'safe'],
+        ['🚪 Xin nghỉ ca, báo ốm', null, 1, null, 'Quản lý cau mày nhưng cho qua. Bạn có thêm một đêm để suy nghĩ về con đường mình đang đi.', '', 'safe']] },
+    { t: 'Kịch bản “cơ quan chức năng”', i: '📋', a: 'think', loc: 'office', npc: ['boss', 'talk', 'Cứ nói giọng thật nghiêm vào.'],
+      x: 'Đường dây phát một kịch bản mới: giả danh người có thẩm quyền để doạ nạn nhân. Quản lý nói đây là “tuyệt chiêu” sẽ ra tiền nhanh nhất quý.',
+      c: [['📞 Thử kịch bản mới với vài khách', 'smarts', 0.45, 'scamchat', 'Kịch bản hiệu quả đến mức đáng sợ. Bạn được thưởng lớn, nhưng nghe giọng run rẩy của nạn nhân khiến bạn mất ngủ.', 'Nạn nhân bình tĩnh gọi lại số tổng đài chính thức rồi báo công an. Cả ca bị khoá số.', 'shady'],
+        ['🛑 Từ chối dùng kịch bản đó', null, 1, null, 'Bạn nói kịch bản này “quá đà”. Quản lý lườm bạn, nhưng không ai dám ép thêm.', '', 'safe']] },
+    { t: 'Nạn nhân là người quen', i: '😰', a: 'idle', loc: 'office', npc: ['coworker', 'think', 'Số này… sao nghe quen quen?'],
+      x: 'Giữa danh sách khách có một cái tên bạn biết: một người hàng xóm đã từng cho bạn mượn tiền lúc khó khăn. Máy đang chờ bạn bấm gọi.',
+      c: [['📞 Cứ gọi, việc là việc', 'smarts', 0.4, 'scamchat', 'Bạn chốt được người quen. Quản lý khen bạn “lạnh lùng, làm được việc”, còn bạn thì không dám nhìn thẳng vào gương.', 'Người hàng xóm nhận ra giọng bạn. Mọi chuyện vỡ lở, bạn mất việc trong nhục nhã.', 'shady'],
+        ['🤫 Lén xoá số khỏi danh sách', null, 1, null, 'Bạn lặng lẽ xoá số đó. Không ai biết, nhưng bạn thấy nhẹ lòng hơn một chút.', '', 'safe']] },
+    { t: 'Quản lý ép tăng KPI', i: '😠', a: 'think', loc: 'office', npc: ['boss', 'angry', 'Ai không đủ số thì đừng về!'],
+      x: 'Cuối quý, quản lý đập bàn nâng KPI lên gấp đôi. Cả phòng im phăng phắc. Bạn nhận ra mình càng lún sâu thì càng khó thoát ra.',
+      c: [['📞 Cắn răng chạy KPI', 'smarts', 0.4, 'scamchat', 'Bạn đạt KPI sát nút. Tiền thưởng dày, nhưng lòng bạn nặng như đá.', 'Bạn không đủ số, bị mắng giữa phòng và bị trừ thưởng.', 'shady'],
+        ['🧠 Ngồi tính xem còn đường rút nào không', null, 1, null, 'Bạn lặng lẽ ghi lại những người có thể giúp bạn rời đi an toàn. Một ngày nào đó sẽ cần đến.', '', 'safe']] },
+  ] };
+})();
