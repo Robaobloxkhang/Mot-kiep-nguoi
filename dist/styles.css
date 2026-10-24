@@ -1637,3 +1637,6 @@ details.more.risk p { margin: 0 0 8px; }
 .ach-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line-2, #2b3550); border-radius: 12px; margin-bottom: 6px; opacity: .6; } .ach-row.on { opacity: 1; border-color: #b9862b; } .ach-row > div { flex: 1; } .ach-row small { display: block; color: var(--ink-2, #b6c2dc); font-size: 12px; } .ach-ic { font-size: 24px; }
 .arc-tab { width: 100%; border-collapse: collapse; font-size: 13px; } .arc-tab th, .arc-tab td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line-2, #2b3550); }
 @media (max-width: 560px) { .arc-grid2 { grid-template-columns: 1fr 1fr; } .arc-go small { display: none; } .arc-daily { flex-direction: column; align-items: stretch; } }
+
+.mini-pausebtn { right: auto; left: 12px; }
+.mini-pause { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(8,12,22,.82); backdrop-filter: blur(3px); border-radius: inherit; } .mini-pause > div { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 20px; } .mini-pause b { font-size: 26px; } .mini-pause small { color: var(--ink-2, #b6c2dc); }

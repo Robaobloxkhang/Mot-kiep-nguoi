@@ -792,6 +792,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '⏸ Tạm dừng giữa ván (nút ⏸ hoặc phím P/Esc) ở: chạy nước rút, bơi, rượt đuổi, lái xe, đánh nhau, vượt ngục, bán hàng, tập ngắm, phòng thi, sàn giao dịch, cấp cứu, phỏng vấn, tỏ tình, clutch, bắt penalty.',
       '🏍️ Đua xe máy: bám đuôi xe phía trước để “hít gió” (+7% tốc độ tối đa) và các tay đua máy có 3 tính cách — liều (phanh muộn, hay dùng nitro), thận trọng, cân bằng.',
       '📒 Sổ minigame: màn “Minigame” có tìm kiếm, lọc theo nhóm, ⭐ yêu thích, sắp xếp, thẻ hiện thời lượng + kỷ lục + số lượt; thử thách hằng ngày (đạt điểm yêu cầu để nhận tiền thưởng vào cuộc đời đang sống); 11 thành tựu minigame có thưởng tiền (nhận một lần, theo tuổi); màn kết quả hiện kỷ lục mới, chuỗi thắng, thành tựu vừa mở. Nút Thoát trong minigame phải bấm hai lần để tránh thoát nhầm.',
       '🎮 Làm lại cách chơi nhiều minigame: Sút phạt đền (thủ môn có thói quen, vùng lực hẹp dần), Bắt penalty (dấu hiệu 0.3–0.6s, đánh lừa), Ném rổ (tay nóng, hậu vệ giả vờ, 5 giây clutch, báo sớm/muộn ms), Chạy nước rút (xuất phát sớm bị phạt, bóng ma kỷ lục), Bơi (lật người ở thành hồ).',

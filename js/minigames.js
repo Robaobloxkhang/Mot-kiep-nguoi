@@ -147,15 +147,25 @@
     return root;
   }
   // nút ✖ Thoát góc trên: bỏ dở minigame → kết quả do số phận quyết định (thách đấu thì tính thua)
-  function addQuit(el) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mini-quit'; b.textContent = '✖ Thoát'; b.title = 'Bỏ dở minigame, để số phận quyết định'; let armed = 0; b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); sfx('click'); if (!armed) { armed = 1; b.textContent = '❓ Bấm lần nữa để thoát'; b.classList.add('arm'); setTimeout(() => { armed = 0; b.textContent = '✖ Thoát'; b.classList.remove('arm'); }, 3000); return; } if (abortFn) abortFn(); }; (el.querySelector('.mini-box') || el).appendChild(b); }
+  function addQuit(el) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mini-quit'; b.textContent = '✖ Thoát'; b.title = 'Bỏ dở minigame, để số phận quyết định'; let armed = 0; b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); sfx('click'); if (!armed) { armed = 1; b.textContent = '❓ Bấm lần nữa để thoát'; b.classList.add('arm'); setTimeout(() => { armed = 0; b.textContent = '✖ Thoát'; b.classList.remove('arm'); }, 3000); return; } if (abortFn) abortFn(); }; (el.querySelector('.mini-box') || el).appendChild(b); if (curP && PAUSABLE.includes(curP.type)) { const pb = document.createElement('button'); pb.type = 'button'; pb.className = 'mini-quit mini-pausebtn'; pb.textContent = '⏸ Tạm dừng'; pb.title = 'Tạm dừng (phím P hoặc Esc)'; pb.onclick = (e) => { e.preventDefault(); e.stopPropagation(); setPause(true); }; (el.querySelector('.mini-box') || el).appendChild(pb); } }
+  // ⏸ tạm dừng: chỉ cho các trò chạy bằng loop()/every() (không dùng đồng hồ hệ thống) — đóng băng vòng lặp, chặn phím, phủ màn tạm dừng
+  const PAUSABLE = ['sprint', 'swim', 'chase', 'drive', 'fight', 'sneak', 'cook', 'aim', 'quiz', 'stock', 'cpr', 'interview', 'love', 'clutch', 'keeper'];
+  let paused = false, pauseEl = null;
+  function setPause(on) {
+    if (!root || !curP || !PAUSABLE.includes(curP.type)) return; on = !!on; if (on === paused) return; paused = on; sfx('click');
+    const host = root.querySelector('.mini-box') || root;
+    if (on) { pauseEl = document.createElement('div'); pauseEl.className = 'mini-pause'; pauseEl.innerHTML = '<div><b>⏸ Tạm dừng</b><small>Thời gian đang dừng. Bấm <kbd>P</kbd> hoặc <kbd>Esc</kbd> để tiếp tục.</small><button type="button" class="btn btn-primary" data-resume>▶ Tiếp tục</button></div>'; pauseEl.querySelector('[data-resume]').onclick = () => setPause(false); host.appendChild(pauseEl); }
+    else if (pauseEl) { pauseEl.remove(); pauseEl = null; }
+  }
   function close() {
+    paused = false; if (pauseEl) { pauseEl.remove(); pauseEl = null; }
     cancelAnimationFrame(rafId); rafId = 0;
     timers.forEach((id) => clearInterval(id)); timers = [];
     if (keyHandler) { window.removeEventListener('keydown', keyHandler, true); window.removeEventListener('keyup', keyHandler, true); keyHandler = null; }
     if (root) { root.remove(); root = null; }
   }
-  const every = (fn, ms) => { const id = setInterval(fn, ms); timers.push(id); return id; };
-  function onKeys(fn) { keyHandler = (e) => { if (fn(e) !== false) { e.preventDefault(); e.stopPropagation(); } }; window.addEventListener('keydown', keyHandler, true); window.addEventListener('keyup', keyHandler, true); }
+  const every = (fn, ms) => { const id = setInterval(() => { if (!paused) fn(); }, ms); timers.push(id); return id; };
+  function onKeys(fn) { keyHandler = (e) => { if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && curP && PAUSABLE.includes(curP.type) && root) { if (e.type === 'keydown' && !e.repeat) setPause(!paused); e.preventDefault(); e.stopPropagation(); return; } if (paused) { e.preventDefault(); e.stopPropagation(); return; } if (fn(e) !== false) { e.preventDefault(); e.stopPropagation(); } }; window.addEventListener('keydown', keyHandler, true); window.addEventListener('keyup', keyHandler, true); }
   function onKeysOnce(fn) { if (keyHandler) { window.removeEventListener('keydown', keyHandler, true); window.removeEventListener('keyup', keyHandler, true); } onKeys((e) => (e.type === 'keydown' ? fn(e) : false)); }
   const lv = (v, a, b, c) => (v >= 75 ? a : v >= 50 ? b : c);
   function hintOf(p) {
@@ -303,7 +313,7 @@
     const cv = box.querySelector('canvas'), c = cv.getContext('2d');
     return { box, cv, c, hud: box.querySelector('.mini-hud') };
   }
-  function loop(fn) { let last = performance.now(); const tick = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; if (fn(dt, now / 1000) !== false) rafId = requestAnimationFrame(tick); }; rafId = requestAnimationFrame(tick); }
+  function loop(fn) { let last = performance.now(); const tick = (now) => { if (paused) { last = now; rafId = requestAnimationFrame(tick); return; } const dt = Math.min(0.05, (now - last) / 1000); last = now; if (fn(dt, now / 1000) !== false) rafId = requestAnimationFrame(tick); }; rafId = requestAnimationFrame(tick); }
   function tapper(cv, fn) { cv.addEventListener('pointerdown', (e) => { e.preventDefault(); fn(); }); onKeys((e) => { if (e.type === 'keydown' && (e.key === ' ' || e.key === 'Enter')) { if (!e.repeat) fn(); return true; } return false; }); }
   const padBind = (box, sel, fn) => box.querySelectorAll(sel).forEach((b) => { b.onpointerdown = (e) => { e.preventDefault(); fn(b); }; });
   const bigText = (c, txt, y, col, size) => { c.font = '800 ' + (size || 46) + 'px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.fillStyle = col || '#fff'; c.fillText(txt, 320, y); };
