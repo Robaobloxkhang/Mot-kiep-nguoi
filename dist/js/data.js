@@ -792,6 +792,11 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🎮 Làm lại cách chơi nhiều minigame: Sút phạt đền (thủ môn có thói quen, vùng lực hẹp dần), Bắt penalty (dấu hiệu 0.3–0.6s, đánh lừa), Ném rổ (tay nóng, hậu vệ giả vờ, 5 giây clutch, báo sớm/muộn ms), Chạy nước rút (xuất phát sớm bị phạt, bóng ma kỷ lục), Bơi (lật người ở thành hồ).',
+      '🚓 Rượt đuổi 3 làn (nhảy/trượt/đổi làn, tăng tốc, đi lối tắt ⚡, vai đuổi hoặc bị đuổi) · 🛵 Lái xe có ga/phanh, biển tốc độ, đèn đỏ, mưa trơn, phạt vi phạm · 🥊 Đánh nhau có thể lực, đòn nặng báo trước, combo, bỏ chạy · 🌙 Vượt ngục nhìn từ trên xuống 3 màn, tầm nhìn lính canh, tiếng ồn, ném đá.',
+      '🚕 Xe công nghệ: nhận/bỏ cuốc, giờ cao điểm, xăng, thu nhập ròng · 🔪 Phẫu thuật thêm bước kẹp cầm máu, tay run · 🕵️ Phá án có thẩm vấn · 🎣 Câu cá chọn mồi, 10 loài, sổ cá, cá cắn giả · 🫀 Cấp cứu có quy trình an toàn → 115 → kiểm tra thở, ép tim 30:2.',
+      '🃏 Xì dách có cược chip, xì dách ăn 1.5×, xì bàng/ngũ linh ăn 2× · 💰 Ai là triệu phú có Đổi câu, chốt đáp án từ câu 6 · 📈 Sàn giao dịch có lệnh cắt lỗ/chốt lời, đồ thị nến, bài học rủi ro · 🎤 Thi hát có nốt giữ, Perfect/Great/Good theo ms, bù trễ · 🦈 Shark Tank chọn vốn/cổ phần, độ quan tâm từng shark.',
+      '🎯 Tập ngắm 3 bài (flick/tracking/đổi mục tiêu, kỷ lục lưu máy) · ⚡ Clutch có tiếng bước chân không phải lúc nào cũng đúng · 🧧 Mặc cả có tính cách người bán và 5 hành động · 💘 Tỏ tình có tính cách người ấy · 🍜 Bán hàng có giờ cao điểm và báo cáo doanh thu · 📝 Phòng thi thích ứng độ khó, không lặp câu, xem lại đáp án.',
       '🎮 Làm lại giao diện mọi minigame theo phong cách phòng HLV: khung navy, thanh chỉ số của bạn ngay trên đầu, ngưỡng cần đạt, màn kết quả có vòng điểm.',
       '📝 Bài kiểm tra thành “Phòng thi”: có 3 quyền trợ giúp dùng một lần (50/50, thêm giờ, đổi câu), chuỗi đúng liên tiếp được cộng giờ. 💬 Trò chuyện/xử lý tình huống có thước đo Thiện cảm và Kiên nhẫn. 📈 Lướt sóng thành “Sàn giao dịch”: mua bán theo 25%/50%/hết, có phí, bản tin thật và tin đồn đoán xu hướng. 🏃 Chạy nước rút thêm thể lực và nút bùng nổ. 🫀 Cấp cứu đổi nền tối, có thanh hồi phục.',
       '🔤 Trả lại phông chữ cũ (Baloo 2 cho tiêu đề, Be Vietnam Pro cho nội dung) ở giao diện trong game và phòng HLV; bỏ kiểu chữ condensed viết hoa.',

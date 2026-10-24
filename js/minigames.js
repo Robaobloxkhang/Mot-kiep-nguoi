@@ -361,7 +361,11 @@
   function quiz(p) {
     return new Promise((res) => {
       const smart = p.ctx.stats.smarts, lvl = p.level || 2;
-      const pool = shuffle(BANK.filter((x) => x[3] <= lvl));
+      // ngân hàng câu hỏi lọc theo cấp; không lặp lại 60 câu gần nhất (lưu máy); độ khó thích ứng: đúng liền 2 câu → tăng 1 cấp, vừa sai → giảm 1 cấp
+      let seen = []; try { seen = JSON.parse(localStorage.getItem('kn_quiz_seen') || '[]'); } catch (e) {}
+      const fresh = BANK.filter((x) => x[3] <= lvl && !seen.includes(x[0]));
+      const pool = shuffle(fresh.length >= 8 ? fresh : BANK.filter((x) => x[3] <= lvl));
+      const log = []; let lastWrong = false;
       const mk = (n) => (n % 2 === 0 || !pool.length ? mathQ(lvl) : (() => { const b = pool.pop(); return { q: b[0], a: b[1], w: b[2].slice() }; })());
       const qs = []; for (let k = 0; k < 8; k++) qs.push(mk(k)); // 5 câu chính + 3 câu dự phòng cho quyền “Đổi câu”
       qs.forEach((q) => (q.opts = shuffle([q.a].concat(q.w))));
@@ -375,7 +379,7 @@
       box._res = [];
       const lifeUi = () => { box.querySelector('#lH').textContent = '×' + life.half; box.querySelector('#lT').textContent = '×' + life.time; box.querySelector('#lS').textContent = '×' + life.swap; box.querySelectorAll('.mq-life').forEach((b) => (b.disabled = answered || life[b.dataset.l] <= 0)); };
       const draw = () => {
-        const q = qs[qi], hide = new Set(q.w.slice(0, removeN)); q.hidden = q.hidden || hide;
+        const q = qs[qi], hide = new Set(q.w.slice(0, removeN)); q.hidden = q.hidden || hide; q.shown = true;
         box.querySelector('#mqN').textContent = 'Câu ' + (n + 1) + '/' + TOTAL + ' · đúng ' + ok + (streak >= 2 ? ' · 🔥 chuỗi ' + streak : '');
         box.querySelector('#mqS').textContent = q.a && /[0-9]\s*[×x+\-−÷]/.test(q.q) ? 'Toán nhanh' : 'Kiến thức';
         box.querySelector('#mqQ').textContent = q.q;
@@ -387,14 +391,24 @@
         const bar = box.querySelector('#mqT'); bar.style.width = '100%'; clearInterval(timer);
         timer = every(() => { left -= 0.1; bar.style.width = Math.max(0, left / secs * 100) + '%'; bar.style.background = left / secs < 0.3 ? '#ff5c5c' : ''; if (left <= 0) answer(null); }, 100);
       };
+      const review = () => {
+        const fin = () => res({ score: ok / TOTAL, text: 'Bạn trả lời đúng ' + ok + '/' + TOTAL + ' câu' + (ok === TOTAL ? ' — điểm tuyệt đối!' : '.') });
+        try { localStorage.setItem('kn_quiz_seen', JSON.stringify(seen.concat(log.map((x) => x.q)).slice(-60))); } catch (e) {}
+        box.innerHTML = '<div class="mini-head"><b>📝 Xem lại bài thi</b><small>' + ok + '/' + TOTAL + ' đúng</small></div><div class="mq-review">' + log.map((x, i) => '<div class="' + (x.ok ? 'ok' : 'bad') + '"><b>' + (x.ok ? '✔' : '✖') + ' Câu ' + (i + 1) + ':</b> ' + esc(x.q) + '<br><small>Đáp án đúng: <b>' + esc(x.a) + '</b>' + (x.ok ? '' : ' · bạn chọn: ' + esc(x.pick || '(hết giờ)')) + ' · ' + esc(x.why) + '</small></div>').join('') + '</div><div class="mini-btns"><button type="button" class="btn btn-primary" data-fin>Tiếp tục <kbd>Enter</kbd></button></div>';
+        let gone = false; const go = () => { if (gone) return; gone = true; fin(); };
+        box.querySelector('[data-fin]').onclick = go; onKeysOnce((e) => { if (e.key === 'Enter' || e.key === ' ') { go(); return true; } return false; });
+      };
       const next = () => {
-        if (n >= TOTAL) { clearInterval(timer); res({ score: ok / TOTAL, text: 'Bạn trả lời đúng ' + ok + '/' + TOTAL + ' câu' + (ok === TOTAL ? ' — điểm tuyệt đối!' : '.') }); return; }
+        if (n >= TOTAL) { clearInterval(timer); review(); return; }
+        const ad = clamp(lvl + (streak >= 2 ? 1 : lastWrong ? -1 : 0), 1, 3); // câu kế tiếp thích ứng
+        if (n > 0 && qs[qi] && !qs[qi].shown && ad !== lvl) { const ci = pool.map((x) => x[3] <= ad).lastIndexOf(true), cand = ci >= 0 ? pool.splice(ci, 1)[0] : null; const nq = (n % 2 === 0 || !cand) ? mathQ(ad) : { q: cand[0], a: cand[1], w: cand[2].slice() }; nq.opts = shuffle([nq.a].concat(nq.w)); qs[qi] = nq; }
         answered = false; secs = base + (streak >= 3 ? 1.5 : 0); left = secs; draw(); startTimer();
       };
       function answer(o) {
         if (answered) return; answered = true; clearInterval(timer);
         const q = qs[qi], right = o === q.a; box._res.push(right);
-        if (right) { ok++; streak++; sfx('good'); } else { streak = 0; sfx('bad'); }
+        if (right) { ok++; streak++; lastWrong = false; sfx('good'); } else { streak = 0; lastWrong = true; sfx('bad'); }
+        log.push({ q: q.q, a: q.a, pick: o, ok: right, why: /[0-9]\s*[×x+\-−÷]/.test(q.q) ? 'phép tính: ' + q.q.replace('= ?', '').replace('?', '').trim() + ' = ' + q.a : 'kiến thức cơ bản — hãy nhớ đáp án này' });
         box.querySelectorAll('.mini-opt').forEach((b) => { if (b.dataset.o === q.a) b.classList.add('right'); else if (b.dataset.o === o) b.classList.add('wrong'); b.disabled = true; });
         n++; qi++; lifeUi(); pips(); setTimeout(next, 700);
       }
@@ -1067,10 +1081,12 @@
       const st = p.ctx.stats, field = p.field || fieldOf(p.ctx.jobId);
       const qs = shuffle((IV_FIELD[field] || []).slice()).slice(0, 2).concat(shuffle(IV_GEN.slice())).slice(0, 4);
       const secs = 9 + st.smarts / 12, hint = st.smarts >= 70;
+      // người phỏng vấn có tính cách: nghiêm khắc (chấm khắt) / thân thiện (dễ tính) / phân tích. Báo cáo cuối liệt kê từng câu.
+      const BOSS = [{ n: 'nghiêm khắc', k: -0.05 }, { n: 'thân thiện', k: 0.06 }, { n: 'thích phân tích', k: 0 }], boss = pick(BOSS), rep = [];
       let i = 0, sum = 0, timer = null;
       const box = open('<div class="mini-head"><b>💼 Phỏng vấn</b><small id="ivN"></small></div><div class="mini-bar"><i id="ivT"></i></div><div class="iv-boss"><span>🧑‍💼</span><p id="ivQ"></p></div><div class="mini-ans one" id="ivA"></div><p class="mini-tip" id="ivR"></p><p class="mini-keys">⌨️ Click câu trả lời hoặc bấm phím số <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>. Chọn câu khéo léo, chuyên nghiệp nhất.</p>');
       const show = () => {
-        if (i >= qs.length) { clearInterval(timer); const score = clamp(sum / qs.length + (st.looks - 50) / 500, 0, 1); res({ score, text: score >= 0.75 ? 'Buổi phỏng vấn rất suôn sẻ, nhà tuyển dụng gật gù liên tục.' : score >= 0.45 ? 'Buổi phỏng vấn tạm ổn, có vài câu hơi lúng túng.' : 'Buổi phỏng vấn khá tệ, không khí ngượng ngùng.' }); return; }
+        if (i >= qs.length) { clearInterval(timer); const score = clamp(sum / qs.length + (st.looks - 50) / 500 + boss.k, 0, 1); res({ score, text: '(Người phỏng vấn ' + boss.n + ') ' + rep.join(' · ') + ' — ' + (score >= 0.75 ? 'Buổi phỏng vấn rất suôn sẻ, nhà tuyển dụng gật gù liên tục.' : score >= 0.45 ? 'Buổi phỏng vấn tạm ổn, có vài câu hơi lúng túng.' : 'Buổi phỏng vấn khá tệ, không khí ngượng ngùng.') }); return; }
         const q = qs[i], opts = shuffle([[q[1], 1], [q[2], 0.45], [q[3], 0]]);
         box.querySelector('#ivN').textContent = 'Câu ' + (i + 1) + '/' + qs.length;
         box.querySelector('#ivQ').textContent = q[0];
@@ -1078,7 +1094,7 @@
         let left = secs, answered = false; const bar = box.querySelector('#ivT'); bar.style.width = '100%';
         const answer = (v, btn) => {
           if (answered) return; answered = true; clearInterval(timer);
-          sum += v; sfx(v === 1 ? 'good' : v > 0 ? 'click' : 'bad');
+          sum += v; rep.push((v === 1 ? '✔' : v > 0 ? '~' : '✖') + ' ' + qs[i][0].replace(/\?$/, '')); sfx(v === 1 ? 'good' : v > 0 ? 'click' : 'bad');
           box.querySelectorAll('.mini-opt').forEach((b) => { b.disabled = true; if (b === btn) b.classList.add(v === 1 ? 'right' : v > 0 ? 'mid' : 'wrong'); });
           box.querySelector('#ivR').textContent = v === 1 ? pick(['Nhà tuyển dụng gật gù, ghi chép.', '“Câu trả lời rất tốt.”', 'Họ mỉm cười hài lòng.']) : v > 0 ? pick(['“Ừm… cũng được.”', 'Họ gật nhẹ, không biểu lộ gì.']) : btn ? pick(['Nhà tuyển dụng nhíu mày.', 'Không khí chùng xuống…', 'Họ liếc nhau một cái.']) : 'Bạn ấp úng mãi không trả lời được.';
           i++; setTimeout(show, 1000);
@@ -1137,19 +1153,21 @@
       const box = open('<div class="mini-head"><b>🍜 Bán hàng</b><small id="ckH"></small></div><div class="ck-queue" id="ckQ"></div><div class="ck-tray" id="ckT"></div><div class="ck-ing" id="ckI"></div><p class="mini-keys">🖱️ Click khách cần phục vụ (hoặc phím <kbd>1</kbd>–<kbd>4</kbd>), rồi click nguyên liệu <b>đúng thứ tự</b> trong công thức. Sai là làm lại món.</p>');
       const ings = shuffle(Object.keys(ING));
       box.querySelector('#ckI').innerHTML = ings.map((k) => '<button type="button" data-g="' + k + '"><span>' + ING[k][0] + '</span>' + ING[k][1] + '</button>').join('');
+      // doanh thu: 8k × số nguyên liệu + 5k boa nếu phục vụ khi khách còn >50% kiên nhẫn; giờ cao điểm (20–32s) khách đến gấp đôi, giá ×1.3
+      const rushNow = () => t >= 20 && t <= 32; let revenue = 0, tips = 0, missed = 0;
       let queue = [], sel = 0, tray = [], served = 0, lost = 0, t = 0, nextC = 3, done = false, uid = 0, msg = 'Chọn khách rồi làm món theo công thức!';
       const spawn = () => queue.push({ id: ++uid, r: pick(RECIPES), left: pat, max: pat, face: pick(['👩', '👨', '👵', '👴', '🧑', '👧', '👦', '🧔', '👱']) });
       const render = () => {
         const cur = queue[sel];
         box.querySelector('#ckQ').innerHTML = queue.length ? queue.map((q, i) => '<button type="button" class="ck-c' + (i === sel ? ' on' : '') + '" data-q="' + i + '"><b>' + q.face + '</b><span>' + q.r.e + ' ' + q.r.n + '</span><i style="width:' + Math.max(0, q.left / q.max * 100) + '%;background:' + (q.left / q.max < 0.3 ? '#ff5c5c' : '#39cf98') + '"></i></button>').join('') : '<p class="mini-tip">Chưa có khách…</p>';
         box.querySelector('#ckT').innerHTML = (cur ? '<div class="ck-recipe">' + cur.r.e + ' <b>' + cur.r.n + ':</b> ' + cur.r.s.map((k, i) => '<span class="' + (i < tray.length ? 'ok' : i === tray.length && hint ? 'nx' : '') + '">' + ING[k][0] + ' ' + ING[k][1] + '</span>').join(' → ') + '</div>' : '') + '<small>' + esc(msg) + '</small>';
-        box.querySelector('#ckH').textContent = 'Còn ' + Math.max(0, Math.ceil(DUR - t)) + 's · phục vụ ' + served + '/' + target + (lost ? ' · bỏ về ' + lost : '');
+        box.querySelector('#ckH').textContent = (rushNow() ? '🔥 CAO ĐIỂM · ' : '') + 'Còn ' + Math.max(0, Math.ceil(DUR - t)) + 's · phục vụ ' + served + '/' + target + ' · 💰' + revenue + 'k' + (lost ? ' · bỏ về ' + lost : '');
       };
       const add = (k) => {
         if (done) return; const cur = queue[sel]; if (!cur) return;
         if (cur.r.s[tray.length] === k) {
           tray.push(k); sfx('click');
-          if (tray.length === cur.r.s.length) { served++; sfx('coin'); msg = pick(['Khách khen ngon! 😋', 'Ting ting! Đã thanh toán.', 'Khách hẹn mai quay lại!']); queue.splice(sel, 1); sel = 0; tray = []; }
+          if (tray.length === cur.r.s.length) { served++; const fast = cur.left / cur.max > 0.5; revenue += Math.round(cur.r.s.length * 8 * (rushNow() ? 1.3 : 1)) + (fast ? 5 : 0); if (fast) tips += 5; sfx('coin'); msg = pick(['Khách khen ngon! 😋', 'Ting ting! Đã thanh toán.', 'Khách hẹn mai quay lại!']); queue.splice(sel, 1); sel = 0; tray = []; }
         } else { tray = []; msg = 'Sai nguyên liệu, làm lại từ đầu!'; sfx('bad'); }
         render();
       };
@@ -1159,15 +1177,15 @@
       spawn(); spawn(); render();
       every(() => {
         if (done) return; t += 0.1; nextC -= 0.1;
-        if (nextC <= 0 && queue.length < 4) { spawn(); nextC = rand(3.2, 4.8) - p.need * 1.2; }
+        if (nextC <= 0 && queue.length < 4) { spawn(); nextC = (rand(3.2, 4.8) - p.need * 1.2) * (rushNow() ? 0.5 : 1); }
         queue.forEach((q) => (q.left -= 0.1));
         if (queue.some((q) => q.left <= 0)) {
           const curId = queue[sel] && queue[sel].id;
-          lost += queue.filter((q) => q.left <= 0).length; queue = queue.filter((q) => q.left > 0);
+          missed += queue.filter((q) => q.left <= 0).reduce((a2, q) => a2 + q.r.s.length * 8, 0); lost += queue.filter((q) => q.left <= 0).length; queue = queue.filter((q) => q.left > 0);
           const ni = queue.findIndex((q) => q.id === curId); if (ni < 0) { sel = 0; tray = []; } else sel = ni;
           msg = 'Một khách chờ lâu quá, bỏ về! 😤'; sfx('bad');
         }
-        if (t >= DUR) { done = true; const score = clamp(served / target - lost * 0.04, 0, 1); setTimeout(() => res({ score, text: 'Bạn phục vụ ' + served + ' khách' + (lost ? ', ' + lost + ' khách bỏ về' : '') + ' (mục tiêu ' + target + ').' }), 400); }
+        if (t >= DUR) { done = true; const score = clamp(served / target - lost * 0.04, 0, 1); setTimeout(() => res({ score, text: 'Báo cáo doanh thu: ' + revenue + 'k (boa ' + tips + 'k) · phục vụ ' + served + ' khách' + (lost ? ', ' + lost + ' khách bỏ về (mất ~' + missed + 'k)' : '') + ' (mục tiêu ' + target + ').' }), 400); }
         render();
       }, 100);
     });
@@ -1248,6 +1266,8 @@
   function love(p) {
     return new Promise((res) => {
       const st = p.ctx.stats, nm = p.partnerName || 'Người ấy';
+      // tính cách người ấy: nhút nhát (thích lời nhẹ nhàng, nói quá lố thì mất điểm) · năng động (thích sự chủ động) · thực tế (ghét lúng túng). Ánh mắt/cử chỉ báo trước tính cách.
+      const PER = [{ n: 'nhút nhát', hint: '🙈 ngại ngùng, hay nhìn xuống', adj: (v) => (v === 6 ? 8 : v === 22 ? -8 : 0) }, { n: 'năng động', hint: '😄 cười tươi, mắt sáng, nói nhanh', adj: (v) => (v === 22 ? 6 : 0) }, { n: 'thực tế', hint: '🤔 nhìn bạn dò xét, khoanh tay', adj: (v) => (v === -16 ? -4 : 0) }], per = pick(PER);
       let heart = clamp(30 + (st.looks - 50) / 2.5, 10, 55), round = 0, timer = null;
       const qs = shuffle(LOVE_Q.slice()).slice(0, 3);
       const box = open('<div class="mini-head"><b>💘 ' + (p.propose ? 'Cầu hôn' : 'Tỏ tình') + '</b><small id="lvH"></small></div><div class="lv-meter"><i id="lvM"></i></div><div class="mini-bar"><i id="lvT"></i></div><p class="mini-q" id="lvQ"></p><div class="mini-ans one" id="lvA"></div><p class="mini-tip" id="lvR"></p><p class="mini-keys">⌨️ Chọn câu trả lời bằng click hoặc phím <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>. Màn cuối: bấm <kbd>Space</kbd> khi trái tim nằm trong vùng hồng.</p>');
@@ -1255,12 +1275,12 @@
       const ask = () => {
         if (round >= qs.length) { finale(); return; }
         const q = qs[round], opts = shuffle([[q[1], 22], [q[2], 6], [q[3], -16]]);
-        box.querySelector('#lvQ').textContent = q[0].replace(/\{n\}/g, nm);
+        box.querySelector('#lvQ').innerHTML = esc(q[0].replace(/\{n\}/g, nm)) + '<br><small style="opacity:.7">' + esc(nm + ': ' + per.hint) + '</small>';
         box.querySelector('#lvA').innerHTML = opts.map((o, k) => '<button type="button" class="mini-opt" data-v="' + o[1] + '"><span>' + (k + 1) + '</span>' + esc(o[0].replace(/\{n\}/g, nm)) + '</button>').join('');
         let left = 8, answered = false; const bar = box.querySelector('#lvT');
         const answer = (v, btn) => {
           if (answered) return; answered = true; clearInterval(timer);
-          heart += v; upd(); sfx(v > 10 ? 'good' : v > 0 ? 'click' : 'bad');
+          heart += v + per.adj(v); upd(); sfx(v > 10 ? 'good' : v > 0 ? 'click' : 'bad');
           box.querySelectorAll('.mini-opt').forEach((b) => { b.disabled = true; if (b === btn) b.classList.add(v > 10 ? 'right' : v > 0 ? 'mid' : 'wrong'); });
           box.querySelector('#lvR').textContent = v > 10 ? pick([nm + ' bật cười, má ửng hồng.', nm + ' nhìn bạn lâu hơn một chút.', 'Tim ' + nm + ' như lỡ một nhịp.']) : v > 0 ? nm + ' gật đầu, không nói gì.' : btn ? pick([nm + ' cười gượng…', 'Không khí hơi ngượng.', nm + ' lảng sang chuyện khác.']) : 'Bạn đứng hình, không nói nên lời…';
           round++; setTimeout(ask, 1100);
@@ -1283,7 +1303,7 @@
           const pos = 0.5 + 0.5 * Math.sin(t * sp * 2.4), ok = Math.abs(pos - center) < zone;
           heart += ok ? 25 : -12; upd(); sfx(ok ? 'cheer' : 'bad');
           box.querySelector('#lvR').textContent = ok ? (p.propose ? nm + ' bật khóc, đưa tay ra…' : nm + ' đỏ mặt, khẽ gật đầu…') : nm + ' giật mình, chưa kịp chuẩn bị tinh thần…';
-          setTimeout(() => res({ score: clamp(heart / 100, 0, 1), text: 'Cảm tình của ' + nm + ' dành cho bạn: ' + Math.round(heart) + '%.' }), 1200);
+          setTimeout(() => res({ score: clamp(heart / 100, 0, 1), text: 'Cảm tình của ' + nm + ' (' + per.n + ') dành cho bạn: ' + Math.round(heart) + '%.' + (heart < 45 ? ' Dù kết quả thế nào, hãy tôn trọng quyết định của người ấy — một lời từ chối không phải là thất bại của bạn.' : '') }), 1200);
         };
         box.querySelector('[data-go]').onclick = fire; cv.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); });
         onKeysOnce((e) => { if (e.key === ' ' || e.key === 'Enter') { fire(); return true; } return false; });
