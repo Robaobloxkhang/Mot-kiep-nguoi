@@ -24,9 +24,9 @@
   // ---------------------------------------------------------------- chơi thử minigame
   const GROUPS = [
     ['Thể thao', ['hax', 'penalty', 'keeper', 'hoops', 'sprint', 'swim', 'race']],
-    ['Hành động', ['fight', 'chase', 'drive', 'sneak', 'ride', 'aim', 'clutch']],
+    ['Hành động', ['fight', 'chase', 'drive', 'sneak', 'ride', 'aim', 'clutch', 'land']],
     ['Trí tuệ', ['quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards']],
-    ['Đời sống & nghề', ['cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing']],
+    ['Đời sống & nghề', ['cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'paint', 'fix']],
   ];
   const EXTRA = { haggle: { mode: 'buy', price: 3.5e7, item: 'Chiếc xe máy cũ' }, love: { partnerName: 'Lan' }, fight: { foe: 'thug' } };
   const LV = [['Dễ', 0.3], ['Thường', 0.5], ['Khó', 0.72]];

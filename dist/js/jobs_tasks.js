@@ -206,7 +206,7 @@
     congnhan: { act: ['🏭', 'Làm ca nhà máy'], tasks: [
       { t: 'Máy dây chuyền kẹt', i: '⚙️', a: 'lift', npc: ['coworker', 'scared', 'Dây chuyền kẹt rồi!'],
         x: 'Dây chuyền đang chạy thì kẹt, đơn hàng xuất khẩu phải xong trước 6 giờ sáng.',
-        c: [['🔧 Tự mở máy sửa', 'smarts', 0.45, 'aim', 'Bạn phát hiện bánh răng mòn, thay xong chỉ trong nửa tiếng. Quản đốc đề xuất bạn lên tổ trưởng.', 'Bạn bị kẹp tay khi sửa, phải băng bó và nghỉ cả tuần.', 'big'],
+        c: [['🔧 Tự mở máy sửa', 'smarts', 0.45, 'fix', 'Bạn phát hiện bánh răng mòn, thay xong chỉ trong nửa tiếng. Quản đốc đề xuất bạn lên tổ trưởng.', 'Bạn bị kẹp tay khi sửa, phải băng bó và nghỉ cả tuần.', 'big'],
           ['📢 Gọi kỹ thuật, chờ đúng quy trình', null, 1, null, 'Kỹ thuật đến sửa sau 2 tiếng. Cả tổ tăng ca bù.', '', 'safe']] },
     ] },
     banhang: { act: ['🛍️', 'Đứng quầy bán hàng'], tasks: [
@@ -269,7 +269,7 @@
     hoasi: { act: ['🖼️', 'Sáng tác, bán tranh'], tasks: [
       { t: 'Đại gia đặt tranh', i: '💰', loc: 'studio', a: 'study', npc: ['stranger', 'point', 'Vẽ cho tôi bức to nhất, giống ảnh này.'],
         x: 'Một đại gia muốn đặt bức tranh khổ lớn chép lại ảnh gia đình, trả giá cao.',
-        c: [['🎨 Nhận, nhưng vẽ theo phong cách riêng', 'smarts', 0.5, 'interview', 'Bức tranh vượt xa mong đợi. Đại gia giới thiệu bạn cho cả giới thượng lưu.', 'Đại gia chê “không giống ảnh”, không trả nửa tiền còn lại.', 'big'],
+        c: [['🎨 Nhận, nhưng vẽ theo phong cách riêng', 'smarts', 0.5, 'paint', 'Bức tranh vượt xa mong đợi. Đại gia giới thiệu bạn cho cả giới thượng lưu.', 'Đại gia chê “không giống ảnh”, không trả nửa tiền còn lại.', 'big'],
           ['🖌️ Vẽ đúng ý khách', null, 1, null, 'Khách hài lòng, thanh toán đủ. Bạn thấy mình như thợ chép ảnh.', '', 'safe']] },
     ] },
     nhaccong: { act: ['🎸', 'Chơi nhạc'], tasks: [
@@ -397,7 +397,7 @@
     daubep: { t: 'Nhà phê bình ẩm thực đến quán', i: '🍽️', a: 'cook', npc: ['stranger', 'think', 'Món đặc biệt của bếp trưởng là gì?'], x: 'Một nhà phê bình ẩm thực nổi tiếng bất ngờ đến quán. Bài viết của ông ấy có thể nâng hoặc dìm cả nhà hàng.',
       c: [['👨‍🍳 Sáng tạo món mới ngay tại chỗ', 'smarts', 0.4, 'cook', 'Món ăn khiến ông ấy gật gù khen “có hồn”. Bài đánh giá 5 sao, quán kín bàn cả tháng.', 'Món thử nghiệm thất bại, bài viết chê thẳng thừng.', 'big'], ['🍜 Nấu món tủ quen tay', 'smarts', 0.65, 'cook', 'Món tủ không làm thất vọng, bài viết khen “đúng vị”.', 'Hôm nay tay run, món tủ cũng hỏng.', 'mid']] },
     thocattoc: { t: 'Làm tóc cô dâu', i: '👰', a: 'idle', npc: ['stranger', 'love', 'Hôm nay em phải đẹp nhất!'], x: '5 giờ sáng, cô dâu đến làm tóc, 7 giờ đón dâu. Tóc cô ấy mỏng, khó búi.',
-      c: [['💇 Làm kiểu búi cầu kỳ', 'smarts', 0.5, 'aim', 'Kiểu tóc đẹp lung linh, ảnh cưới lan truyền, khách đặt lịch kín tháng.', 'Búi tóc tuột giữa lễ, cô dâu khóc.', 'big'], ['🎀 Làm kiểu đơn giản chắc chắn', null, 1, null, 'Đơn giản mà thanh lịch. Cô dâu hài lòng.', '', 'safe']] },
+      c: [['💇 Làm kiểu búi cầu kỳ', 'smarts', 0.5, 'paint', 'Kiểu tóc đẹp lung linh, ảnh cưới lan truyền, khách đặt lịch kín tháng.', 'Búi tóc tuột giữa lễ, cô dâu khóc.', 'big'], ['🎀 Làm kiểu đơn giản chắc chắn', null, 1, null, 'Đơn giản mà thanh lịch. Cô dâu hài lòng.', '', 'safe']] },
     nongdan: { t: 'Thương lái ép giá', i: '🍉', loc: 'countryside', a: 'talk', npc: ['stranger', 'shrug', 'Giá này thôi, không bán thì thôi.'], x: 'Dưa hấu chín rộ, thương lái chỉ trả 2 nghìn một ký, rẻ hơn tiền phân bón.',
       c: [['📱 Livestream bán trực tiếp', 'looks', 0.5, null, 'Phiên live “giải cứu dưa” hút nghìn đơn, bán được giá gấp ba.', 'Ít người xem, dưa thối dần ngoài ruộng.', 'big'], ['🧧 Mặc cả thêm với thương lái', 'smarts', 0.5, 'haggle', 'Bạn thuyết phục được lên 4 nghìn, đủ hoà vốn.', 'Thương lái bỏ đi, sang mua ruộng bên cạnh.', 'mid'], ['😞 Bán luôn cho xong', null, 1, null, 'Bán lỗ, nhưng ít ra không mất trắng.', '', 'safe']] },
     congchuc: { t: 'Cấp trên giao việc ngoài giờ', i: '🕰️', a: 'type', npc: ['boss', 'talk', 'Cuối tuần em soạn giúp anh bài phát biểu nhé.'], x: 'Trưởng phòng giao bạn soạn bài phát biểu cho hội nghị, cuối tuần phải xong.',
@@ -409,7 +409,7 @@
     tiepvien: { t: 'Hành khách lên cơn đau tim', i: '💔', loc: 'airport', a: 'scared', npc: ['stranger', 'sick', 'Tôi… tức ngực quá…'], x: 'Giữa chuyến bay, một hành khách lớn tuổi ngã gục, tím tái.',
       c: [['🫀 Ép tim cấp cứu ngay', 'health', 0.5, 'cpr', 'Bạn ép tim đúng kỹ thuật đến khi ông tỉnh lại. Máy bay hạ cánh khẩn cấp, ông được cứu sống.', 'Bạn cố hết sức, nhưng ông không qua khỏi.', 'big'], ['📢 Tìm bác sĩ trên máy bay', null, 0.7, null, 'Có một bác sĩ trên chuyến bay, cùng bạn cấp cứu thành công.', 'Không có bác sĩ nào, mất thời gian quý báu.', 'mid']] },
     phicong: { t: 'Cảnh báo kỹ thuật', i: '⚠️', loc: 'airport', a: 'think', npc: ['coworker', 'scared', 'Đèn báo động cơ số 2 sáng!'], x: 'Ngay sau cất cánh, đèn cảnh báo động cơ số 2 sáng. Có thể là lỗi cảm biến.',
-      c: [['🔙 Quay đầu hạ cánh', null, 1, null, 'Máy bay hạ cánh an toàn. Kiểm tra cho thấy động cơ có vết nứt thật — bạn đã cứu 180 người.', '', 'safe'], ['✈️ Tiếp tục bay, theo dõi', 'smarts', 0.55, 'quiz', 'Đúng là lỗi cảm biến, chuyến bay đến đúng giờ.', 'Động cơ tắt giữa chừng, bạn phải hạ cánh khẩn cấp một động cơ. Bị đình chỉ bay để điều tra.', 'big']] },
+      c: [['🔙 Quay đầu hạ cánh', null, 1, null, 'Máy bay hạ cánh an toàn. Kiểm tra cho thấy động cơ có vết nứt thật — bạn đã cứu 180 người.', '', 'safe'], ['✈️ Tiếp tục bay, theo dõi', 'smarts', 0.55, 'land', 'Đúng là lỗi cảm biến, chuyến bay đến đúng giờ.', 'Động cơ tắt giữa chừng, bạn phải hạ cánh khẩn cấp một động cơ. Bị đình chỉ bay để điều tra.', 'big']] },
     cuuhoa: { t: 'Cứu người mắc kẹt trên cây', i: '🌳', a: 'run', npc: ['neighbor', 'scared', 'Cứu ông với!'], x: 'Lũ quét, một cụ ông ôm cây giữa dòng nước xiết suốt hai tiếng.',
       c: [['🏊 Buộc dây bơi ra cứu', 'health', 0.45, 'swim', 'Bạn bơi ra, buộc dây đưa cụ vào bờ an toàn. Clip giải cứu lan khắp cả nước.', 'Dòng nước quá mạnh, bạn bị cuốn trôi một đoạn, đồng đội phải kéo vào.', 'big'], ['🚁 Chờ xuồng chuyên dụng', null, 1, null, 'Xuồng đến sau 30 phút, cụ ông được cứu kịp.', '', 'safe']] },
     huongdanvien: { t: 'Khách nước ngoài bị móc túi', i: '👛', a: 'talk', npc: ['stranger', 'cry', 'My passport is gone!'], x: 'Một du khách trong đoàn bị móc mất ví và hộ chiếu ở phố cổ.',
@@ -527,5 +527,36 @@
       x: 'Buổi chiều bạn chở khách đi xem ba dự án ở ba quận khác nhau trong giờ cao điểm. Khách đã hơi mệt.',
       c: [['🚗 Lái xe khéo, đi đúng lộ trình', 'health', 0.5, 'drive', 'Bạn đưa khách đi suôn sẻ, họ hài lòng vì được chăm chu đáo và đặt cọc căn thứ hai.', 'Bạn kẹt xe và lạc đường, khách mất kiên nhẫn và hẹn lại hôm khác.', 'mid'],
         ['📱 Gửi video các dự án, hẹn xem sau', null, 1, null, 'Khách xem video trước rồi chọn một dự án để đi xem trực tiếp. Gọn nhẹ nhưng ít thân thiết hơn.', '', 'safe']] },
+  ]);
+})();
+
+/* ---- bổ sung: ca làm việc dùng minigame mới (Vẽ nét, Hạ cánh, Sửa máy) ---- */
+(function () {
+  'use strict';
+  const J = (window.KN || {}).JOB_TASKS; if (!J) return;
+  const add = (id, tasks) => { if (J[id]) J[id].tasks.push(...tasks); };
+  add('hoasi', [
+    { t: 'Vẽ chân dung theo yêu cầu', i: '🖼️', loc: 'office', a: 'think', npc: ['stranger', 'talk', 'Vẽ giống tôi nhé!'],
+      x: 'Một khách đặt bạn vẽ chân dung cả gia đình để treo phòng khách. Họ muốn nét vẽ mềm mại và sống động.',
+      c: [['✏️ Phác từng nét thật vững', 'looks', 0.5, 'paint', 'Bức chân dung đẹp đến mức cả nhà xúc động. Khách giới thiệu thêm hai người bạn đến đặt tranh.', 'Nét vẽ run và lệch, khách lịch sự nhận bức tranh nhưng không giới thiệu thêm ai.', 'mid'],
+        ['📸 Xin ảnh tham khảo rồi vẽ theo', null, 1, null, 'Bạn vẽ chậm rãi theo ảnh, bức tranh đạt yêu cầu và không xảy ra sơ suất nào.', '', 'safe']] },
+  ]);
+  add('thocattoc', [
+    { t: 'Tạo kiểu tóc nghệ thuật', i: '💈', loc: 'office', a: 'talk', npc: ['stranger', 'think', 'Làm cho tôi thật khác biệt!'],
+      x: 'Một khách quen muốn đổi hẳn phong cách cho buổi chụp ảnh. Bạn cầm kéo trước gương, cả tiệm nhìn vào tay bạn.',
+      c: [['✂️ Cắt tạo kiểu tinh tế từng đường', 'looks', 0.5, 'paint', 'Kiểu tóc hoàn hảo, khách chụp ảnh đăng khắp nơi và gắn tên tiệm bạn.', 'Một đường kéo lệch khiến kiểu tóc không như ý, khách phải đội mũ về.', 'big'],
+        ['💇 Cắt kiểu quen thuộc, an toàn', null, 1, null, 'Khách hài lòng vừa phải, bạn nhẹ nhõm vì không phạm lỗi.', '', 'safe']] },
+  ]);
+  add('congnhan', [
+    { t: 'Sửa máy gấp trước giờ giao hàng', i: '🔌', loc: 'office', a: 'think', npc: ['boss', 'angry', 'Máy phải chạy trong vòng nửa tiếng!'],
+      x: 'Dây chuyền dừng đột ngột, đơn hàng lớn cần giao cuối ngày. Bảng điều khiển nhấp nháy các công tắc theo một trình tự lạ.',
+      c: [['🔧 Tự dò từng công tắc theo chuỗi báo lỗi', 'smarts', 0.5, 'fix', 'Máy chạy lại đúng giờ, quản lý vỗ vai khen và cộng thưởng nóng cho cả tổ.', 'Bạn bấm nhầm thứ tự làm chập điện, đơn hàng bị trễ và bạn bị nhắc nhở.', 'big'],
+        ['📞 Gọi kỹ thuật viên chính hãng', null, 1, null, 'Kỹ thuật viên đến sửa, tốn thêm chi phí nhưng an toàn tuyệt đối.', '', 'safe']] },
+  ]);
+  add('phicong', [
+    { t: 'Hạ cánh trong gió lớn', i: '🛬', loc: 'airport', a: 'drive', npc: ['coworker', 'think', 'Gió ngang 30 hải lý, cẩn thận!'],
+      x: 'Chuyến bay cuối ngày gặp gió ngang mạnh khi vào tiếp cận. Cơ phó nhìn bạn, hành khách im lặng chờ tiếng bánh chạm đường băng.',
+      c: [['🛬 Tự tay hạ cánh, giữ đường trượt', 'smarts', 0.5, 'land', 'Bánh xe chạm đường băng êm ái, hành khách vỗ tay khi máy bay dừng. Hãng khen bạn bình tĩnh.', 'Máy bay chạm đất hơi mạnh và lệch tim đường băng. Bạn bị yêu cầu báo cáo sự cố.', 'big'],
+        ['🔁 Quyết định bay vòng lại, hạ cánh lần hai', null, 1, null, 'Bạn bay vòng lại an toàn, trễ vài phút nhưng không ai phàn nàn.', '', 'safe']] },
   ]);
 })();

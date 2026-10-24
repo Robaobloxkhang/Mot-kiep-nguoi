@@ -12,8 +12,8 @@
   const legacy = () => { try { return JSON.parse(localStorage.getItem('kn_arcade_best') || '{}') || {}; } catch (e) { return {}; } };
   const SPORT = ['penalty', 'keeper', 'hoops', 'sprint', 'swim', 'hax', 'race'], BRAIN = ['quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards', 'aim', 'clutch'];
   // thời lượng ước tính (giây) — hiện trên thẻ minigame
-  const DUR = { penalty: 50, keeper: 50, hoops: 55, sprint: 35, swim: 45, chase: 45, drive: 40, fight: 45, sneak: 60, ride: 60, quiz: 50, millionaire: 120, detective: 90, interview: 50, pitch: 90, stock: 35, cards: 90, cook: 50, haggle: 60, love: 45, cpr: 60, surgery: 60, fishing: 60, sing: 35, aim: 30, clutch: 60, hax: 70, race: 90 };
-  const NEWV = ['penalty', 'keeper', 'hoops', 'sprint', 'swim', 'chase', 'drive', 'fight', 'sneak', 'ride', 'quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards', 'cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'aim', 'clutch'];
+  const DUR = { penalty: 50, keeper: 50, hoops: 55, sprint: 35, swim: 45, chase: 45, drive: 40, fight: 45, sneak: 60, ride: 60, quiz: 50, millionaire: 120, detective: 90, interview: 50, pitch: 90, stock: 35, cards: 90, cook: 50, haggle: 60, love: 45, cpr: 60, surgery: 60, fishing: 60, sing: 35, aim: 30, clutch: 60, hax: 70, race: 90, paint: 40, land: 30, fix: 45 };
+  const NEWV = ['penalty', 'keeper', 'hoops', 'sprint', 'swim', 'chase', 'drive', 'fight', 'sneak', 'ride', 'quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards', 'cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'aim', 'clutch', 'paint', 'land', 'fix'];
   const ACH = [
     { id: 'first', icon: '🎮', name: 'Tay mơ', desc: 'Chơi minigame đầu tiên.', money: 5e5, test: (m, c) => c.plays >= 1 },
     { id: 'win10', icon: '🏆', name: 'Thắng quen tay', desc: 'Đạt yêu cầu ở tổng cộng 10 lượt chơi.', money: 1e6, test: (m, c) => c.wins >= 10 },
@@ -34,7 +34,7 @@
   // ---------------------------------------------------------------- thử thách hằng ngày (giờ máy, cố định theo ngày)
   const dayKey = (d) => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
-  const POOL = ['penalty', 'keeper', 'hoops', 'sprint', 'swim', 'chase', 'drive', 'fight', 'sneak', 'ride', 'quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards', 'cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'aim', 'clutch'];
+  const POOL = ['penalty', 'keeper', 'hoops', 'sprint', 'swim', 'chase', 'drive', 'fight', 'sneak', 'ride', 'quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards', 'cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'aim', 'clutch', 'paint', 'land', 'fix'];
   function daily(d) {
     const k = dayKey(d), h = hash('kn-mini-' + k), types = POOL.filter((t) => !KN.Mini || (KN.Mini.NAME || {})[t]);
     const type = types[h % types.length], target = [50, 60, 70][(h >> 8) % 3];

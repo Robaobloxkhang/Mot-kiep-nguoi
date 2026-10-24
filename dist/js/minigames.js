@@ -125,7 +125,7 @@
   const NAME = {
     quiz: '📝 Làm bài kiểm tra', penalty: '⚽ Sút phạt đền', keeper: '🧤 Bắt penalty', shoot: '🏀 Ném rổ', sprint: '🏃 Chạy nước rút',
     swim: '🏊 Bơi', chase: '🚓 Rượt đuổi', drive: '🛵 Lái xe', fight: '🥊 Đánh nhau', interview: '💼 Phỏng vấn', cook: '🍜 Bán hàng',
-    clutch: '⚡ Xử lý clutch', aim: '🎯 Tập ngắm', scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
+    paint: '🎨 Vẽ nét', land: '🛬 Hạ cánh', fix: '🔧 Sửa máy', clutch: '⚡ Xử lý clutch', aim: '🎯 Tập ngắm', scamchat: '💬 Nhắn tin dụ nạn nhân', stock: '📈 Lướt sóng', love: '💘 Tỏ tình', haggle: '🧧 Mặc cả', cpr: '🫀 Cấp cứu', cards: '🃏 Xì dách', sneak: '🌙 Vượt ngục', hoops: '🏀 Ném rổ', hax: '⚽ Đá bóng (Hax)',
   };
 
   // ------------------------------------------------------------------ khung chung
@@ -189,6 +189,9 @@
       case 'scamchat': return S + (st.smarts >= 65 ? 'nói chuyện khéo, quản lý ít nghi ngờ hơn' : 'dễ để lộ sơ hở') + ' · ' + L + (st.looks >= 65 ? 'nạn nhân dễ có cảm tình' : 'nạn nhân khó tin hơn');
       case 'clutch': return S + (st.smarts >= 70 ? 'linh cảm được cách xử lý quá liều lĩnh' : 'phải tự đọc tình huống') + ' · ' + H + 'thời gian ra tay ' + lv(st.health, 'dư dả', 'vừa đủ', 'eo hẹp');
       case 'aim': return H + 'mục tiêu tồn tại ' + lv(st.health, 'lâu hơn, dễ bắt', 'vừa phải', 'ngắn, khó bắt') + ' · ' + S + (st.smarts >= 70 ? 'đọc được nhịp xuất hiện' : 'phản xạ thuần tuý');
+      case 'paint': return H + 'dung sai nét vẽ ' + lv(st.health, 'rộng, tay chắc', 'vừa', 'hẹp, tay run');
+      case 'land': return H + 'độ nhạy lái ' + lv(st.health, 'cao', 'vừa', 'chậm') + ' · gió giật mạnh hơn ở độ khó cao';
+      case 'fix': return S + 'chuỗi công tắc sáng ' + lv(st.smarts, 'chậm, dễ nhớ', 'vừa', 'nhanh, khó nhớ');
       case 'cards': return S + (st.smarts >= 65 ? 'tính được xác suất quắc khi rút' : 'chơi theo cảm giác');
       case 'hoops': return H + 'vùng lực chuẩn ' + lv(st.health, 'rộng, tay chắc', 'vừa', 'hẹp, tay run') + ', thanh lực chạy ' + lv(st.health, 'chậm', 'vừa', 'nhanh');
       case 'sneak': return H + 'bò ' + lv(st.health, 'nhanh', 'vừa', 'chậm') + ' · ' + S + 'đoán lính gác quay lại ' + lv(st.smarts, 'rất sớm', 'khá sớm', 'muộn');
@@ -212,6 +215,9 @@
     stock: 'Giá chạy trong 25 giây. MUA khi đoán giá sắp lên, BÁN khi sắp xuống (↑/↓ hoặc nút). Cuối phiên tính lãi lỗ so với vốn ban đầu.',
     love: '3 câu hỏi thả thính: chọn câu trả lời ghi điểm. Cuối cùng là khoảnh khắc quyết định: bấm đúng lúc vạch vào vùng hồng.',
     haggle: 'Kéo thanh để chọn giá rồi bấm “Trả giá”. Trả quá thấp người bán sẽ mất kiên nhẫn và bỏ đi. Tối đa 6 lượt.',
+    paint: 'Vẽ 3 nét: giữ chuột/ngón tay tại chấm xanh rồi kéo bám theo đường nét đứt tới chấm đỏ trong 9 giây mỗi nét. Tay càng vững càng chính xác (bàn phím: mũi tên + giữ Space).',
+    land: 'Giữ máy bay bám sát đường trượt xanh bằng ↑ (kéo mũi lên) và ↓ (hạ mũi xuống), chống gió giật và chạm đường băng thật êm.',
+    fix: 'Nhìn chuỗi công tắc sáng lên rồi bấm lại đúng thứ tự (chuột/chạm hoặc phím 1–4). Qua 5 vòng, chuỗi dài dần; sai 3 lần là cháy cầu chì.',
     cpr: 'Trước hết chọn đúng thứ tự: an toàn → gọi 115 → kiểm tra hơi thở (phím 1–3). Sau đó bấm ÉP (Space) đúng nhịp khi vòng tròn khép lại, 30 lần mỗi chu kỳ, rồi THỔI NGẠT (↑) 2 lần. Chu kỳ 2 mệt hơn nên nhịp khó hơn.',
     hoops: '6 cú ném: lên rổ, tầm trung, ba điểm, ném phạt, ba điểm có hậu vệ và cú ném quyết định. Giữ Space để thanh lực dâng lên, thả tay khi vạch trắng nằm trong vùng xanh (ném càng xa càng cần nhiều lực). Có hậu vệ thì ném trước khi hắn bật nhảy!',
     sneak: 'Giữ Space để bò về hàng rào. Đèn vàng là lính gác sắp quay lại: thả tay ngay! Đèn đỏ mà còn bò là bị phát hiện (2 mạng). 40 giây trước khi trời sáng.',
@@ -2065,7 +2071,114 @@
       }, 50);
     });
   }
-  const GAMES = { clutch, aim, scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
+  // ------------------------------------------------------------------ 🎨 vẽ nét (hoạ sĩ, thợ cắt tóc, thợ thủ công): đi theo đường mẫu bằng tay vững
+  // Độ khó: dung sai = 10 + sức khỏe×0.12 − need×6 (px); 3 nét, mỗi nét 9s. Điểm = độ bám đường của 3 nét (thuần túy: strokeAccuracy).
+  const PAINT_CFG = { strokes: 3, secs: 9, tolBase: 10, tolHp: 0.12, tolNeed: 6 };
+  function strokeAccuracy(dists, tol) { if (!dists.length) return 0; return clamp(1 - (dists.reduce((a, b) => a + b, 0) / dists.length - tol * 0.3) / (tol * 1.6), 0, 1); }
+  function paintGame(p) {
+    return new Promise((res) => {
+      const hp = p.ctx.stats.health, tol = Math.max(7, PAINT_CFG.tolBase + hp * PAINT_CFG.tolHp - p.need * PAINT_CFG.tolNeed);
+      const { cv, c, hud } = canvasGame('🎨 Vẽ nét', '', 'Bấm giữ chuột/ngón tay tại chấm xanh rồi kéo theo đường nét đứt tới chấm đỏ. Bằng bàn phím: <kbd>←↑↓→</kbd> di chuyển bút, giữ <kbd>Space</kbd> để vẽ.');
+      let si = 0, drawing = false, trail = [], dists = [], scores = [], t = 0, curve = null, done = false, msg = '', msgT = 0, prog = 0;
+      let kx = 100, ky = 200, space = false; const keys = {};
+      const mk = () => { const y0 = rand(120, 280), y1 = rand(120, 280); return [[70, y0], [200, rand(60, 340)], [440, rand(60, 340)], [570, y1]]; };
+      const bz = (u) => { const a = 1 - u, [P0, P1, P2, P3] = curve; return [a * a * a * P0[0] + 3 * a * a * u * P1[0] + 3 * a * u * u * P2[0] + u * u * u * P3[0], a * a * a * P0[1] + 3 * a * a * u * P1[1] + 3 * a * u * u * P2[1] + u * u * u * P3[1]]; };
+      let pts = [];
+      const next = () => { curve = mk(); pts = Array.from({ length: 80 }, (_, i) => bz(i / 79)); trail = []; drawing = false; prog = 0; t = 0; kx = curve[0][0]; ky = curve[0][1]; };
+      const dist = (x, y) => { let b = 1e9, bi = 0; pts.forEach(([a, d], i) => { const q = Math.hypot(a - x, d - y); if (q < b) { b = q; bi = i; } }); return [b, bi]; };
+      const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * 640 / r.width, (e.clientY - r.top) * 400 / r.height]; };
+      const add = (x, y) => { const [d, i] = dist(x, y); trail.push([x, y]); dists.push(Math.min(60, d)); prog = Math.max(prog, i / 79); };
+      const endStroke = () => { if (!drawing) return; drawing = false; if (prog < 0.9) { msg = 'Chưa tới cuối nét! Vẽ lại'; msgT = 1; trail = []; dists = []; prog = 0; return; } fin(); };
+      const fin = () => { const a = strokeAccuracy(dists.slice(-Math.max(1, trail.length)), tol); scores.push(a); sfx(a > 0.6 ? 'good' : 'bad'); msg = a > 0.8 ? 'Nét vẽ đẹp!' : a > 0.5 ? 'Tạm ổn' : 'Hơi run tay…'; msgT = 1; si++; if (si >= PAINT_CFG.strokes) { done = true; const sc = scores.reduce((x, y) => x + y, 0) / scores.length; setTimeout(() => res({ score: sc, text: 'Độ chính xác trung bình ' + Math.round(sc * 100) + '% qua ' + scores.length + ' nét.' }), 900); } else setTimeout(next, 700); };
+      cv.addEventListener('pointerdown', (e) => { e.preventDefault(); if (done) return; const [x, y] = pos(e); if (Math.hypot(x - curve[0][0], y - curve[0][1]) < 26) { drawing = true; trail = []; dists = []; cv.setPointerCapture(e.pointerId); add(x, y); } else { msg = 'Bắt đầu từ chấm xanh!'; msgT = 0.8; } });
+      cv.addEventListener('pointermove', (e) => { if (!drawing || done) return; const [x, y] = pos(e); add(x, y); });
+      cv.addEventListener('pointerup', endStroke);
+      onKeys((e) => { const k = e.key, dn = e.type === 'keydown'; const m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' }[k]; if (m) { keys[m] = dn; return true; } if (k === ' ') { if (dn && !space) { if (!drawing && Math.hypot(kx - curve[0][0], ky - curve[0][1]) < 26) { drawing = true; trail = []; dists = []; } } if (!dn && drawing) endStroke(); space = dn; return true; } return false; });
+      next();
+      loop((dt) => {
+        if (!done) { t += dt; msgT = Math.max(0, msgT - dt); const sp = 140 * dt; kx = clamp(kx + ((keys.r ? 1 : 0) - (keys.l ? 1 : 0)) * sp, 10, 630); ky = clamp(ky + ((keys.d ? 1 : 0) - (keys.u ? 1 : 0)) * sp, 10, 390); if (drawing && space) add(kx, ky); if (t > PAINT_CFG.secs && !done) { if (drawing) { drawing = false; } if (prog < 0.9) { scores.push(0); si++; msg = 'Hết giờ nét này'; msgT = 1; if (si >= PAINT_CFG.strokes) { done = true; const sc = scores.reduce((x, y) => x + y, 0) / scores.length; setTimeout(() => res({ score: sc, text: 'Độ chính xác trung bình ' + Math.round(sc * 100) + '% qua ' + scores.length + ' nét.' }), 700); } else next(); } } }
+        c.fillStyle = '#f3ead8'; c.fillRect(0, 0, 640, 400); c.fillStyle = 'rgba(0,0,0,.04)'; for (let i = 0; i < 640; i += 20) c.fillRect(i, 0, 1, 400);
+        c.setLineDash([8, 8]); c.strokeStyle = 'rgba(80,40,120,.7)'; c.lineWidth = 3; c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); c.setLineDash([]);
+        c.strokeStyle = 'rgba(80,40,120,.12)'; c.lineWidth = tol * 2; c.lineJoin = 'round'; c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke();
+        c.fillStyle = '#39cf98'; c.beginPath(); c.arc(curve[0][0], curve[0][1], 10, 0, 7); c.fill(); c.fillStyle = '#ff5c5c'; c.beginPath(); c.arc(curve[3][0], curve[3][1], 10, 0, 7); c.fill();
+        if (trail.length > 1) { c.strokeStyle = '#2a2250'; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); trail.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); }
+        c.fillStyle = '#2a2250'; c.beginPath(); c.arc(kx, ky, 4, 0, 7); c.fill();
+        c.fillStyle = '#222'; c.font = '700 14px sans-serif'; c.textAlign = 'left'; c.fillText('Nét ' + Math.min(si + 1, PAINT_CFG.strokes) + '/' + PAINT_CFG.strokes + ' · ' + Math.max(0, Math.ceil(PAINT_CFG.secs - t)) + 's', 14, 24);
+        if (msgT > 0) bigText(c, msg, 60, '#5b3fd0', 26);
+        hud.textContent = 'Độ bám đường: ' + (dists.length ? Math.round(strokeAccuracy(dists, tol) * 100) + '%' : '–');
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------ 🛬 hạ cánh (phi công): giữ máy bay trên đường trượt, chạm đường băng nhẹ nhàng
+  // Độ khó: gió giật = 12 + need×22; độ nhạy lái giảm khi thể lực thấp. Điểm = bám đường trượt (70%) + độ êm khi chạm đất (30%).
+  const LAND_CFG = { dur: 22, sink: 0.9, gust: 12, gustNeed: 22 };
+  function landScore(devAvg, vsTouch) { return clamp(1 - devAvg / 40, 0, 1) * 0.7 + clamp(1 - Math.max(0, vsTouch - 1.2) / 3, 0, 1) * 0.3; }
+  function landGame(p) {
+    return new Promise((res) => {
+      const hp = p.ctx.stats.health, resp = 0.7 + hp / 100 * 0.5;
+      const { box, cv, c, hud } = canvasGame('🛬 Hạ cánh', '<div class="mini-pad"><button type="button" data-v="-1">⬆ Kéo lên <kbd>↑</kbd></button><button type="button" data-v="1">⬇ Hạ xuống <kbd>↓</kbd></button></div>', 'Giữ <kbd>↑</kbd> kéo mũi lên (giảm độ dốc), <kbd>↓</kbd> hạ mũi xuống. Bám sát <b style="color:#39cf98">đường trượt xanh</b>, chạm đường băng thật êm (tốc độ rơi thấp). Gió giật sẽ đẩy bạn lệch.');
+      let t = -1, x = 0, y = 80, vy = 11, pitch = 0, devs = [], touched = false, done = false, gust = 0, gustT = 2, msg = '', keys = { u: false, d: false };
+      const W = 640, GX0 = 40, GX1 = 560, GY0 = 80, GY1 = 320, slopeY = (px) => GY0 + (px - GX0) / (GX1 - GX0) * (GY1 - GY0);
+      const press = (d, on) => { if (d < 0) keys.u = on; else keys.d = on; };
+      box.querySelectorAll('[data-v]').forEach((b) => { const d = +b.dataset.v; b.onpointerdown = (e) => { e.preventDefault(); press(d, true); }; b.onpointerup = b.onpointerleave = () => press(d, false); });
+      onKeys((e) => { const dn = e.type === 'keydown'; if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.u = dn; return true; } if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { keys.d = dn; return true; } return false; });
+      x = GX0;
+      loop((dt) => {
+        t += dt;
+        if (t > 0 && !done) {
+          gustT -= dt; if (gustT <= 0) { gustT = rand(1.2, 2.6); gust = rand(-1, 1) * (LAND_CFG.gust + p.need * LAND_CFG.gustNeed); }
+          gust *= 1 - dt * 1.2;
+          pitch += ((keys.d ? 1 : 0) - (keys.u ? 1 : 0)) * 90 * resp * dt; pitch *= 1 - dt * 0.6; pitch = clamp(pitch, -60, 90);
+          vy += (pitch * 0.4 + 11 - vy) * dt * 2 + gust * dt * 0.6; vy = clamp(vy, -25, 70);
+          y += vy * dt; x += (GX1 - GX0) / LAND_CFG.dur * dt;
+          devs.push(Math.abs(y - slopeY(x)));
+          if (y >= GY1 || x >= GX1) { done = true; touched = true; const vs = Math.max(0, vy / 10), dv = devs.reduce((a, b) => a + b, 0) / devs.length, sc = landScore(dv, vs); sfx(vs < 2.2 ? 'good' : 'bad'); msg = vs < 1.4 ? 'Chạm đất êm ru!' : vs < 2.4 ? 'Chạm đất ổn' : 'Hạ cánh cứng!'; setTimeout(() => res({ score: sc, text: msg + ' Lệch đường trượt trung bình ' + dv.toFixed(0) + 'px, tốc độ rơi lúc chạm ' + vs.toFixed(1) + '.' }), 1000); }
+        }
+        const g = c.createLinearGradient(0, 0, 0, 400); g.addColorStop(0, '#6aa8ff'); g.addColorStop(1, '#cfe6ff'); c.fillStyle = g; c.fillRect(0, 0, 640, 400);
+        c.fillStyle = '#4f7d45'; c.fillRect(0, 330, 640, 70); c.fillStyle = '#444'; c.fillRect(GX1 - 40, 326, 140, 10); c.fillStyle = '#fff'; for (let i = 0; i < 6; i++) c.fillRect(GX1 - 30 + i * 22, 330, 12, 2);
+        c.strokeStyle = '#39cf98'; c.setLineDash([10, 8]); c.lineWidth = 3; c.beginPath(); c.moveTo(GX0, GY0); c.lineTo(GX1, GY1); c.stroke(); c.setLineDash([]);
+        c.save(); c.translate(x, y); c.rotate(clamp(vy / 70, -0.4, 0.6) * 0.5); c.fillStyle = '#fff'; c.beginPath(); c.ellipse(0, 0, 22, 7, 0, 0, 7); c.fill(); c.fillStyle = '#d63c3c'; c.fillRect(-4, -14, 8, 14); c.fillRect(-26, -9, 10, 8); c.restore();
+        c.fillStyle = '#222'; c.font = '700 13px sans-serif'; c.textAlign = 'left'; c.fillText('Lệch: ' + Math.round(y - slopeY(x)) + 'px · rơi: ' + (Math.max(0, vy) / 10).toFixed(1) + (gust > 6 ? ' · 💨 gió giật' : ''), 14, 22);
+        if (done) bigText(c, msg, 140, '#d63c3c', 34);
+        if (t < 0) bigText(c, 'VÀO ĐƯỜNG TRƯỢT', 200, '#fff', 36);
+        hud.textContent = 'Còn ' + Math.max(0, Math.ceil(LAND_CFG.dur - Math.max(0, t))) + 's';
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------ 🔧 sửa máy (công nhân, kỹ thuật): ghi nhớ và lặp lại chuỗi công tắc sáng
+  // Độ khó: chuỗi dài 3 + vòng (+1 nếu need cao); trí tuệ cao → mỗi vòng sáng chậm hơn (dễ nhớ). Sai 3 lần thì cháy cầu chì.
+  const FIX_CFG = { rounds: 5, base: 3, lives: 3 };
+  function fixGame(p) {
+    return new Promise((res) => {
+      const sm = p.ctx.stats.smarts, step = 0.55 + sm / 100 * 0.25 - p.need * 0.15, COL = ['#ff5c5c', '#ffd23f', '#39cf98', '#5cc8ff'];
+      const { box, cv, c, hud } = canvasGame('🔧 Sửa máy', '<div class="mini-pad"><button type="button" data-s="0">1 <kbd>1</kbd></button><button type="button" data-s="1">2 <kbd>2</kbd></button><button type="button" data-s="2">3 <kbd>3</kbd></button><button type="button" data-s="3">4 <kbd>4</kbd></button></div>', 'Nhìn chuỗi công tắc sáng lên, rồi bấm lại <b>đúng thứ tự</b>: chuột/chạm vào ô, hoặc phím <kbd>1</kbd>–<kbd>4</kbd>.');
+      let round = 0, seq = [], idx = 0, phase = 'show', showI = 0, showT = 0, lit = -1, lives = FIX_CFG.lives, done = false, msg = '', msgT = 0, ok = 0, t = -1;
+      const start = () => { const n = FIX_CFG.base + round + (p.need > 0.6 ? 1 : 0); seq = Array.from({ length: n }, () => Math.floor(rnd() * 4)); idx = 0; phase = 'show'; showI = 0; showT = 0.6; lit = -1; };
+      const press = (k) => {
+        if (done || phase !== 'in') return; lit = k; setTimeout(() => { if (lit === k) lit = -1; }, 150);
+        if (seq[idx] === k) { idx++; sfx('click'); if (idx >= seq.length) { ok++; round++; msg = 'Máy chạy ổn!'; msgT = 1; sfx('good'); if (round >= FIX_CFG.rounds) { done = true; setTimeout(() => res({ score: 1, text: 'Sửa xong máy, qua cả ' + FIX_CFG.rounds + ' vòng!' }), 800); } else { phase = 'wait'; setTimeout(start, 900); } } }
+        else { lives--; sfx('bad'); msg = 'Sai rồi! Chập điện ⚡'; msgT = 1; if (lives <= 0) { done = true; setTimeout(() => res({ score: clamp(ok / FIX_CFG.rounds * 0.85, 0, 0.85), text: 'Cháy cầu chì sau ' + ok + '/' + FIX_CFG.rounds + ' vòng.' }), 800); } else { phase = 'wait'; setTimeout(() => { idx = 0; phase = 'show'; showI = 0; showT = 0.6; lit = -1; }, 900); } }
+      };
+      padBind(box, '[data-s]', (b) => press(+b.dataset.s));
+      cv.addEventListener('pointerdown', (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 640, y = (e.clientY - r.top) / r.height * 400; const col = Math.floor((x - 120) / 100), row = Math.floor((y - 110) / 100); if (col >= 0 && col < 4 && row === 0) press(col); });
+      onKeys((e) => { if (e.type !== 'keydown' || e.repeat) return false; const n = +e.key; if (n >= 1 && n <= 4) { press(n - 1); return true; } return false; });
+      start();
+      loop((dt) => {
+        t += dt; msgT = Math.max(0, msgT - dt);
+        if (t > 0 && phase === 'show' && !done) { showT -= dt; if (showT <= 0) { if (showI < seq.length * 2) { if (showI % 2 === 0) { lit = seq[showI / 2]; sfx('click'); showT = step; } else { lit = -1; showT = 0.18; } showI++; } else { lit = -1; phase = 'in'; } } }
+        c.fillStyle = '#1b1f2e'; c.fillRect(0, 0, 640, 400); c.fillStyle = '#272c42'; c.fillRect(70, 70, 500, 200);
+        for (let i = 0; i < 4; i++) { const on = lit === i; c.fillStyle = on ? COL[i] : 'rgba(255,255,255,.08)'; c.fillRect(120 + i * 100, 110, 80, 80); c.strokeStyle = COL[i]; c.lineWidth = 3; c.strokeRect(120 + i * 100, 110, 80, 80); c.fillStyle = on ? '#111' : '#9fb0cc'; c.font = '800 28px sans-serif'; c.textAlign = 'center'; c.fillText(String(i + 1), 160 + i * 100, 160); }
+        c.fillStyle = '#9fb0cc'; c.font = '700 15px sans-serif'; c.fillText(phase === 'show' ? '👀 Ghi nhớ chuỗi…' : phase === 'in' ? '🖱️ Đến lượt bạn (' + idx + '/' + seq.length + ')' : '', 320, 235);
+        c.fillStyle = '#ffd23f'; c.fillText('Vòng ' + Math.min(round + 1, FIX_CFG.rounds) + '/' + FIX_CFG.rounds + ' · ' + '🔌'.repeat(Math.max(0, lives)), 320, 300);
+        if (msgT > 0) bigText(c, msg, 350, msg.startsWith('Sai') ? '#ff6b6b' : '#45c486', 26);
+        hud.textContent = 'Vòng ' + Math.min(round + 1, FIX_CFG.rounds) + '/' + FIX_CFG.rounds;
+      });
+    });
+  }
+
+  const GAMES = { paint: paintGame, land: landGame, fix: fixGame, clutch, aim, scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
   KN.Mini = {
     plan, planJob, planPropose, planHaggle, planDuel, run, NAME, DUEL_TYPES,
     // file khác đăng ký thêm minigame (js/showbiz.js): fn(p) → Promise<{score, text}>, tự mở khung riêng
