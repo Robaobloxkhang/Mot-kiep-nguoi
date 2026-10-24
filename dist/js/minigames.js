@@ -2112,8 +2112,8 @@
 
   // ------------------------------------------------------------------ 🛬 hạ cánh (phi công): giữ máy bay trên đường trượt, chạm đường băng nhẹ nhàng
   // Độ khó: gió giật = 12 + need×22; độ nhạy lái giảm khi thể lực thấp. Điểm = bám đường trượt (70%) + độ êm khi chạm đất (30%).
-  const LAND_CFG = { dur: 22, sink: 0.9, gust: 12, gustNeed: 22 };
-  function landScore(devAvg, vsTouch) { return clamp(1 - devAvg / 40, 0, 1) * 0.7 + clamp(1 - Math.max(0, vsTouch - 1.2) / 3, 0, 1) * 0.3; }
+  const LAND_CFG = { dur: 22, sink: 0.9, gust: 20, gustNeed: 40 }; // đã cân bằng bằng mô phỏng bot: tay lái yếu ~0.5–0.7, giỏi ~0.9
+  function landScore(devAvg, vsTouch) { return clamp(1 - devAvg / 14, 0, 1) * 0.7 + clamp(1 - Math.max(0, vsTouch - 1.2) / 2, 0, 1) * 0.3; }
   function landGame(p) {
     return new Promise((res) => {
       const hp = p.ctx.stats.health, resp = 0.7 + hp / 100 * 0.5;
@@ -2130,7 +2130,7 @@
           gustT -= dt; if (gustT <= 0) { gustT = rand(1.2, 2.6); gust = rand(-1, 1) * (LAND_CFG.gust + p.need * LAND_CFG.gustNeed); }
           gust *= 1 - dt * 1.2;
           pitch += ((keys.d ? 1 : 0) - (keys.u ? 1 : 0)) * 90 * resp * dt; pitch *= 1 - dt * 0.6; pitch = clamp(pitch, -60, 90);
-          vy += (pitch * 0.4 + 11 - vy) * dt * 2 + gust * dt * 0.6; vy = clamp(vy, -25, 70);
+          vy += (pitch * 0.4 + 11 - vy) * dt * 2 + gust * dt * 1.3; vy = clamp(vy, -25, 70);
           y += vy * dt; x += (GX1 - GX0) / LAND_CFG.dur * dt;
           devs.push(Math.abs(y - slopeY(x)));
           if (y >= GY1 || x >= GX1) { done = true; touched = true; const vs = Math.max(0, vy / 10), dv = devs.reduce((a, b) => a + b, 0) / devs.length, sc = landScore(dv, vs); sfx(vs < 2.2 ? 'good' : 'bad'); msg = vs < 1.4 ? 'Chạm đất êm ru!' : vs < 2.4 ? 'Chạm đất ổn' : 'Hạ cánh cứng!'; setTimeout(() => res({ score: sc, text: msg + ' Lệch đường trượt trung bình ' + dv.toFixed(0) + 'px, tốc độ rơi lúc chạm ' + vs.toFixed(1) + '.' }), 1000); }
