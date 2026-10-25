@@ -461,7 +461,7 @@
   const J = (window.KN || {}).JOB_TASKS; if (!J) return;
   const add = (id, act, tasks) => { if (!J[id]) J[id] = { act, tasks: [] }; J[id].tasks.push(...tasks); };
   add('casi', ['🎤', 'Chạy show'], [
-    { t: 'Đêm nhạc trực tiếp không chỉnh nhạc', i: '🎶', loc: 'stage', a: 'sing', npc: ['coworker', 'cheer', 'Khán giả chờ giọng thật của bạn!'],
+    { t: 'Đêm nhạc trực tiếp không chỉnh nhạc', i: '🎶', loc: 'karaoke', a: 'sing', npc: ['coworker', 'cheer', 'Khán giả chờ giọng thật của bạn!'],
       x: 'Ban tổ chức đề nghị bạn hát live hoàn toàn, không phối nền, không chỉnh giọng. Khán giả đông nghịt và truyền hình quay trực tiếp.',
       c: [['🎤 Hát live thật, hết mình', 'health', 0.5, 'sing', 'Giọng bạn vang khắp khán phòng, khán giả đứng dậy vỗ tay. Clip live lan khắp mạng.', 'Bạn hụt hơi ở đoạn cao trào. Khán giả vẫn vỗ tay nhưng báo chí viết bạn “chưa đủ lửa”.', 'big'],
         ['🎧 Xin hát nhép cho an toàn', null, 1, null, 'Màn trình diễn trơn tru, không ai phát hiện. Nhưng bạn biết mình đã né tránh thử thách.', '', 'safe']] },
@@ -471,7 +471,7 @@
         ['📅 Xin dời lịch thu một tuần', null, 1, null, 'Nhà sản xuất miễn cưỡng đồng ý. Bạn có thêm thời gian luyện, nhưng đối thủ kịp ra bài trước.', '', 'safe']] },
   ]);
   add('nhaccong', ['🎸', 'Biểu diễn, đi diễn'], [
-    { t: 'Sân khấu hoà nhạc lớn', i: '🎼', loc: 'stage', a: 'sing', npc: ['coworker', 'clap', 'Đến lượt bạn solo!'],
+    { t: 'Sân khấu hoà nhạc lớn', i: '🎼', loc: 'karaoke', a: 'sing', npc: ['coworker', 'clap', 'Đến lượt bạn solo!'],
       x: 'Dàn nhạc giao cho bạn đoạn solo dài giữa buổi hoà nhạc. Cả hội trường im phăng phắc chờ nốt đầu tiên.',
       c: [['🎼 Chơi solo đúng từng nhịp', 'smarts', 0.5, 'sing', 'Đoạn solo trọn vẹn đến từng nốt, tràng pháo tay kéo dài hơn một phút.', 'Bạn trượt nhịp giữa đoạn solo. Dàn nhạc phải đỡ cho bạn, hơi ngượng nhưng buổi diễn vẫn tiếp tục.', 'big'],
         ['🤝 Nhường solo cho đồng nghiệp', null, 1, null, 'Đồng nghiệp chơi rất tốt. Bạn được khen biết nhường nhịn nhưng bỏ lỡ cơ hội toả sáng.', '', 'safe']] },

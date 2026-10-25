@@ -2073,11 +2073,11 @@
   }
   // ------------------------------------------------------------------ 🎨 vẽ nét (hoạ sĩ, thợ cắt tóc, thợ thủ công): đi theo đường mẫu bằng tay vững
   // Độ khó: dung sai = 10 + sức khỏe×0.12 − need×6 (px); 3 nét, mỗi nét 9s. Điểm = độ bám đường của 3 nét (thuần túy: strokeAccuracy).
-  const PAINT_CFG = { strokes: 3, secs: 9, tolBase: 10, tolHp: 0.12, tolNeed: 6 };
-  function strokeAccuracy(dists, tol) { if (!dists.length) return 0; return clamp(1 - (dists.reduce((a, b) => a + b, 0) / dists.length - tol * 0.3) / (tol * 1.6), 0, 1); }
+  const PAINT_CFG = { strokes: 3, secs: 9, tolBase: 6, tolHp: 0.06, tolNeed: 3 }; // cân bằng bằng tính toán: lệch TB 3px ≈ 95%, 6px ≈ 65–70%, 10px ≈ 20–35%
+  function strokeAccuracy(dists, tol) { if (!dists.length) return 0; return clamp(1 - (dists.reduce((a, b) => a + b, 0) / dists.length - tol * 0.3) / (tol * 1.2), 0, 1); }
   function paintGame(p) {
     return new Promise((res) => {
-      const hp = p.ctx.stats.health, tol = Math.max(7, PAINT_CFG.tolBase + hp * PAINT_CFG.tolHp - p.need * PAINT_CFG.tolNeed);
+      const hp = p.ctx.stats.health, tol = Math.max(4, PAINT_CFG.tolBase + hp * PAINT_CFG.tolHp - p.need * PAINT_CFG.tolNeed);
       const { cv, c, hud } = canvasGame('🎨 Vẽ nét', '', 'Bấm giữ chuột/ngón tay tại chấm xanh rồi kéo theo đường nét đứt tới chấm đỏ. Bằng bàn phím: <kbd>←↑↓→</kbd> di chuyển bút, giữ <kbd>Space</kbd> để vẽ.');
       let si = 0, drawing = false, trail = [], dists = [], scores = [], t = 0, curve = null, done = false, msg = '', msgT = 0, prog = 0;
       let kx = 100, ky = 200, space = false; const keys = {};
@@ -2149,7 +2149,7 @@
 
   // ------------------------------------------------------------------ 🔧 sửa máy (công nhân, kỹ thuật): ghi nhớ và lặp lại chuỗi công tắc sáng
   // Độ khó: chuỗi dài 3 + vòng (+1 nếu need cao); trí tuệ cao → mỗi vòng sáng chậm hơn (dễ nhớ). Sai 3 lần thì cháy cầu chì.
-  const FIX_CFG = { rounds: 5, base: 3, lives: 3 };
+  const FIX_CFG = { rounds: 5, base: 3, lives: 3 }; // mô phỏng: người nhớ được 4/6/8 mục → điểm TB ~0.5/0.85/1.0 (độ khó thường)
   function fixGame(p) {
     return new Promise((res) => {
       const sm = p.ctx.stats.smarts, step = 0.55 + sm / 100 * 0.25 - p.need * 0.15, COL = ['#ff5c5c', '#ffd23f', '#39cf98', '#5cc8ff'];
