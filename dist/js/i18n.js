@@ -23,6 +23,7 @@
     (regs || []).forEach((r) => pats.push(r));
     if (lang === 'en') scheduleAll();
   }
+  const fixMoney = (x) => x.replace(/(\d[\d.,]*)tr\b/g, '$1M').replace(/(\d[\d.,]*) tỷ\b/g, '$1B').replace(/\btriệu\b/g, 'M').replace(/\bnghìn\b/g, 'k').replace(/\bnăm\b/g, 'y').replace(/\btháng\b/g, 'mo').replace(/\btuổi\b/g, 'yrs').replace(/\bsức khỏe\b/gi, 'health').replace(/\bđiểm\b/g, 'pts').replace(/thưởng/g, 'bonus').replace(/trợ cấp/g, 'allowance').replace(/tự túc/g, 'self-funded').replace(/tới/g, 'up to');
   const unitFix = (s) => s.replace(/(\d[\d.,]*)\s*tỷ\b/g, '$1B').replace(/(\d[\d.,]*)\s*triệu\b/g, '$1M').replace(/(\d[\d.,]*)\s*nghìn\b/g, '$1k').replace(/\bđồng\b/g, 'VND');
   // trả về bản dịch hoặc null nếu không dịch được
   function tr(text) {
@@ -38,9 +39,10 @@
     // số → {n}
     const nums = HASNUM.test(core) ? core.match(NUM) : null;
     if (nums) { const key = core.replace(NUM, '{n}'); const t = numDict.get(key) || dict.get(key); if (t != null) { let i = 0; return t.replace(/\{n\}/g, () => nums[Math.min(i++, nums.length - 1)]); } }
+    if (HAS_VI.test(core)) { for (let i = 0; i < pats.length; i++) { const r = pats[i]; const hit = r[0].test(core); r[0].lastIndex = 0; if (hit) return core.replace(r[0], r[1]); } }
     // tách theo dấu phân cách
-    const parts = core.split(/( · | — | – |\n| \| |: )/);
-    if (parts.length > 1) { let any = false; const o = parts.map((p, i) => { if (i % 2) return p; if (!p.trim()) return p; const t = look(p.trim()); if (t != null) { any = true; return t; } return p; }); if (any) return o.join(''); }
+    const parts = core.split(/( · | — | – | → |\n| \| |: )/);
+    if (parts.length > 1) { let any = false; const o = parts.map((p, i) => { if (i % 2) return p; if (!p.trim()) return p; let t = look(p.trim()); if (t == null) { const m = /^(.*?)(\s*\([^)]*\))$/.exec(p.trim()); if (m) { const b = look(m[1]); if (b != null) t = b + fixMoney(m[2]); } } if (t != null) { any = true; return t; } return p; }); if (any) return o.join(''); }
     if (HAS_VI.test(core)) {
       for (let i = 0; i < pats.length; i++) { const r = pats[i]; if (r[0].test(core)) { r[0].lastIndex = 0; return core.replace(r[0], r[1]); } r[0].lastIndex = 0; }
       const u = unitFix(core); if (u !== core && !HAS_VI.test(u)) return u; // chỉ là số tiền

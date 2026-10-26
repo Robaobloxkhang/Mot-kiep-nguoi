@@ -1,5 +1,5 @@
 // Một Kiếp Người — bộ kiểm tra tự động (không cần thêm gì vào game).
-// Chạy:  node dev/tests/run.mjs [--root=.|dist] [--only=boot,lazy,minigames,jobtasks,shop,saves,a11y] [--quick]
+// Chạy:  node dev/tests/run.mjs [--root=.|dist] [--only=boot,lazy,minigames,jobtasks,shop,i18n,saves,a11y] [--quick]
 // Cần Playwright + Chromium trên máy chạy test:  npm i -D playwright && npx playwright install chromium
 //   (có thể chỉ đường dẫn Chromium sẵn có bằng biến môi trường CHROMIUM_PATH)
 // Ghi chú: test dùng máy chủ tĩnh tạm thời trên cổng ngẫu nhiên, không gọi API online.
@@ -152,6 +152,29 @@ if (want('shop')) {
     return { n: items.length, bought, once, boost, bad };
   });
   record(`cửa hàng: ${r.n} món, mua được ${r.bought} (${r.once} dùng một lần), cộng IELTS tối đa ${r.boost}, thi IELTS thật chạy được`, r.bad.length === 0 && r.bought >= r.n - 3 && errs.length === 0, (r.bad.concat(errs)).slice(0, 3).join(' | '));
+  await ctx.close();
+}
+
+// ---------------------------------------------------------------- 4c. bản tiếng Anh (công tắc EN/VI)
+if (want('i18n')) {
+  console.log('[i18n] công tắc tiếng Anh: dịch giao diện, mở minigame, đổi lại tiếng Việt');
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } }); await ctx.addInitScript(() => { try { localStorage.setItem('kn_lang', 'en'); } catch (e) { /* */ } });
+  const page = await ctx.newPage(); const errs = [];
+  page.on('pageerror', (e) => errs.push(e.message)); page.on('console', (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push('console: ' + m.text().slice(0, 140)); });
+  await page.goto(BASE + 'index.html', { waitUntil: 'commit' });
+  await page.waitForFunction(() => window.KN && KN.UI && KN.I18n && document.querySelector('.hub-tile'), null, { timeout: 90000 });
+  await page.waitForFunction(() => KN.I18n.stats().exact > 1000, null, { timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(800);
+  const en = await page.evaluate(() => ({ lang: document.documentElement.lang, tile: document.querySelector('.hub-tile').innerText, miss: KN.I18n.missing().length, stats: KN.I18n.stats() }));
+  record(`EN: giao diện chính được dịch (${en.stats.exact} mục từ), còn ${en.miss} chuỗi tiếng Việt ở màn hình chính`, en.lang === 'en' && /Life/.test(en.tile) && en.miss <= 8 && errs.length === 0, errs.slice(0, 2).join(' | ') || en.tile.replace(/\n/g, ' | ').slice(0, 60));
+  await page.evaluate(() => { KN.Mini.setEnabled(true); if (KN.World && KN.World.setPaused) KN.World.setPaused(true); KN.Mini.test('ielts_vocab', 0.5, null, {}); });
+  await page.waitForTimeout(900);
+  const intro = await page.evaluate(() => (document.querySelector('.mini') || { innerText: '' }).innerText);
+  record('EN: màn hướng dẫn minigame có chữ tiếng Anh', /IELTS/.test(intro) && /(Goal|goal|How to play)/.test(intro), intro.slice(0, 80).replace(/\n/g, ' | '));
+  await page.evaluate(() => { if (KN.Mini.abort) KN.Mini.abort(); const m = document.querySelector('.mini'); if (m) m.remove(); });
+  await page.click('#knLang'); await page.waitForTimeout(600);
+  const vi = await page.evaluate(() => ({ lang: document.documentElement.lang, tile: document.querySelector('.hub-tile').innerText }));
+  record('đổi lại VI: chữ gốc được khôi phục', vi.lang === 'vi' && /Cuộc đời/.test(vi.tile) && errs.length === 0, errs.slice(0, 2).join(' | '));
   await ctx.close();
 }
 

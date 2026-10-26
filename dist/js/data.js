@@ -856,6 +856,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🌐 Bản tiếng Anh (bấm nút EN góc màn hình): dịch giao diện, cửa hàng, nghề, minigame và vài tình huống đầu đời. Phần truyện chưa dịch vẫn hiện tiếng Việt; sẽ dịch dần.',
       '🇬🇧 Luyện IELTS: 5 minigame mới (từ vựng, đọc hiểu, ngữ pháp, nghe, nói) trong mục Minigame, sổ từ vựng tự nhắc ôn lại, hoạt động “Thi IELTS thật” cho ra band ảnh hưởng học bổng. Nội dung do game soạn, không phải đề thi chính thức.',
       '🛒 Cửa hàng thêm hơn 40 món: công nghệ, sở thích, đồ học IELTS (sách, khóa học, gia sư), đầu tư sinh lời, và các món dùng một lần như du lịch, spa, quà tặng.',
       '⚡ Tải trang nhanh hơn: các tệp tình huống (khoảng 40% dung lượng) được nạp nền sau khi màn hình chính hiện ra, nên vào game nhanh hơn trên mạng chậm. Bấm bắt đầu sớm thì game tự nạp ngay.',
