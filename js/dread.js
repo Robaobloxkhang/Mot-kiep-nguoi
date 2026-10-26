@@ -302,13 +302,19 @@
         if (E.offhand) { const b = E.offhand.base; if (b === 'tome') put(new T.Mesh(new T.BoxGeometry(0.34, 0.06, 0.26), mat(E.offhand)), 0.58, 0.88, 0.22, 0.2, 0.3, 0); else put(new T.Mesh(new T.CylinderGeometry(b === 'tower' ? 0.4 : 0.3, b === 'tower' ? 0.4 : 0.3, 0.07, 18), mat(E.offhand)), 0.62, 1.0, 0.1, 0, 0, Math.PI / 2); }
         if (E.ring) put(new T.Mesh(new T.TorusGeometry(0.1, 0.035, 6, 14), mat(E.ring)), 0.54, 0.7, 0.06, Math.PI / 2, 0, 0);
         if (E.ring2) put(new T.Mesh(new T.TorusGeometry(0.1, 0.035, 6, 14), mat(E.ring2)), -0.54, 0.7, 0.06, Math.PI / 2, 0, 0);
-        if (withWeapon) { if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; } const w = E.weapon; lobbyWeaponKey = w ? w.id : ''; if (w) { const b = core.baseOf(w); (b ? (b.proc ? S.proc(b.proc) : S.spawn(b.model, b.h * k * 0.92)) : Promise.resolve(null)).then((we) => { if (!we) return; if (lobbyWeaponKey !== w.id || mode !== 'lobby') { we.remove(); return; } S.scene.remove(we.grp); const cs2 = we.scale; ent.grp.add(we.grp); we.grp.scale.setScalar(cs2 / s); we.grp.position.set(-0.5 * k / s, 0.8 * k / s, 0.2 * k / s); we.grp.rotation.set(0.55, 0.25, 0.1); lobbyWeapon = we; const old = we.remove; we.remove = () => { ent.grp.remove(we.grp); lobbyWeapon = null; }; }).catch(() => {}); } }
+        if (withWeapon) { if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; } const w = E.weapon; lobbyWeaponKey = w ? w.id : ''; if (w) { const b = core.baseOf(w); makeWeapon(w, k * 0.92).then((we) => { if (!we) return; if (lobbyWeaponKey !== w.id || mode !== 'lobby') { we.remove(); return; } S.scene.remove(we.grp); ent.grp.add(we.grp); we.grp.scale.setScalar(1 / s); we.grp.position.set(-0.5 * k / s, 0.78 * k / s, 0.12 * k / s); we.grp.rotation.set((we.flip ? Math.PI : 0) + 0.5, 0, 0.08); lobbyWeapon = we; we.remove = () => { ent.grp.remove(we.grp); lobbyWeapon = null; }; }).catch(() => {}); } }
       }
       async function updateLobbyHero() {
         if (lobbyBuilding) return; lobbyBuilding = true;
         try { await setupLobbyScene(); dressHero(lobbyHero, 2.4, true); } catch (e) { loadEl.textContent = 'Không tải được mô hình nhân vật.'; } lobbyBuilding = false;
       }
-      async function makeWeapon(it) { const b = core.baseOf(it); if (!b) return null; return b.proc ? S.proc(b.proc) : S.spawn(b.model, b.h); }
+      // vũ khí bọc trong nhóm "hold": gốc của hold = điểm cầm trong bàn tay; mô hình kiếm bị ngược (mũi ở dưới) nên lật bằng flip
+      async function makeWeapon(it, mul) {
+        const b = core.baseOf(it); if (!b) return null; const m = mul || 1, h = (b.h || 1.5) * m;
+        const e = b.proc ? S.proc(b.proc) : await S.spawn(b.model, h); S.scene.remove(e.grp); const hold = new T.Group(); hold.add(e.grp); if (b.proc) e.grp.scale.setScalar(m);
+        e.grp.position.y = -(b.grip || 0) * h; S.scene.add(hold);
+        return { grp: hold, flip: !!b.flip, scale: 1, remove() { S.scene.remove(hold); hold.parent && hold.parent.remove(hold); e.remove(); } };
+      }
       $('#drTools').querySelectorAll('[data-z]').forEach((b) => (b.onclick = () => { const z = +b.dataset.z; lobbyZoom = z === 0 ? 1 : clamp(lobbyZoom - z * 0.14, 0.6, 1.5); if (z === 0) lobbyRot = 0; lobbyIdle = 0; }));
       cv.addEventListener('wheel', (e) => { if (mode !== 'lobby') return; e.preventDefault(); lobbyZoom = clamp(lobbyZoom + Math.sign(e.deltaY) * 0.08, 0.6, 1.5); }, { passive: false });
       cv.addEventListener('pointerdown', (e) => { if (mode !== 'lobby') return; lobbyDrag = { id: e.pointerId, x: e.clientX }; lobbyIdle = 0; try { cv.setPointerCapture(e.pointerId); } catch (er) { /* */ } });
@@ -555,7 +561,7 @@
         if (mode === 'lobby' || mode === 'load' || !run) { if (lobbyHero && lobbyHero.grp.visible) { lobbyIdle += dt; if (!lobbyDrag && lobbyIdle > 4) lobbyRot += dt * 0.4; lobbyHero.grp.rotation.y = lobbyRot; lobbyHero.grp.position.set(0, 0, 0); if (S.lobbyGrp) S.lobbyGrp.rotation.y = 0; lobbyCam(); } S.render(tNow); return; }
         if (hero.ent) {
           const g = hero.ent.grp, mv = Math.hypot(keys.d - keys.a + joy.x, keys.s - keys.w + joy.z) > 0.1; g.position.set(hero.x, mv ? Math.abs(Math.sin(tNow * 9)) * 0.06 : 0, hero.z); g.rotation.y = Math.atan2(hero.fx, hero.fz) + (hero.atkAnim > 0 && hero.wdef.melee ? Math.sin((1 - hero.atkAnim / 0.22) * Math.PI) * 0.4 : 0); g.visible = !(hero.inv > 0 && Math.floor(tNow * 20) % 2 === 0 && hero.hurtT > -0.3);
-          const wp = hero.weapon; if (wp) { const a0 = Math.atan2(hero.fx, hero.fz), mel = hero.wdef.melee, pv = hero.atkAnim > 0 ? 1 - hero.atkAnim / 0.22 : -1, off = !mel ? -0.6 : pv < 0 ? -1.15 : -1.15 + 2.3 * pv, th = !mel ? 0.1 + (pv >= 0 ? 0.25 : 0) : pv < 0 ? 0.35 : 1.25, sa = a0 + off; wp.grp.position.set(hero.x + Math.sin(sa) * 0.62, 0.95, hero.z + Math.cos(sa) * 0.62); wp.grp.rotation.set(th, sa, 0, 'YXZ'); wp.grp.visible = hero.dashT <= 0; }
+          const wp = hero.weapon; if (wp) { const a0 = Math.atan2(hero.fx, hero.fz), mel = hero.wdef.melee, pv = hero.atkAnim > 0 ? 1 - hero.atkAnim / 0.22 : -1, off = !mel ? -0.6 : pv < 0 ? -1.15 : -1.15 + 2.3 * pv, th = !mel ? 0.1 + (pv >= 0 ? 0.25 : 0) : pv < 0 ? 0.35 : 1.25, sa = a0 + off; wp.grp.position.set(hero.x + Math.sin(sa) * 0.62, 0.95, hero.z + Math.cos(sa) * 0.62); wp.grp.rotation.set(th + (wp.flip ? Math.PI : 0), sa, 0, 'YXZ'); wp.grp.visible = hero.dashT <= 0; }
         }
         mobs.forEach((m) => {
           if (!m.ent) return; const g = m.ent.grp, wind = m.state === 'wind', fy = (m.def.float || 0) + (m.def.float ? Math.sin(tNow * 2 + m.x) * 0.15 : 0), sq = wind ? 1 + Math.sin(tNow * 40) * 0.04 : 1;

@@ -77,11 +77,11 @@
   ];
   // vũ khí gốc: model GLB (cận chiến) hoặc kiểu dựng tay (tầm xa)
   const WEAPONS = [
-    { base: 'sword', name: 'Kiếm sắt', icon: '🗡️', model: 'weapon_iron_sword', h: 1.7, atk: 15, range: 1.9, cd: 0.62, melee: true },
-    { base: 'axe', name: 'Rìu Mộ', icon: '🪓', model: 'weapon_grave_axe', h: 1.5, atk: 22, range: 2.1, cd: 0.78, melee: true },
-    { base: 'fang', name: 'Nanh Đêm', icon: '⚔️', model: 'weapon_nightfang', h: 2.1, atk: 30, range: 2.4, cd: 0.66, melee: true, minLvl: 3 },
-    { base: 'bow', name: 'Cung Cốt', icon: '🏹', proc: 'bow', atk: 11, range: 9, cd: 0.52, melee: false },
-    { base: 'staff', name: 'Trượng Tro', icon: '🔮', proc: 'staff', atk: 13, range: 8, cd: 0.7, melee: false, minLvl: 2 },
+    { base: 'sword', name: 'Kiếm sắt', icon: '🗡️', model: 'weapon_iron_sword', h: 1.7, flip: true, grip: 0.88, atk: 15, range: 1.9, cd: 0.62, melee: true },
+    { base: 'axe', name: 'Rìu Mộ', icon: '🪓', model: 'weapon_grave_axe', h: 1.5, grip: 0.25, atk: 22, range: 2.1, cd: 0.78, melee: true },
+    { base: 'fang', name: 'Nanh Đêm', icon: '⚔️', model: 'weapon_nightfang', h: 2.1, flip: true, grip: 0.82, atk: 30, range: 2.4, cd: 0.66, melee: true, minLvl: 3 },
+    { base: 'bow', name: 'Cung Cốt', icon: '🏹', proc: 'bow', h: 1.24, grip: 0.5, atk: 11, range: 9, cd: 0.52, melee: false },
+    { base: 'staff', name: 'Trượng Tro', icon: '🔮', proc: 'staff', h: 1.72, grip: 0.3, atk: 13, range: 8, cd: 0.7, melee: false, minLvl: 2 },
   ];
   const ARMORS = [{ base: 'leather', name: 'Giáp da', hp: 18, def: 3 }, { base: 'rust', name: 'Giáp Rỉ', hp: 30, def: 6, minLvl: 2 }, { base: 'hollow', name: 'Giáp Rỗng', hp: 46, def: 9, minLvl: 4 }];
   const HELMETS = [{ base: 'cap', name: 'Mũ da', hp: 10, def: 2 }, { base: 'helm', name: 'Mũ Sắt', hp: 18, def: 4, minLvl: 2 }, { base: 'horn', name: 'Mũ Sừng Tro', hp: 26, def: 6, crit: 0.02, minLvl: 3 }];
