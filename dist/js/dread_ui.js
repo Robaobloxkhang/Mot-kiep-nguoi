@@ -67,9 +67,9 @@
   const thumbCache = {}; let tr = null, tsc = null, tcam = null, chain = Promise.resolve();
   function thumbInit() {
     const T = window.THREE; if (tr) return;
-    tr = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); tr.setSize(128, 128, false); tr.setPixelRatio(1); tr.setClearColor(0x000000, 0);
+    tr = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); tr.setSize(256, 160, false); tr.setPixelRatio(1); tr.setClearColor(0x000000, 0);
     tsc = new T.Scene(); tsc.add(new T.HemisphereLight(0xdfe3ff, 0x4a3a30, 1.15)); const d = new T.DirectionalLight(0xfff0d8, 0.9); d.position.set(-3, 5, 4); tsc.add(d);
-    tcam = new T.PerspectiveCamera(30, 1, 0.1, 200);
+    tcam = new T.PerspectiveCamera(30, 1.6, 0.1, 200);
   }
   function thumb(key) {
     if (thumbCache[key]) return thumbCache[key];
@@ -103,11 +103,11 @@
       (o.price != null ? '<span class="pr' + (o.afford ? '' : ' no') + '">' + ico('coin', '', 13) + ' ' + o.price + '</span>' : '') +
       '<span class="fl">' + (o.equipped ? '<b class="e" title="Đang trang bị">E</b>' : '') + (lock ? '<b class="f" title="Đã khóa / yêu thích">' + ico('lock', '', 11) + '</b>' : '') + '</span></button>';
   }
-  // ô trang bị quanh nhân vật
+  // ô trang bị: một hàng gọn (biểu tượng, nhãn ngắn, tên món); độ hiếm chỉ thể hiện bằng vạch màu bên trái
   function slot(s, it, o) {
     const c = core(), R = it ? c.RARITY[it.rar] : null;
-    return '<button type="button" class="ds' + (o && o.sel ? ' sel' : '') + (it ? '' : ' empty') + '" data-slot="' + s.id + '" style="--rc:' + (R ? R.color : '#4a5262') + '" aria-label="' + esc(s.name + ': ' + (it ? it.name + ', ' + R.name : 'trống')) + '">' +
-      (it ? iconBox(it) : '<span class="ib">' + ico(s.type, 'ph', 22) + '</span>') + '<span class="sn">' + esc(it ? it.name : s.name) + '</span></button>';
+    return '<button type="button" class="ds' + (o && o.sel ? ' sel' : '') + (it ? '' : ' empty') + '" data-slot="' + s.id + '" style="--rc:' + (R ? R.color : 'transparent') + '" aria-pressed="' + !!(o && o.sel) + '" aria-label="' + esc(s.name + ': ' + (it ? it.name + ', ' + R.name : 'trống')) + '">' +
+      (it ? iconBox(it) : '<span class="ib">' + ico(s.type, 'ph', 22) + '</span>') + '<span class="tx"><small>' + esc(s.name) + '</small><b>' + esc(it ? it.name : 'Trống') + '</b></span></button>';
   }
   // bảng chi tiết + so sánh với món đang mặc
   // ctx: { meta, equippedSlot (id ô đang mặc món này hoặc ''), target (id ô đích), actions: 'inv'|'shop', price, afford, lvl }
