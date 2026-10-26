@@ -27,7 +27,7 @@
     ['Hành động', ['fight', 'chase', 'drive', 'sneak', 'ride', 'aim', 'clutch', 'land', 'dread']],
     ['Trí tuệ', ['quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards']],
     ['Tiếng Anh · IELTS', ['ielts_vocab', 'ielts_read', 'ielts_grammar', 'ielts_listen', 'ielts_speak']],
-    ['Đời sống & nghề', ['cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'paint', 'fix']],
+    ['Đời sống & nghề', ['cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'paint', 'fix', 'scamchat']],
   ];
   const EXTRA = { haggle: { mode: 'buy', price: 3.5e7, item: 'Chiếc xe máy cũ' }, love: { partnerName: 'Lan' }, fight: { foe: 'thug' } };
   const LV = [['Dễ', 0.3], ['Thường', 0.5], ['Khó', 0.72]];

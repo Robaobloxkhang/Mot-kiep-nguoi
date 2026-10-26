@@ -861,6 +861,7 @@
       '🇬🇧 Luyện IELTS: 5 minigame mới (từ vựng, đọc hiểu, ngữ pháp, nghe, nói) trong mục Minigame, sổ từ vựng tự nhắc ôn lại, hoạt động “Thi IELTS thật” cho ra band ảnh hưởng học bổng. Nội dung do game soạn, không phải đề thi chính thức.',
       '🛒 Cửa hàng thêm hơn 40 món: công nghệ, sở thích, đồ học IELTS (sách, khóa học, gia sư), đầu tư sinh lời, và các món dùng một lần như du lịch, spa, quà tặng.',
       '📱 Nghề “Đường dây lừa đảo” giờ xin việc trực tiếp từ 18 tuổi ở mục Tìm việc, không cần chờ bị rủ rê.',
+      '💬 Minigame “Nhắn tin dụ nạn nhân” (khu lừa đảo) giờ chơi thử được ngay trong mục Minigame → Đời sống & nghề.',
     ] },
     { v: '1.81', date: '23/10/2026', items: [
       '⚡ Tải trang nhanh hơn: các tệp tình huống (khoảng 40% dung lượng) được nạp nền sau khi màn hình chính hiện ra, nên vào game nhanh hơn trên mạng chậm. Bấm bắt đầu sớm thì game tự nạp ngay.',
