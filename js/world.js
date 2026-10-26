@@ -100,6 +100,7 @@
     renderer.setPixelRatio(dprFor());
     const cv = renderer.domElement;
     cv.style.cssText = 'display:block;width:100%;height:100%;touch-action:pan-y;outline:none';
+    cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'Cảnh 3D thu nhỏ mô tả tình huống hiện tại của nhân vật');
     el.appendChild(cv);
 
     scene = new THREE.Scene();

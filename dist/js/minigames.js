@@ -317,6 +317,7 @@
   function canvasGame(title, extraHtml, keys) {
     const box = open('<div class="mini-head"><b>' + title + '</b><small class="mini-hud"></small></div><canvas class="mini-cv" width="640" height="400"></canvas>' + (extraHtml || '') + (keys ? '<p class="mini-keys">⌨️ ' + keys + '</p>' : ''));
     const cv = box.querySelector('canvas'), c = cv.getContext('2d');
+    cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'Khu chơi minigame: ' + String(title).replace(/<[^>]*>/g, '') + '. Xem hướng dẫn phím bên dưới.'); // trình đọc màn hình biết đây là khu chơi; thông tin chữ nằm ở thanh bên cạnh
     return { box, cv, c, hud: box.querySelector('.mini-hud') };
   }
   function loop(fn) { let last = performance.now(); const tick = (now) => { if (paused) { last = now; rafId = requestAnimationFrame(tick); return; } const dt = Math.min(0.05, (now - last) / 1000); last = now; if (fn(dt, now / 1000) !== false) rafId = requestAnimationFrame(tick); }; rafId = requestAnimationFrame(tick); }

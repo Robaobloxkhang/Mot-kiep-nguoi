@@ -4,7 +4,7 @@
   color-scheme: dark;
   --ink-900: #0e1120; --ink-800: #151a2e; --ink-750: #191f37; --ink-700: #1e2440; --ink-600: #2a3156; --ink-500: #3a4270;
   --line: rgba(255, 255, 255, .08); --line-2: rgba(255, 255, 255, .14);
-  --fg: #f2ede4; --fg-dim: #a8a6bd; --fg-faint: #6f6d88;
+  --fg: #f2ede4; --fg-dim: #a8a6bd; --fg-faint: #8f8dab; /* nâng độ tương phản (≥4.7:1 trên nền navy) */
   --lantern: #ffb347; --lantern-deep: #f0841f; --lantern-glow: rgba(255, 170, 70, .38);
   --jade: #39cf98; --chili: #ff5c5c; --sky: #5cc8ff; --lotus: #ff7eb6;
   --c-happy: #ffcf4d; --c-health: #ff6b6b; --c-smarts: #5cc8ff; --c-looks: #c792ff; --c-money: #39cf98; --c-karma: #f5a3ff;
@@ -1640,3 +1640,13 @@ details.more.risk p { margin: 0 0 8px; }
 
 .mini-pausebtn { right: auto; left: 12px; }
 .mini-pause { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(8,12,22,.82); backdrop-filter: blur(3px); border-radius: inherit; } .mini-pause > div { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 20px; } .mini-pause b { font-size: 26px; } .mini-pause small { color: var(--ink-2, #b6c2dc); }
+
+/* truy cập & điện thoại: vùng chạm ≥ 44px trên màn cảm ứng, giảm chuyển động khi người dùng yêu cầu */
+@media (pointer: coarse) {
+  .btn-sm, .news-pill, .arc-cats button, .arc-lv button, .arc-tools select, .arc-tools .btn, .mini-quit, .mini-pause .btn { min-height: 44px; }
+  .arc-fav { min-width: 44px; min-height: 44px; right: 2px; top: 2px; display: grid; place-items: center; }
+  .mini-pad button, .mini-btns .btn { min-height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-ring, .mini-ring *, .mini-bar i, .mini-pause, .arc-go, .arc-daily, .am-t, .mini-meta span { animation: none !important; transition: none !important; }
+}

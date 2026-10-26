@@ -792,7 +792,8 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
-      '📋 HLV: khi đủ giỏi, bạn nhận lời mời của Liên đoàn và tự chọn giữa LÊN LÀM HLV ĐỘI TUYỂN QUỐC GIA hoặc Ở LẠI CÂU LẠC BỘ làm tiếp (ở lại thì được tăng niềm tin của ban lãnh đạo, vài năm sau lời mời mới quay lại). Trước đây game tự động đưa bạn lên đội tuyển.',
+      '🎮 Làm lại nhiều minigame, thêm sổ thành tựu và thử thách hằng ngày, tạm dừng giữa ván, ca làm việc mới cho nhiều nghề.',
+      '📋 HLV: khi đủ giỏi, bạn nhận lời mời của Liên đoàn và tự chọn giữa lên làm HLV đội tuyển quốc gia hoặc ở lại câu lạc bộ làm tiếp (ở lại thì được tăng niềm tin của ban lãnh đạo, vài năm sau lời mời mới quay lại). Trước đây game tự động đưa bạn lên đội tuyển.',
       '⚽ Trận HLV: đội đối thủ không còn chỉ để một người xông lên rồi cả đội đứng nhà. HLV máy tự dâng cao khi đang thua và lùi về khi dẫn điểm cuối trận, người thứ hai áp sát bóng, hậu vệ dâng lên khi đội giữ bóng.',
       '🆕 3 minigame mới: 🎨 Vẽ nét (hoạ sĩ, thợ làm tóc — bám đường mẫu bằng tay vững), 🛬 Hạ cánh (phi công — giữ đường trượt, chống gió giật, chạm đất êm), 🔧 Sửa máy (công nhân — nhớ chuỗi công tắc). Có trong màn Minigame, thử thách hằng ngày, và 4 ca làm việc mới/đổi (hoạ sĩ, thợ cắt tóc, công nhân, phi công).',
       '🎬 Các ca làm việc cũ giờ cũng có minigame ở lựa chọn cần kỹ năng: kiến trúc sư (thi thiết kế), công chức, phi công, shipper, công nhân, thợ cắt tóc, nông dân, nhà khoa học, chính trị gia, HLV, ca sĩ, streamer, hoạ sĩ, nhạc công, diễn viên. Các lựa chọn thuần đạo đức (nhận phong bì, giữ đồ khách quên, bán độ…) vẫn không có minigame.',
