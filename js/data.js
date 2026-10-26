@@ -855,6 +855,10 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
+    { v: '1.83', date: '26/10/2026', items: [
+      '🏰 Hầm ngục Dreadfall lột xác kiểu Soul Knight: có sảnh chọn 5 hầm ngục (Hành lang Xương, Cống Yêu Tinh, Hầm Tro, Ngai của Vua Rồng, Vực Linh Hồn) và 3 độ khó, mỗi lượt là bản đồ nhiều phòng tạo ngẫu nhiên (phòng quái, rương, nước hồi máu, trùm).',
+      '🎒 Trang bị rơi theo độ hiếm (Thường → Huyền thoại): kiếm, rìu, cung, trượng, giáp, nhẫn; có kho đồ, bán đồ, mở hòm bằng vàng và kỹ năng đặc biệt (phím R/F). Vàng nhặt được đổi thành tiền trong cuộc đời. Co-op online sẽ có sau.',
+    ] },
     { v: '1.82', date: '26/10/2026', items: [
       '🗡️ Minigame mới “Hầm ngục Dreadfall”: đi lại tự do như Dungeon Quest, chém quái, lướt né, 3 tầng và trùm Hiệp sĩ Tro, dùng mô hình 3D từ bộ DREADFALL (trong mục Minigame → Hành động).',
       '🌐 Bản tiếng Anh (bấm nút EN góc màn hình): dịch giao diện, cửa hàng, nghề, minigame và vài tình huống đầu đời. Phần truyện chưa dịch vẫn hiện tiếng Việt; sẽ dịch dần.',
