@@ -124,3 +124,4 @@ Tính năng online cần các biến môi trường của Upstash Redis trên Ve
 ## Tác giả
 
 Made by **Bảo Khang**.
+- Mô hình 3D minigame Hầm ngục: bộ DREADFALL — Dark Fantasy Dungeon Kit (assets/dread/).

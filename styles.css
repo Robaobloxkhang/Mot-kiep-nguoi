@@ -1663,3 +1663,35 @@ details.more.risk p { margin: 0 0 8px; }
 .kn-lang:hover { background: rgba(40, 44, 80, .85); }
 .kn-lang:focus-visible { outline: 2px solid var(--lantern, #ffb347); outline-offset: 2px; }
 @media (max-width: 640px) { .kn-lang { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); right: 10px; } }
+
+/* Hầm ngục Dreadfall (js/dread.js) */
+.dr-box { width: min(860px, 100%); }
+.dr-stage { position: relative; border-radius: 14px; overflow: hidden; background: #0d0a12; border: 1px solid var(--line-2); touch-action: manipulation; user-select: none; }
+.dr-cv { display: block; width: 100%; height: clamp(190px, 38vh, 330px); }
+.dr-fb { display: flex; align-items: flex-end; justify-content: space-around; height: clamp(190px, 38vh, 330px); padding-bottom: 12px; }
+.dr-em { font-size: clamp(64px, 14vw, 120px); filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .5)); }
+.dr-hud { position: absolute; inset: 8px 8px auto 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; pointer-events: none; }
+.dr-bar { position: relative; height: 20px; border-radius: 999px; background: rgba(0, 0, 0, .55); border: 1px solid rgba(255, 255, 255, .18); overflow: hidden; }
+.dr-bar i { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(#59d98e, #2a9d5c); transition: width .25s; }
+.dr-bar.foe i { background: linear-gradient(#ff7a6a, #c43a2e); }
+.dr-bar span { position: relative; display: block; text-align: center; font: 700 11px/20px var(--f-body); color: #fff; text-shadow: 0 1px 2px #000; }
+.dr-float { position: absolute; inset: 0; pointer-events: none; }
+.dr-float b { position: absolute; transform: translate(-50%, -50%); font: 800 24px var(--f-body); color: #ffd36a; text-shadow: 0 2px 4px #000; animation: drFade .9s ease-out forwards; white-space: nowrap; }
+.dr-float b.me { color: #ff6b6b; } .dr-float b.heal { color: #6bff9e; } .dr-float b.dodge { color: #7fd4ff; } .dr-float b.crit { font-size: 34px; color: #ffb02e; }
+@keyframes drFade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+.dr-banner { position: absolute; inset: 34% 0 auto; text-align: center; font: 800 clamp(20px, 4vw, 34px) var(--f-display, var(--f-body)); color: #ffe7b0; text-shadow: 0 3px 10px #000; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.dr-banner.on { opacity: 1; }
+.dr-joy { position: absolute; left: 14px; bottom: 14px; width: 96px; height: 96px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .08); touch-action: none; }
+.dr-joy i { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255, 255, 255, .45); }
+.dr-stage { touch-action: none; }
+.dr-ring { position: absolute; left: 24%; top: 46%; width: 70px; height: 70px; margin: -35px 0 0 -35px; pointer-events: none; }
+.dr-ring i { position: absolute; inset: 0; border-radius: 50%; border: 4px solid #ff8f5a; transform-origin: center; }
+.dr-ring b { position: absolute; inset: 0; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .85); }
+.dr-ring.ok i { border-color: #5dffa0; }
+.dr-msg { min-height: 2.6em; margin: 10px 0 6px; font: 600 15px/1.45 var(--f-body); text-wrap: pretty; }
+.dr-swing { position: relative; height: 22px; margin: 4px 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .1); border: 1px solid var(--line-2); overflow: hidden; }
+.dr-swing .z { position: absolute; top: 0; bottom: 0; background: linear-gradient(#ffd75e, #e8a21a); opacity: .9; }
+.dr-swing .m { position: absolute; top: -2px; bottom: -2px; width: 5px; margin-left: -2px; background: #fff; box-shadow: 0 0 8px #fff; }
+.dr-btns.busy button[data-a] { opacity: .5; pointer-events: none; }
+.dr-btns .btn-danger { min-width: 190px; min-height: 52px; font-size: 18px; }
+@media (prefers-reduced-motion: reduce) { .dr-float b { animation-duration: .01s; } }

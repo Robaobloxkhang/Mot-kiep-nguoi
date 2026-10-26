@@ -24,7 +24,7 @@
   // ---------------------------------------------------------------- chơi thử minigame
   const GROUPS = [
     ['Thể thao', ['hax', 'penalty', 'keeper', 'hoops', 'sprint', 'swim', 'race']],
-    ['Hành động', ['fight', 'chase', 'drive', 'sneak', 'ride', 'aim', 'clutch', 'land']],
+    ['Hành động', ['fight', 'chase', 'drive', 'sneak', 'ride', 'aim', 'clutch', 'land', 'dread']],
     ['Trí tuệ', ['quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards']],
     ['Tiếng Anh · IELTS', ['ielts_vocab', 'ielts_read', 'ielts_grammar', 'ielts_listen', 'ielts_speak']],
     ['Đời sống & nghề', ['cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'paint', 'fix']],

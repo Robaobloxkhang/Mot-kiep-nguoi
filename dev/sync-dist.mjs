@@ -11,6 +11,8 @@ const cp = (f) => fs.copyFileSync(path.join(root, f), path.join(dist, f));
 
 fs.readdirSync(path.join(root, 'js')).filter((f) => f.endsWith('.js')).forEach((f) => cp('js/' + f));
 ['styles.css', 'sw.js', 'manifest.webmanifest'].forEach((f) => { if (fs.existsSync(path.join(root, f))) cp(f); });
+// mô hình 3D của minigame Hầm ngục (assets/dread/*.glb)
+if (fs.existsSync(path.join(root, 'assets', 'dread'))) { fs.mkdirSync(path.join(dist, 'assets', 'dread'), { recursive: true }); fs.readdirSync(path.join(root, 'assets', 'dread')).forEach((f) => fs.copyFileSync(path.join(root, 'assets', 'dread', f), path.join(dist, 'assets', 'dread', f))); }
 // dist/vercel.json có cấu trúc riêng (chỉ phần headers); giữ nguyên, chỉ cảnh báo nếu thiếu
 if (!fs.existsSync(path.join(dist, 'vercel.json'))) console.warn('Thiếu dist/vercel.json');
 
