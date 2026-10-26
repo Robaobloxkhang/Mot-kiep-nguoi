@@ -48,12 +48,7 @@
     const torch = new T.PointLight(0xff8a3c, 1.3, 14); torch.position.set(0, 3.2, 0); scene.add(torch);
     const mat = new T.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     const geos = {}, owned = [], mats = [];
-    const geoOf = async (name) => {
-      if (geos[name]) return geos[name];
-      const g = await core.loadGlb(name), geo = new T.BufferGeometry();
-      geo.setAttribute('position', new T.BufferAttribute(g.pos, 3)); geo.setAttribute('color', new T.BufferAttribute(g.col, 3)); geo.setIndex(new T.BufferAttribute(g.idx, 1)); geo.computeVertexNormals(); geo.computeBoundingBox();
-      owned.push(geo); return (geos[name] = geo);
-    };
+    const geoOf = (name) => KN.DreadUI.geo(name);
     const lam = (hex, o) => { const m = new T.MeshLambertMaterial(Object.assign({ color: hex }, o || {})); mats.push(m); return m; };
     const bas = (hex, o) => { const m = new T.MeshBasicMaterial(Object.assign({ color: hex }, o || {})); mats.push(m); return m; };
     const stage = {
@@ -108,108 +103,241 @@
   // ---------------------------------------------------------------- minigame
   function dread(p) {
     return new Promise((res) => {
-      const core = D(), st = p.ctx.stats, need = p.need != null ? p.need : 0.5, hpMulNeed = 0.9 + need * 0.2, dmgMulNeed = 0.9 + need * 0.2;
-      const box = open('<div class="mini-head"><b>🗡️ Hầm ngục Dreadfall</b><small id="drF"></small></div>' +
-        '<div class="dr-stage" id="drSt"><canvas id="drCv" class="dr-cv" role="img" aria-label="Cảnh hầm ngục 3D: bạn di chuyển và chiến đấu với quái"></canvas>' +
-        '<div class="dr-hud" id="drHud" hidden><div class="dr-bar me"><i id="drMe"></i><span id="drMeT"></span></div><div class="dr-bar foe"><i id="drFoe"></i><span id="drFoeT"></span></div></div>' +
+      const core = D(), UI = KN.DreadUI, ico = UI.ico, st = p.ctx.stats, need = p.need != null ? p.need : 0.5, hpMulNeed = 0.9 + need * 0.2, dmgMulNeed = 0.9 + need * 0.2;
+      const box = open('<div class="dr-top" id="drTop"></div>' +
+        '<div class="dr-main" id="drMain"><div class="dr-left">' +
+        '<div class="dr-stage" id="drSt"><canvas id="drCv" class="dr-cv" role="img" aria-label="Cảnh 3D: nhân vật hoặc hầm ngục"></canvas>' +
+        '<div class="dr-hud" id="drHud" hidden><div class="hl"><div class="dr-bar me"><i id="drMe"></i><span id="drMeT"></span></div><div class="dr-xp" title="Kinh nghiệm"><i id="drXp"></i></div></div>' +
+        '<div class="hm"><b id="drLoc"></b><span id="drRun"></span></div><div class="hr"><button type="button" class="ib2" id="drPause" aria-label="Tạm dừng (P)" title="Tạm dừng (P)">' + ico('pause', '', 16) + '</button><button type="button" class="ib2" id="drExit" aria-label="Rút lui khỏi hầm ngục" title="Rút lui">' + ico('exit', '', 16) + '</button></div>' +
+        '<div class="dr-bar foe" id="drFoeW"><i id="drFoe"></i><span id="drFoeT"></span></div></div>' +
         '<canvas class="dr-map" id="drMap" width="132" height="96" hidden aria-label="Bản đồ hầm ngục"></canvas>' +
         '<div class="dr-float" id="drFl" aria-live="polite"></div><div class="dr-banner" id="drBn"></div>' +
-        '<div class="dr-joy" id="drJoy" hidden><i id="drKnob"></i></div></div>' +
-        '<div class="dr-lobby" id="drLobby"></div>' +
+        '<div class="dr-sl L" id="drSlL"></div><div class="dr-sl R" id="drSlR"></div>' +
+        '<div class="dr-tools" id="drTools"><button type="button" class="ib2" data-z="-1" aria-label="Thu nhỏ" title="Thu nhỏ">' + ico('zoomout', '', 16) + '</button><button type="button" class="ib2" data-z="1" aria-label="Phóng to" title="Phóng to">' + ico('zoomin', '', 16) + '</button><button type="button" class="ib2" data-z="0" aria-label="Đặt lại góc nhìn" title="Đặt lại góc nhìn">' + ico('reset', '', 16) + '</button></div>' +
+        '<div class="dr-load" id="drLoad" role="status">Đang tải mô hình 3D…</div>' +
+        '<div class="dr-joy" id="drJoy" hidden><i id="drKnob"></i></div><div class="dr-end" id="drEnd" hidden></div></div>' +
         '<p class="dr-msg" id="drMsg"></p>' +
-        '<div class="mini-btns dr-btns" id="drBtns" hidden><button type="button" class="btn btn-primary" id="drBtA">⚔️ Chém <kbd>Space</kbd></button><button type="button" class="btn btn-soft" id="drBtD">💨 Lướt <kbd>Shift</kbd> <small id="drCd"></small></button><button type="button" class="btn btn-soft" id="drBtS">🌪️ Kỹ năng <kbd>R</kbd> <small id="drSk"></small></button><button type="button" class="btn btn-soft" id="drBtP">🧪 Thuốc <kbd>E</kbd> <small id="drPot"></small></button></div>' +
-        '<p class="mini-keys" id="drKeys" hidden>⌨️ <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> di chuyển · <kbd>Space</kbd>/<kbd>J</kbd>/click chém hoặc bắn (tự ngắm) · <kbd>Shift</kbd>/<kbd>K</kbd> lướt · <kbd>R</kbd>/<kbd>F</kbd> kỹ năng · <kbd>E</kbd>/<kbd>Q</kbd> thuốc</p>');
-      const $ = (s) => box.querySelector(s), msgEl = $('#drMsg'), flEl = $('#drFl'), bnEl = $('#drBn'), cv = $('#drCv'), stEl = $('#drSt'), lobEl = $('#drLobby');
+        '<div class="dr-btns" id="drBtns" hidden><button type="button" class="ab main" id="drBtA">' + ico('sword', '', 18) + '<span>Chém</span><kbd>Space</kbd></button><button type="button" class="ab" id="drBtD">' + ico('dash', '', 18) + '<span>Lướt</span><kbd>Shift</kbd><small id="drCd"></small></button><button type="button" class="ab" id="drBtS">' + ico('spin', '', 18) + '<span>Kỹ năng</span><kbd>R</kbd><small id="drSk"></small></button><button type="button" class="ab" id="drBtP">' + ico('potion', '', 18) + '<span>Thuốc</span><kbd>E</kbd><small id="drPot"></small></button></div>' +
+        '<p class="mini-keys" id="drKeys" hidden><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> di chuyển · <kbd>Space</kbd>/<kbd>J</kbd>/click chém hoặc bắn (tự ngắm) · <kbd>Shift</kbd>/<kbd>K</kbd> lướt · <kbd>R</kbd>/<kbd>F</kbd> kỹ năng · <kbd>E</kbd>/<kbd>Q</kbd> thuốc · <kbd>P</kbd> tạm dừng</p></div>' +
+        '<div class="dr-lobby" id="drLobby"></div></div><div class="dr-dlg" id="drDlg" hidden></div>');
+      const $ = (s) => box.querySelector(s), msgEl = $('#drMsg'), flEl = $('#drFl'), bnEl = $('#drBn'), cv = $('#drCv'), stEl = $('#drSt'), lobEl = $('#drLobby'), mainEl = $('#drMain'), topEl = $('#drTop'), dlgEl = $('#drDlg'), endEl = $('#drEnd'), loadEl = $('#drLoad');
       const say = (t) => { msgEl.textContent = t; };
-      if (!core.webgl()) { say('Cần WebGL để chơi minigame này.'); lobEl.innerHTML = ''; later(() => res({ score: 0, text: 'Trình duyệt này không hiển thị được cảnh 3D nên bạn không vào được hầm ngục.' }), 200); return; }
+      if (!core.webgl()) { say('Cần WebGL để chơi minigame này.'); later(() => res({ score: 0, text: 'Trình duyệt này không hiển thị được cảnh 3D nên bạn không vào được hầm ngục.' }), 200); return; }
       let S;
       try { S = makeStage(cv); } catch (e) { later(() => res({ score: 0, text: 'Không dựng được cảnh 3D.' }), 200); return; }
-      R = S; S.resize(); const onResize = () => S.resize(); window.addEventListener('resize', onResize); const od = S.dispose; S.dispose = () => { window.removeEventListener('resize', onResize); od(); };
+      R = S; S.resize(); const onResize = () => S.resize(); window.addEventListener('resize', onResize); const od = S.dispose; S.dispose = () => { window.removeEventListener('resize', onResize); UI.disposeThumbs(); od(); };
       const T = S.T, V3 = (x, y, z) => new T.Vector3(x, y, z);
       const meta = core.loadMeta(), save = () => core.saveMeta(meta);
-      const W = C.room.w, H = C.room.h;
+      const W = C.room.w, H = C.room.h, CAP = 40;
       let mode = 'lobby', best = 0, sessionRuns = 0, tNow = 0, done = false, last = performance.now();
       let run = null, hero = null, mobs = [], bolts = [], shots = [], zones = [], pickups = [], roomObj = null, keys = { w: 0, a: 0, s: 0, d: 0, atk: 0 }, joy = { x: 0, z: 0 }, atkQueued = false, lobbyHero = null, bossAdds = false;
       const joyEl = $('#drJoy'), knob = $('#drKnob');
-      // ---------------------------------------------------------------- SẢNH
-      const rarSpan = (it) => '<span style="color:' + core.RARITY[it.rar].color + '">' + esc(it.name) + '</span>';
-      const rate = (it) => (it ? (it.atk || 0) + (it.hp || 0) * 0.5 + (it.def || 0) * 2 + it.rar * 4 + (it.aff ? it.aff.length : 0) * 3 : -1);
+      // ---------------------------------------------------------------- SẢNH: trạng thái giao diện
+      const rate = (it) => (it ? (it.atk || 0) + (it.hp || 0) * 0.5 + (it.def || 0) * 2 + it.rar * 4 + (it.aff ? it.aff.length : 0) * 3 + (it.crit || 0) * 100 + (it.speed || 0) * 60 : -1);
       const lifeOn = () => { try { return !!(KN.Game && KN.Game.hasLife && KN.Game.hasLife() && !KN.Game.isDead()); } catch (e) { return false; } };
-      const ageK = () => { try { const c = KN.Game && KN.Game.miniContext && KN.Game.miniContext(); return c ? (c.age < 12 ? 0.2 : c.age < 18 ? 0.5 : 1) : 1; } catch (e) { return 1; } };
-      let tab = 'dg', selDg = 'bone', selTier = 0;
+      const ctxLife = () => { try { return (KN.Game && KN.Game.miniContext && KN.Game.miniContext()) || null; } catch (e) { return null; } };
+      const ageK = () => { const c = ctxLife(); return c ? (c.age < 12 ? 0.2 : c.age < 18 ? 0.5 : 1) : 1; };
+      const pname = () => { const c = ctxLife(); return (c && c.name) || 'Lữ khách'; };
+      let tab = 'dg', selDg = 'bone', selTier = 0, sel = null, selSlot = null, flt = { q: '', type: '', rar: '', sort: 'new', fav: false };
+      const addInv = (it) => { if (meta.inv.length >= CAP) { meta.gold += core.sellValue(it); return false; } meta.inv.push(it); return true; };
+      const cs = () => core.calcStats(meta, st);
+      const lvlInfo = () => core.levelOf(meta.xp);
+      const findItem = (id) => { const i = meta.inv.find((x) => x.id === id); if (i) return { it: i, slot: '' }; const s = core.SLOTS.find((x) => meta.eq[x.id] && meta.eq[x.id].id === id); return s ? { it: meta.eq[s.id], slot: s.id } : null; };
+      const claimable = () => core.QUESTS.filter((q) => !meta.quests[q.id] && q.val(meta) >= q.goal).length;
+      // hộp thoại xác nhận / bảng phụ
+      function dlg(html, bind) { dlgEl.hidden = false; dlgEl.innerHTML = '<div class="dg" role="dialog" aria-modal="true">' + html + '</div>'; const x = dlgEl.querySelector('[data-close]'); if (x) x.onclick = () => { dlgEl.hidden = true; }; dlgEl.onclick = (e) => { if (e.target === dlgEl) dlgEl.hidden = true; }; if (bind) bind(dlgEl); const f = dlgEl.querySelector('button:not([data-close])') || x; if (f) f.focus(); }
+      function ask(title, body, ok) { return new Promise((r) => { dlg('<h4>' + esc(title) + '</h4><p>' + body + '</p><div class="row"><button type="button" class="btn btn-ghost btn-sm" data-n>Hủy</button><button type="button" class="btn btn-primary btn-sm" data-y>' + esc(ok || 'Đồng ý') + '</button></div>', (d) => { d.querySelector('[data-n]').onclick = () => { dlgEl.hidden = true; r(false); }; d.querySelector('[data-y]').onclick = () => { dlgEl.hidden = true; r(true); }; }); }); }
+      // ---------------------------------------------------------------- HUD sảnh
+      function topView() {
+        const c = cs(), lv = lvlInfo(), dg = core.DUNGEONS.find((d) => d.id === selDg), q = claimable();
+        topEl.innerHTML = '<div class="av"><img alt="" data-th="character_hollow_knight|0|0|0.3|2.6"><span>' + ico('skull', '', 22) + '</span></div>' +
+          '<div class="pn"><b>' + esc(pname()) + '</b><small>Cấp ' + lv.level + (lv.level >= core.MAXLV ? ' (tối đa)' : '') + '</small></div>' +
+          '<div class="bars"><div class="dr-bar me" title="Máu tối đa"><i style="width:100%"></i><span>HP ' + c.maxHP + '</span></div><div class="dr-xp lg" title="Kinh nghiệm"><i style="width:' + (lv.need ? Math.round(lv.cur / lv.need * 100) : 100) + '%"></i><span>XP ' + (lv.need ? lv.cur + '/' + lv.need : 'MAX') + '</span></div></div>' +
+          '<div class="gd" title="Vàng">' + ico('coin', '', 16) + '<b>' + meta.gold + '</b></div>' +
+          '<div class="cur" title="Hầm ngục đang chọn">' + ico('map', '', 15) + '<span>' + esc(dg.name) + ' · ' + esc(core.TIERS[selTier].name) + '</span></div>' +
+          '<div class="nv"><button type="button" data-go="gear" class="' + (['gear', 'storage', 'skills'].includes(tab) ? 'on' : '') + '">' + ico('bag', '', 15) + '<span>Hành trang</span></button><button type="button" data-go="shop" class="' + (tab === 'shop' ? 'on' : '') + '">' + ico('shop', '', 15) + '<span>Cửa hàng</span></button><button type="button" data-go="quests">' + ico('scroll', '', 15) + '<span>Nhiệm vụ</span>' + (q ? '<i class="dot">' + q + '</i>' : '') + '</button><button type="button" data-go="settings">' + ico('gear', '', 15) + '<span>Cài đặt</span></button><button type="button" data-go="done" class="fin">' + ico('check', '', 15) + '<span>Nộp kết quả' + (best ? ' (' + Math.round(best * 100) + '%)' : '') + '</span></button></div>';
+        UI.hydrate(topEl);
+        topEl.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { const g = b.dataset.go; sfx('click'); if (g === 'quests') questsPanel(); else if (g === 'settings') settingsPanel(); else if (g === 'done') finishSession(); else { tab = g; lobbyView(); } }));
+      }
+      // ô trang bị quanh nhân vật
+      function slotsView() {
+        const mk = (ids) => ids.map((id) => { const s = core.SLOTS.find((x) => x.id === id); return UI.slot(s, meta.eq[id], { sel: selSlot === id }); }).join('');
+        $('#drSlL').innerHTML = mk(['helmet', 'armor', 'boots']); $('#drSlR').innerHTML = mk(['weapon', 'offhand', 'ring', 'ring2']);
+        stEl.querySelectorAll('.ds').forEach((b) => (b.onclick = () => { const id = b.dataset.slot; selSlot = id; const it = meta.eq[id]; sel = it ? it.id : null; if (!['gear'].includes(tab)) tab = 'gear'; sfx('click'); lobbyView(); }));
+        UI.hydrate($('#drSlL')); UI.hydrate($('#drSlR'));
+      }
+      function tabsHtml() { return '<div class="dr-tabs" role="tablist">' + [['dg', 'map', 'Hầm ngục'], ['gear', 'bag', 'Trang bị'], ['skills', 'bolt', 'Kỹ năng'], ['storage', 'bag', 'Kho đồ'], ['shop', 'shop', 'Cửa hàng']].map(([k, ic, l]) => '<button type="button" role="tab" data-tab="' + k + '" class="' + (tab === k ? 'on' : '') + '" aria-selected="' + (tab === k) + '">' + ico(ic, '', 14) + '<span>' + l + '</span></button>').join('') + '</div>'; }
+      // ---------------------------------------------------------------- tab Hầm ngục: đường tiến trình
+      const fmtT = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      function viewDg() {
+        const lvl = lvlInfo().level, ds = core.DUNGEONS;
+        const cards = ds.map((d, i) => {
+          const un = core.unlocked(meta, d), cl = meta.clears[d.id] || {}, bm = core.MOBS[d.boss], prev = ds[i - 1], bt = [0, 1, 2].map((t) => meta.best[d.id + ':' + t]).filter(Boolean).sort((a, b) => a - b)[0];
+          const hex = (n) => '#' + n.toString(16).padStart(6, '0'), bg = 'linear-gradient(135deg,' + hex(d.theme.floor[0]) + ',' + hex(d.theme.wall) + ')';
+          return (i ? '<i class="cn' + (un ? ' on' : '') + '"></i>' : '') + '<button type="button" class="dg-c' + (selDg === d.id ? ' sel' : '') + (un ? '' : ' lock') + '" data-dg="' + d.id + '" aria-label="' + esc(d.name + (un ? '' : ', đang khóa')) + '">' +
+            '<span class="th" style="background:' + bg + '">' + (d.env ? '<img alt="" data-th="' + d.env + '|0|0|0|1.5">' : '') + ico(un ? 'map' : 'lock', 'big', 30) + '</span>' +
+            '<b>' + esc(d.name) + '</b><small>Cấp khuyến nghị ' + d.rec + (lvl < d.rec ? ' · bạn thấp hơn' : '') + '</small><small>' + '★'.repeat(d.stars) + '☆'.repeat(5 - d.stars) + ' · ' + d.rooms + ' phòng</small>' +
+            '<span class="bs"><img alt="" data-th="' + bm.model + '|' + (bm.tint || 0) + '|0|0|1.2">' + ico('skull', 'under', 20) + '<em>' + esc(bm.name) + '</em></span>' +
+            '<small class="rw">Rơi: ' + rarRange(d) + '</small>' +
+            (un ? '<small class="ok">Đã phá ' + ((cl[0] || 0) + (cl[1] || 0) + (cl[2] || 0)) + ' lần' + (bt ? ' · tốt nhất ' + fmtT(bt) : '') + '</small>' : '<small class="req">' + ico('lock', '', 11) + ' Phá đảo ' + esc(prev.name) + ' (độ Thường) để mở</small>') + '</button>';
+        }).join('');
+        const d = ds.find((x) => x.id === selDg), cl = meta.clears[d.id] || {}, unSel = core.unlocked(meta, d);
+        const tiers = core.TIERS.map((t) => { const un = t.id === 0 || (cl[t.id - 1] || 0) > 0; return '<button type="button" data-tier="' + t.id + '" class="' + (selTier === t.id ? 'on' : '') + '"' + (un ? '' : ' disabled') + '><b>' + esc(t.name) + '</b><small>Quái ×' + t.hp + ' máu · ×' + t.dmg + ' sát thương</small><small>Vàng ×' + t.gold + ' · tiền ×' + t.money + '</small>' + (un ? '' : '<small class="req">Phá độ ' + esc(core.TIERS[t.id - 1].name) + ' để mở</small>') + '</button>'; }).join('');
+        const w = core.lootWeights(d, core.TIERS[selTier]), tot = w.reduce((a, b) => a + b, 0);
+        const dots = core.RARITY.map((r, i) => '<span class="rd" style="--rc:' + r.color + '" title="' + esc(r.name) + ': ' + (w[i] / tot * 100).toFixed(1) + '%"><i></i>' + esc(r.name) + ' ' + (w[i] / tot * 100 < 10 ? (w[i] / tot * 100).toFixed(1) : Math.round(w[i] / tot * 100)) + '%</span>').join('');
+        return '<div class="dr-path">' + cards + '</div><div class="dr-sel"><p><b>' + esc(d.name) + '</b> — ' + esc(d.blurb) + '</p><div class="dr-tiers">' + tiers + '</div><div class="dr-rar">' + dots + '</div>' +
+          '<div class="act"><button type="button" class="btn btn-primary" id="drGo"' + (unSel ? '' : ' disabled') + '>' + ico('sword', '', 16) + ' Vào ' + esc(d.name) + ' (' + esc(core.TIERS[selTier].name) + ')</button></div>' + (unSel ? '' : '<p class="dim">Hầm này đang khóa: phá đảo hầm trước ở độ Thường.</p>') + '</div>';
+      }
+      const rarRange = (d) => { const w = d.loot, hi = w.reduce((a, x, i) => (x / w.reduce((p, q) => p + q, 0) >= 0.01 ? i : a), 0); return core.RARITY[0].name + '–' + core.RARITY[hi].name; };
+      // ---------------------------------------------------------------- lưới vật phẩm dùng chung (Trang bị / Kho đồ / Cửa hàng)
+      const grid = (list, o) => (list.length ? '<div class="dgrid">' + list.map((e) => UI.card(e.it, { sel: sel === e.it.id, equipped: !!e.slot, price: o && o.price ? core.buyPrice(e.it) : null, afford: meta.gold >= core.buyPrice(e.it) })).join('') + '</div>' : '<div class="dempty">' + ico('bag', '', 34) + '<p>' + esc((o && o.empty) || 'Không có vật phẩm nào.') + '</p></div>');
+      function detailHtml(o) {
+        const f = o && o.shop ? { it: o.shop } : sel ? findItem(sel) : null; if (!f) return '<div class="dempty sm"><p>Chọn một vật phẩm để xem chi tiết và so sánh.</p></div>';
+        const it = f.it, sl = core.slotsFor(it); let target = sl.find((s) => !meta.eq[s]) || sl.slice().sort((a, b) => rate(meta.eq[a]) - rate(meta.eq[b]))[0];
+        return UI.detail(it, { meta, equippedSlot: f.slot || '', target, actions: o && o.shop ? 'shop' : 'inv', price: o && o.shop ? core.buyPrice(it) : 0, afford: o && o.shop ? meta.gold >= core.buyPrice(it) : true });
+      }
+      const eqEntries = () => core.SLOTS.filter((s) => meta.eq[s.id]).map((s) => ({ it: meta.eq[s.id], slot: s.id }));
+      function viewGear() {
+        const sc = selSlot ? core.SLOTS.find((s) => s.id === selSlot) : null;
+        const list = meta.inv.filter((it) => !sc || it.slot === sc.type).map((it) => ({ it, slot: '' })).sort((a, b) => b.it.rar - a.it.rar || (b.it.req || 1) - (a.it.req || 1));
+        const chips = '<div class="dchips"><button type="button" data-fslot="" class="' + (!sc ? 'on' : '') + '">Tất cả</button>' + core.SLOTS.map((s) => '<button type="button" data-fslot="' + s.id + '" class="' + (selSlot === s.id ? 'on' : '') + '">' + esc(s.name) + '</button>').join('') + '</div>';
+        return '<div class="inv-h"><span>' + (sc ? 'Đồ hợp ô <b>' + esc(sc.name) + '</b>' : 'Chọn một ô trang bị bên trái hoặc bấm vào đồ trong kho') + '</span><span class="cap">' + meta.inv.length + '/' + CAP + '</span></div>' + chips +
+          '<div class="gscroll">' + (sc && meta.eq[sc.id] ? '<p class="sub">Đang mặc</p>' + grid([{ it: meta.eq[sc.id], slot: sc.id }]) + '<p class="sub">Trong kho</p>' : '') + grid(list, { empty: sc ? 'Chưa có món nào hợp ô này. Mở rương trong hầm ngục hoặc mua ở cửa hàng.' : 'Kho trống. Đi hầm ngục để nhặt đồ.' }) + '</div><div class="dpane" id="drDet">' + detailHtml() + '</div>';
+      }
+      function storageList() {
+        let a = meta.inv.map((it) => ({ it, slot: '' })).concat(eqEntries()); const q = flt.q.trim().toLowerCase();
+        if (q) a = a.filter((e) => (e.it.name + ' ' + core.RARITY[e.it.rar].name).toLowerCase().includes(q));
+        if (flt.type) a = a.filter((e) => e.it.slot === flt.type); if (flt.rar !== '') a = a.filter((e) => e.it.rar === +flt.rar); if (flt.fav) a = a.filter((e) => e.it.fav);
+        const to = core.TYPES.map((t) => t.id), order = { new: (x, y) => meta.inv.indexOf(y.it) - meta.inv.indexOf(x.it), req: (x, y) => (y.it.req || 1) - (x.it.req || 1), rar: (x, y) => y.it.rar - x.it.rar, type: (x, y) => to.indexOf(x.it.slot) - to.indexOf(y.it.slot) || y.it.rar - x.it.rar };
+        return a.sort(order[flt.sort] || order.new);
+      }
+      function viewStorage() {
+        const opt = (arr, v) => arr.map(([k, l]) => '<option value="' + k + '"' + (String(v) === String(k) ? ' selected' : '') + '>' + esc(l) + '</option>').join('');
+        const list = storageList();
+        return '<div class="inv-h"><span>Kho đồ</span><span class="cap" title="Sức chứa kho">' + meta.inv.length + '/' + CAP + (meta.inv.length >= CAP ? ' · đầy' : '') + '</span></div>' +
+          '<div class="dflt"><input type="search" id="fQ" placeholder="Tìm tên hoặc độ hiếm" aria-label="Tìm kiếm" value="' + esc(flt.q) + '"><select id="fT" aria-label="Lọc loại">' + opt([['', 'Mọi loại']].concat(core.TYPES.map((t) => [t.id, t.name])), flt.type) + '</select><select id="fR" aria-label="Lọc độ hiếm">' + opt([['', 'Mọi độ hiếm']].concat(core.RARITY.map((r) => [r.id, r.name])), flt.rar) + '</select><select id="fS" aria-label="Sắp xếp">' + opt([['new', 'Mới nhất'], ['req', 'Cấp yêu cầu'], ['rar', 'Độ hiếm'], ['type', 'Loại']], flt.sort) + '</select><label class="chk"><input type="checkbox" id="fF"' + (flt.fav ? ' checked' : '') + '> Đã khóa</label></div>' +
+          '<div class="gscroll">' + grid(list, { empty: meta.inv.length || eqEntries().length ? 'Không có món nào khớp bộ lọc.' : 'Kho trống. Đi hầm ngục để nhặt đồ.' }) + '</div><div class="dpane" id="drDet">' + detailHtml() + '</div>' +
+          '<div class="bulk"><button type="button" class="btn btn-ghost btn-sm" id="drSellAll">Bán đồ Thường/Tốt không khóa</button></div>';
+      }
+      // ---------------------------------------------------------------- tab Kỹ năng
+      function viewSkills() {
+        const c = cs(), free = core.spFree(meta), lv = lvlInfo().level, tot = (lv - 1) * core.SP_PER_LEVEL;
+        const rows = core.SKILLS.map((s) => { const n = (meta.sp && meta.sp[s.k]) || 0; return '<li><div><b>' + esc(s.name) + '</b><small>' + esc(s.desc) + '</small></div><span class="pts">' + n + '</span><button type="button" class="btn btn-soft btn-sm" data-sp="' + s.k + '" aria-label="Cộng điểm ' + esc(s.name) + '"' + (free > 0 && n < 20 ? '' : ' disabled') + '>+</button></li>'; }).join('');
+        return '<div class="inv-h"><span>Điểm kỹ năng còn <b class="sp">' + free + '</b> / ' + tot + ' (nhận ' + core.SP_PER_LEVEL + ' điểm mỗi cấp, tối đa 20 điểm mỗi chỉ số)</span><button type="button" class="btn btn-ghost btn-sm" id="drSpReset"' + (core.spSpent(meta) ? '' : ' disabled') + '>Đặt lại kỹ năng</button></div><ul class="dsk">' + rows + '</ul>' +
+          '<div class="dsum"><h5>Chỉ số hiện tại</h5><dl><dt>Máu tối đa</dt><dd>' + c.maxHP + '</dd><dt>' + (c.melee ? 'Sức mạnh vật lý' : 'Phép thuật') + ' (sát thương/đòn)</dt><dd>' + Math.round(c.atk) + '</dd><dt>Phòng thủ</dt><dd>' + c.def.toFixed(1) + '</dd><dt>Chí mạng</dt><dd>' + Math.round(c.crit * 100) + '%</dd><dt>Tốc độ chạy</dt><dd>' + c.spd.toFixed(2) + '</dd><dt>Hút máu / Vàng nhặt</dt><dd>' + Math.round(c.life * 100) + '% / +' + Math.round((c.goldMul - 1) * 100) + '%</dd></dl><p class="dim">Sức mạnh vật lý chỉ tác dụng với vũ khí cận chiến, Phép thuật chỉ với cung/trượng. Sức khỏe và trí tuệ ngoài đời cũng cộng vào máu, tốc chạy, chí mạng.</p></div>';
+      }
+      // ---------------------------------------------------------------- tab Cửa hàng
+      function ensureShop() {
+        if (meta.shop && meta.runs - meta.shop.at < 2 && meta.shop.items) return; const un = core.DUNGEONS.filter((d) => core.unlocked(meta, d)), top = un[un.length - 1] || core.DUNGEONS[0], w = core.lootWeights(top, core.TIERS[0]).map((x, i) => (i >= 4 ? 0 : x));
+        meta.shop = { at: meta.runs, items: Array.from({ length: 6 }, () => core.rollItem(top.lvl, 0, null, 0, w)) }; save();
+      }
+      function viewShop() {
+        ensureShop(); const list = meta.shop.items.map((it) => ({ it, slot: '' })), boxes = [['Hòm đồng', 90, 0, 'Thường–Hiếm'], ['Hòm bạc', 260, 2, 'Từ Hiếm trở lên'], ['Hòm vàng', 750, 3, 'Từ Sử thi trở lên']];
+        const cur = sel && meta.shop.items.find((x) => x.id === sel);
+        return '<div class="inv-h"><span>Hàng đang bán <small class="dim">(đổi hàng sau 2 lượt vào hầm)</small></span><button type="button" class="btn btn-soft btn-sm" id="drRefresh"' + (meta.gold >= 40 ? '' : ' disabled') + '>Làm mới · 40 vàng</button></div>' +
+          '<div class="gscroll">' + grid(list, { price: true, empty: 'Đã hết hàng. Bấm Làm mới.' }) + '<p class="sub">Hòm trang bị (đồ ngẫu nhiên, trả bằng vàng trong game)</p><div class="dboxes">' + boxes.map((b, i) => '<button type="button" class="btn btn-soft btn-sm" data-box="' + i + '"' + (meta.gold >= b[1] ? '' : ' disabled') + '><b>' + b[0] + '</b><small>' + b[3] + '</small><span>' + ico('coin', '', 12) + ' ' + b[1] + '</span></button>').join('') + '<button type="button" class="btn btn-soft btn-sm" data-box="p"' + (meta.gold >= 120 && (meta.extraPotions || 0) < 4 ? '' : ' disabled') + '><b>Thuốc dự trữ</b><small>+1 bình mỗi lượt (đang +' + (meta.extraPotions || 0) + '/4)</small><span>' + ico('coin', '', 12) + ' 120</span></button></div></div><div class="dpane" id="drDet">' + detailHtml(cur ? { shop: cur } : null) + '</div>';
+      }
+      // ---------------------------------------------------------------- bảng nhiệm vụ / cài đặt
+      function questsPanel() {
+        const rows = core.QUESTS.map((q) => { const v = Math.min(q.goal, q.val(meta)), done = !!meta.quests[q.id], ok = v >= q.goal; return '<li><div><b>' + esc(q.name) + '</b><small>' + esc(q.desc) + ' (' + v + '/' + q.goal + ')</small><div class="dr-xp"><i style="width:' + Math.round(v / q.goal * 100) + '%"></i></div></div><button type="button" class="btn ' + (ok && !done ? 'btn-primary' : 'btn-ghost') + ' btn-sm" data-q="' + q.id + '"' + (ok && !done ? '' : ' disabled') + '>' + (done ? 'Đã nhận' : ok ? 'Nhận ' + q.reward + ' vàng' : q.reward + ' vàng') + '</button></li>'; }).join('');
+        dlg('<h4>Nhiệm vụ</h4><ul class="dq">' + rows + '</ul><div class="row"><button type="button" class="btn btn-soft btn-sm" data-close>Đóng</button></div>', (d) => d.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => { const q = core.QUESTS.find((x) => x.id === b.dataset.q); if (!q || meta.quests[q.id] || q.val(meta) < q.goal) return; meta.quests[q.id] = 1; meta.gold += q.reward; save(); sfx('coin'); say('Nhận ' + q.reward + ' vàng từ nhiệm vụ "' + q.name + '".'); questsPanel(); lobbyView(); })));
+      }
+      function settingsPanel() {
+        dlg('<h4>Cài đặt</h4><label class="chk"><input type="checkbox" id="sDmg"' + (meta.set.dmg ? ' checked' : '') + '> Hiện số sát thương nổi</label><p class="dim">Tiến trình lưu trong bộ nhớ trình duyệt này (localStorage): không đồng bộ giữa các máy và sẽ mất nếu xóa dữ liệu trình duyệt.</p><div class="row"><button type="button" class="btn btn-ghost btn-sm" id="sWipe">Xóa toàn bộ tiến trình hầm ngục</button><button type="button" class="btn btn-soft btn-sm" data-close>Đóng</button></div>', (d) => {
+          d.querySelector('#sDmg').onchange = (e) => { meta.set.dmg = e.target.checked; save(); };
+          d.querySelector('#sWipe').onclick = async () => { if (await ask('Xóa tiến trình?', 'Mất toàn bộ vàng, trang bị, cấp độ, kỹ năng và tiến độ hầm ngục. Không hoàn tác được.', 'Xóa hết')) { Object.keys(meta).forEach((k) => delete meta[k]); Object.assign(meta, core.resetMeta()); sel = null; selSlot = null; selDg = 'bone'; selTier = 0; tab = 'dg'; save(); lobbyView(); updateLobbyHero(); say('Đã xóa tiến trình hầm ngục.'); } };
+        });
+      }
+      // ---------------------------------------------------------------- vẽ sảnh + gắn sự kiện
       function lobbyView() {
-        mode = 'lobby'; $('#drHud').hidden = true; $('#drMap').hidden = true; $('#drBtns').hidden = true; $('#drKeys').hidden = true; lobEl.hidden = false; joyEl.hidden = true;
-        const g = core.gearStats(meta.eq), dgs = core.DUNGEONS;
-        const money = lifeOn() ? '' : ' <small>(chưa có cuộc đời, chưa nhận được tiền)</small>';
-        const head = '<div class="dr-lh"><b>🪙 ' + meta.gold + ' vàng</b><span>Đã vào hầm ' + meta.runs + ' lần · hạ ' + meta.kills + ' quái' + money + '</span></div>';
-        const tabs = '<div class="dr-tabs" role="tablist">' + [['dg', '🏰 Hầm ngục'], ['eq', '🎒 Trang bị'], ['shop', '🏪 Cửa hàng'], ['on', '🌐 Online']].map(([k, l]) => '<button type="button" role="tab" data-tab="' + k + '" class="' + (tab === k ? 'on' : '') + '" aria-selected="' + (tab === k) + '">' + l + '</button>').join('') + '</div>';
-        let body = '';
-        if (tab === 'dg') {
-          body = '<div class="dr-dgs">' + dgs.map((d) => { const un = core.unlocked(meta, d), cl = (meta.clears[d.id] || {}); return '<button type="button" class="dr-dg' + (selDg === d.id ? ' sel' : '') + (un ? '' : ' lock') + '" data-dg="' + d.id + '"' + (un ? '' : ' disabled') + '><span class="ic">' + d.icon + '</span><b>' + esc(d.name) + '</b><small>' + esc(d.blurb) + '</small><i>' + (un ? d.rooms + ' phòng · đã phá ' + ((cl[0] || 0) + (cl[1] || 0) + (cl[2] || 0)) + ' lần' : '🔒 Phá ' + esc(dgs.find((x) => x.id === d.unlock).name) + ' để mở') + '</i></button>'; }).join('') + '</div>' +
-            '<div class="dr-tiers">' + core.TIERS.map((t) => { const cl = (meta.clears[selDg] || {}), un = t.id === 0 || (cl[t.id - 1] || 0) > 0; return '<button type="button" data-tier="' + t.id + '" class="' + (selTier === t.id ? 'on' : '') + '"' + (un ? '' : ' disabled') + '>' + esc(t.name) + (un ? '' : ' 🔒') + '<small>vàng ×' + t.gold + ' · tiền ×' + t.money + '</small></button>'; }).join('') + '</div>' +
-            '<div class="mini-btns"><button type="button" class="btn btn-primary" id="drGo">⚔️ Vào hầm ngục</button><button type="button" class="btn btn-ghost" id="drDone">✔ Xong, nộp kết quả' + (best ? ' (' + Math.round(best * 100) + '%)' : '') + '</button></div>';
-        } else if (tab === 'eq') {
-          const slot = (s, l) => { const it = meta.eq[s]; return '<div class="dr-slot"><small>' + l + '</small>' + (it ? '<div>' + it.icon + ' ' + rarSpan(it) + '<br><i>' + esc(core.statsText(it)) + '</i></div>' : '<div class="dim">Trống</div>') + '</div>'; };
-          body = '<div class="dr-slots">' + slot('weapon', 'Vũ khí') + slot('armor', 'Giáp') + slot('ring', 'Trang sức') + '</div><p class="dr-sum">⚔️ ' + Math.round(g.atk) + ' · ❤️ +' + Math.round(g.hp) + ' · 🛡️ ' + g.def + ' · 💥 ' + Math.round(g.crit * 100) + '% · 🩸 ' + Math.round(g.life * 100) + '% · 🏃 +' + Math.round(g.speed * 100) + '%</p>' +
-            '<div class="dr-inv">' + (meta.inv.length ? meta.inv.map((it) => '<div class="dr-it"><span>' + it.icon + ' ' + rarSpan(it) + '<br><i>' + esc(core.statsText(it)) + '</i></span><span class="b"><button type="button" class="btn btn-soft btn-sm" data-eq="' + it.id + '">Trang bị</button><button type="button" class="btn btn-ghost btn-sm" data-sell="' + it.id + '">Bán ' + core.sellValue(it) + '🪙</button></span></div>').join('') : '<p class="dim">Kho trống. Mở rương trong hầm ngục hoặc mua hòm ở cửa hàng.</p>') + '</div>' +
-            (meta.inv.length ? '<div class="mini-btns"><button type="button" class="btn btn-ghost btn-sm" id="drSellAll">Bán hết đồ Thường/Tốt</button></div>' : '');
-        } else if (tab === 'shop') {
-          const boxes = [['Hòm đồng', 90, 0, '🟫', 'Trang bị Thường–Hiếm'], ['Hòm bạc', 260, 2, '⬜', 'Chắc chắn từ Hiếm trở lên'], ['Hòm vàng', 750, 3, '🟨', 'Chắc chắn từ Sử thi trở lên']];
-          body = '<div class="dr-shop">' + boxes.map((b, i) => '<div class="dr-box2"><span class="ic">' + b[3] + '</span><b>' + b[0] + '</b><small>' + b[4] + '</small><button type="button" class="btn btn-primary btn-sm" data-buy="' + i + '"' + (meta.gold >= b[1] ? '' : ' disabled') + '>Mua ' + b[1] + '🪙</button></div>').join('') + '<div class="dr-box2"><span class="ic">🧪</span><b>Thuốc dự trữ</b><small>+1 bình mỗi lượt vào hầm (đang có +' + (meta.extraPotions || 0) + ', tối đa +4)</small><button type="button" class="btn btn-primary btn-sm" data-buy="p"' + (meta.gold >= 120 && (meta.extraPotions || 0) < 4 ? '' : ' disabled') + '>Mua 120🪙</button></div></div>';
-        } else {
-          body = '<div class="dr-on"><p><b>🌐 Co-op online</b></p><p class="dim">Chơi chung hầm ngục với bạn bè qua mã phòng đang được phát triển. Hiện tại bạn chơi một mình; kho đồ và tiến trình vẫn được giữ trên máy này và sẽ dùng được khi chế độ online ra mắt.</p><button type="button" class="btn btn-soft" disabled>Tạo phòng (sắp có)</button> <button type="button" class="btn btn-soft" disabled>Vào bằng mã (sắp có)</button></div>';
-        }
-        lobEl.innerHTML = head + tabs + '<div class="dr-tb">' + body + '</div>';
-        lobEl.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => { tab = b.dataset.tab; sfx('click'); lobbyView(); }));
+        mode = 'lobby'; mainEl.classList.remove('run'); topEl.hidden = false; endEl.hidden = true; $('#drHud').hidden = true; $('#drMap').hidden = true; $('#drBtns').hidden = true; $('#drKeys').hidden = true; joyEl.hidden = true; $('#drTools').hidden = false; $('#drSlL').hidden = false; $('#drSlR').hidden = false;
+        if (tab === 'dg' && false) tab = 'dg';
+        const body = tab === 'dg' ? viewDg() : tab === 'gear' ? viewGear() : tab === 'skills' ? viewSkills() : tab === 'storage' ? viewStorage() : viewShop();
+        const keepScroll = lobEl.querySelector('.gscroll') ? lobEl.querySelector('.gscroll').scrollTop : 0;
+        lobEl.innerHTML = tabsHtml() + '<div class="dr-tb ' + tab + '">' + body + '</div>'; const gs = lobEl.querySelector('.gscroll'); if (gs) gs.scrollTop = keepScroll;
+        topView(); slotsView(); UI.hydrate(lobEl); bindLobby(); S.resize();
+      }
+      function bindLobby() {
+        lobEl.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => { tab = b.dataset.tab; if (tab === 'dg') sel = null; sfx('click'); lobbyView(); }));
         lobEl.querySelectorAll('[data-dg]').forEach((b) => (b.onclick = () => { selDg = b.dataset.dg; selTier = 0; sfx('click'); lobbyView(); }));
         lobEl.querySelectorAll('[data-tier]').forEach((b) => (b.onclick = () => { selTier = +b.dataset.tier; sfx('click'); lobbyView(); }));
-        lobEl.querySelectorAll('[data-eq]').forEach((b) => (b.onclick = () => { equip(b.dataset.eq); sfx('click'); lobbyView(); }));
-        lobEl.querySelectorAll('[data-sell]').forEach((b) => (b.onclick = () => { const i = meta.inv.findIndex((x) => x.id === b.dataset.sell); if (i >= 0) { meta.gold += core.sellValue(meta.inv[i]); meta.inv.splice(i, 1); save(); sfx('coin'); lobbyView(); } }));
-        const sa = $('#drSellAll'); if (sa) sa.onclick = () => { const keep = []; let gain = 0; meta.inv.forEach((it) => { if (it.rar <= 1) gain += core.sellValue(it); else keep.push(it); }); meta.inv = keep; meta.gold += gain; save(); sfx('coin'); say('Bán đồ Thường/Tốt được ' + gain + ' vàng.'); lobbyView(); };
-        lobEl.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => {
-          const k = b.dataset.buy;
-          if (k === 'p') { if (meta.gold >= 120 && (meta.extraPotions || 0) < 4) { meta.gold -= 120; meta.extraPotions = (meta.extraPotions || 0) + 1; save(); sfx('coin'); lobbyView(); } return; }
-          const cost = [90, 260, 750][+k], minR = [0, 2, 3][+k]; if (meta.gold < cost) return; meta.gold -= cost; const it = core.rollItem(3, +k * 0.4, null, minR); addInv(it); save(); sfx('good'); say('Mở hòm: ' + it.name + ' (' + core.RARITY[it.rar].name + ').'); tab = 'eq'; lobbyView();
-        }));
         const go = $('#drGo'); if (go) go.onclick = () => startRun(selDg, selTier);
-        const dn = $('#drDone'); if (dn) dn.onclick = () => { finishSession(); };
-        updateLobbyHero();
+        lobEl.querySelectorAll('.dc').forEach((b) => (b.onclick = () => { sel = b.dataset.id; const f = findItem(sel); if (f && f.slot) selSlot = f.slot; sfx('click'); lobbyView(); }));
+        lobEl.querySelectorAll('[data-fslot]').forEach((b) => (b.onclick = () => { selSlot = b.dataset.fslot || null; sel = null; sfx('click'); lobbyView(); }));
+        const q = $('#fQ'); if (q) { q.oninput = () => { flt.q = q.value; const pos = q.selectionStart; lobbyView(); const n = $('#fQ'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }; }
+        [['#fT', 'type'], ['#fR', 'rar'], ['#fS', 'sort']].forEach(([id, k]) => { const e = $(id); if (e) e.onchange = () => { flt[k] = e.value; lobbyView(); }; }); const ff = $('#fF'); if (ff) ff.onchange = () => { flt.fav = ff.checked; lobbyView(); };
+        const sa = $('#drSellAll'); if (sa) sa.onclick = async () => { const del = meta.inv.filter((it) => it.rar <= 1 && !it.fav); if (!del.length) { say('Không có món Thường/Tốt nào chưa khóa để bán.'); return; } const g = del.reduce((a, it) => a + core.sellValue(it), 0); if (await ask('Bán ' + del.length + ' món?', 'Bán toàn bộ đồ Thường/Tốt chưa khóa, nhận ' + g + ' vàng.', 'Bán')) { meta.inv = meta.inv.filter((it) => !(it.rar <= 1 && !it.fav)); meta.gold += g; if (sel && !findItem(sel)) sel = null; save(); sfx('coin'); say('Đã bán ' + del.length + ' món, nhận ' + g + ' vàng.'); lobbyView(); } };
+        lobEl.querySelectorAll('[data-sp]').forEach((b) => (b.onclick = () => { if (core.spFree(meta) <= 0) return; const k = b.dataset.sp; meta.sp[k] = (meta.sp[k] || 0) + 1; save(); sfx('click'); lobbyView(); }));
+        const rs = $('#drSpReset'); if (rs) rs.onclick = async () => { if (await ask('Đặt lại kỹ năng?', 'Thu hồi ' + core.spSpent(meta) + ' điểm đã cộng để bạn phân bổ lại (miễn phí).', 'Đặt lại')) { meta.sp = {}; save(); sfx('click'); lobbyView(); } };
+        const rf = $('#drRefresh'); if (rf) rf.onclick = () => { if (meta.gold < 40) return; meta.gold -= 40; meta.shop = null; sel = null; save(); sfx('coin'); lobbyView(); };
+        lobEl.querySelectorAll('[data-box]').forEach((b) => (b.onclick = () => { const k = b.dataset.box; if (k === 'p') { if (meta.gold >= 120 && (meta.extraPotions || 0) < 4) { meta.gold -= 120; meta.extraPotions = (meta.extraPotions || 0) + 1; save(); sfx('coin'); lobbyView(); } return; } const cost = [90, 260, 750][+k], minR = [0, 2, 3][+k]; if (meta.gold < cost) return; if (meta.inv.length >= CAP) { say('Kho đầy, hãy bán bớt đồ.'); return; } meta.gold -= cost; const un = core.DUNGEONS.filter((d) => core.unlocked(meta, d)), top = un[un.length - 1]; const it = core.rollItem(top.lvl, +k * 0.4, null, minR, core.lootWeights(top, core.TIERS[0]).map((x, i) => x * (1 + i * 0.4 * (+k)))); meta.inv.push(it); sel = it.id; tab = 'gear'; selSlot = null; save(); sfx('good'); say('Mở hòm: ' + it.name + ' (' + core.RARITY[it.rar].name + ').'); lobbyView(); }));
+        const det = $('#drDet'); if (det) det.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => itemAct(b.dataset.act, b.dataset.slot)));
       }
-      function addInv(it) { if (meta.inv.length >= 40) { meta.gold += core.sellValue(it); return false; } meta.inv.push(it); return true; }
-      function equip(id) { const i = meta.inv.findIndex((x) => x.id === id); if (i < 0) return; const it = meta.inv[i], old = meta.eq[it.slot]; meta.eq[it.slot] = it; meta.inv.splice(i, 1); if (old && old.id !== 'start') meta.inv.push(old); save(); }
+      async function itemAct(act, slotId) {
+        if (act === 'buy') { const it = meta.shop && meta.shop.items.find((x) => x.id === sel); if (!it) return; const pr = core.buyPrice(it); if (meta.gold < pr) return; if (meta.inv.length >= CAP) { say('Kho đầy, hãy bán bớt đồ.'); return; } meta.gold -= pr; meta.shop.items = meta.shop.items.filter((x) => x.id !== it.id); meta.inv.push(it); save(); sfx('coin'); say('Đã mua ' + it.name + '.'); lobbyView(); return; }
+        const f = sel ? findItem(sel) : null; if (!f) return; const it = f.it;
+        if (act === 'equip') { const why = core.canEquip(meta, it, slotId); if (why) { say(why); return; } const i = meta.inv.findIndex((x) => x.id === it.id); if (i < 0) return; const old = meta.eq[slotId]; meta.inv.splice(i, 1); if (old) meta.inv.push(old); meta.eq[slotId] = it; selSlot = slotId; save(); sfx('good'); say('Đã trang bị ' + it.name + (old ? ' (' + old.name + ' trở về kho).' : '.')); lobbyView(); updateLobbyHero(); }
+        else if (act === 'unequip') { if (meta.inv.length >= CAP) { say('Kho đầy, không tháo được. Hãy bán bớt đồ.'); return; } meta.inv.push(it); delete meta.eq[f.slot]; save(); sfx('click'); say('Đã tháo ' + it.name + ' về kho.'); lobbyView(); updateLobbyHero(); }
+        else if (act === 'fav') { it.fav = !it.fav; save(); sfx('click'); lobbyView(); }
+        else if (act === 'sell') { if (it.fav) { say('Món này đang khóa, bỏ khóa trước khi bán.'); return; } const v = core.sellValue(it); if (it.rar >= 2 && !(await ask('Bán ' + it.name + '?', '<b style="color:' + core.RARITY[it.rar].color + '">' + esc(core.RARITY[it.rar].name) + '</b> · nhận ' + v + ' vàng. Không thể hoàn tác.', 'Bán'))) return; const i = meta.inv.findIndex((x) => x.id === it.id); if (i < 0) return; meta.inv.splice(i, 1); meta.gold += v; sel = null; save(); sfx('coin'); say('Đã bán ' + it.name + ' được ' + v + ' vàng.'); lobbyView(); }
+      }
+      // ---------------------------------------------------------------- xem trước nhân vật 3D (kéo để xoay, thu phóng, đặt lại)
+      let lobbyRot = 0, lobbyZoom = 1, lobbyIdle = 0, lobbyDrag = null, lobbyWeapon = null, lobbyWeaponKey = '', lobbyBuilding = false;
       async function setupLobbyScene() {
-        if (!S.lobbyGrp) { S.lobbyGrp = new T.Group(); const ped = new T.Mesh(new T.CylinderGeometry(1.6, 1.9, 0.3, 20), S.lam(0x2a2433)); ped.position.y = -0.15; S.lobbyGrp.add(ped); const ring = new T.Mesh(new T.TorusGeometry(1.7, 0.05, 6, 32), S.bas(0xffb347)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.02; S.lobbyGrp.add(ring); S.scene.add(S.lobbyGrp); }
-        S.lobbyGrp.visible = true; if (!lobbyHero) lobbyHero = await S.spawn('character_hollow_knight', 2.4); lobbyHero.grp.visible = true;
-        S.cam.position.set(0, 2.6, 6.4); S.cam.lookAt(0, 1.3, 0);
+        if (!S.lobbyGrp) { S.lobbyGrp = new T.Group(); const ped = new T.Mesh(new T.CylinderGeometry(1.5, 1.75, 0.22, 28), S.lam(0x2a2d3a)); ped.position.y = -0.11; S.lobbyGrp.add(ped); const ring = new T.Mesh(new T.TorusGeometry(1.52, 0.035, 6, 40), S.bas(0xd9a441)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; S.lobbyGrp.add(ring); const glow = new T.Mesh(new T.CircleGeometry(1.4, 28), S.bas(0x6a7fb0, { transparent: true, opacity: 0.16 })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.005; S.lobbyGrp.add(glow); S.scene.add(S.lobbyGrp); }
+        S.scene.background.setRGB(0.1, 0.13, 0.19); S.scene.fog.color.setRGB(0.1, 0.13, 0.19); S.torch.color.setHex(0xffe2b8);
+        S.lobbyGrp.visible = true; if (!lobbyHero) { lobbyHero = await S.spawn('character_hollow_knight', 2.4); lobbyHero.gear = []; } lobbyHero.grp.visible = true; loadEl.hidden = true;
       }
-      let lobbyWeapon = null, lobbyWeaponKey = '';
+      const lobbyCam = () => { S.cam.position.set(0, 2.5 * lobbyZoom + 0.1, 6.8 * lobbyZoom); S.cam.lookAt(0, 1.25, 0); S.torch.position.set(1.5, 3.4, 3.5); };
+      // trang phục trên người: mô hình bộ kit chỉ có vũ khí cận chiến, nên mũ/giáp/giày/khiên/nhẫn được dựng bằng khối đơn giản gắn thẳng vào nhân vật
+      function dressHero(ent, hh, withWeapon) {
+        if (!ent) return; const s = ent.scale, k = hh / 2.4, col = (it) => { const c = new T.Color(core.RARITY[it.rar].color); c.lerp(new T.Color(0x8a90a0), 0.5); return c; };
+        (ent.gear || []).forEach((g) => { ent.grp.remove(g.m); if (g.own) { g.m.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); } if (g.rm) g.rm(); }); ent.gear = [];
+        const put = (m, x, y, z, rx, ry, rz) => { m.position.set(x * k / s, y * k / s, z * k / s); m.scale.multiplyScalar(k / s); if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0); ent.grp.add(m); ent.gear.push({ m, own: true }); return m; };
+        const mat = (it) => new T.MeshLambertMaterial({ color: col(it), flatShading: true });
+        const E = meta.eq;
+        if (E.helmet) put(new T.Mesh(new T.SphereGeometry(0.43, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), mat(E.helmet)), 0, 2.0, 0.0);
+        if (E.armor) { [-1, 1].forEach((sg) => put(new T.Mesh(new T.SphereGeometry(0.2, 12, 8), mat(E.armor)), sg * 0.5, 1.52, 0)); put(new T.Mesh(new T.BoxGeometry(0.62, 0.16, 0.36), mat(E.armor)), 0, 1.07, 0); }
+        if (E.boots) [-1, 1].forEach((sg) => put(new T.Mesh(new T.BoxGeometry(0.26, 0.15, 0.4), mat(E.boots)), sg * 0.2, 0.08, 0.07));
+        if (E.offhand) { const b = E.offhand.base; if (b === 'tome') put(new T.Mesh(new T.BoxGeometry(0.34, 0.06, 0.26), mat(E.offhand)), 0.58, 0.88, 0.22, 0.2, 0.3, 0); else put(new T.Mesh(new T.CylinderGeometry(b === 'tower' ? 0.4 : 0.3, b === 'tower' ? 0.4 : 0.3, 0.07, 18), mat(E.offhand)), 0.62, 1.0, 0.1, 0, 0, Math.PI / 2); }
+        if (E.ring) put(new T.Mesh(new T.TorusGeometry(0.1, 0.035, 6, 14), mat(E.ring)), 0.54, 0.7, 0.06, Math.PI / 2, 0, 0);
+        if (E.ring2) put(new T.Mesh(new T.TorusGeometry(0.1, 0.035, 6, 14), mat(E.ring2)), -0.54, 0.7, 0.06, Math.PI / 2, 0, 0);
+        if (withWeapon) { if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; } const w = E.weapon; lobbyWeaponKey = w ? w.id : ''; if (w) { const b = core.baseOf(w); (b ? (b.proc ? S.proc(b.proc) : S.spawn(b.model, b.h * k * 0.92)) : Promise.resolve(null)).then((we) => { if (!we) return; if (lobbyWeaponKey !== w.id || mode !== 'lobby') { we.remove(); return; } S.scene.remove(we.grp); const cs2 = we.scale; ent.grp.add(we.grp); we.grp.scale.setScalar(cs2 / s); we.grp.position.set(-0.5 * k / s, 0.8 * k / s, 0.2 * k / s); we.grp.rotation.set(0.55, 0.25, 0.1); lobbyWeapon = we; const old = we.remove; we.remove = () => { ent.grp.remove(we.grp); lobbyWeapon = null; }; }).catch(() => {}); } }
+      }
       async function updateLobbyHero() {
-        try { await setupLobbyScene(); } catch (e) { return; }
-        const wp = meta.eq.weapon, wk = wp ? wp.id : ''; if (wk === lobbyWeaponKey || mode !== 'lobby') return; lobbyWeaponKey = wk; if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; }
-        if (wp) { try { lobbyWeapon = await makeWeapon(wp); } catch (e) { /* */ } }
+        if (lobbyBuilding) return; lobbyBuilding = true;
+        try { await setupLobbyScene(); dressHero(lobbyHero, 2.4, true); } catch (e) { loadEl.textContent = 'Không tải được mô hình nhân vật.'; } lobbyBuilding = false;
       }
       async function makeWeapon(it) { const b = core.baseOf(it); if (!b) return null; return b.proc ? S.proc(b.proc) : S.spawn(b.model, b.h); }
+      $('#drTools').querySelectorAll('[data-z]').forEach((b) => (b.onclick = () => { const z = +b.dataset.z; lobbyZoom = z === 0 ? 1 : clamp(lobbyZoom - z * 0.14, 0.6, 1.5); if (z === 0) lobbyRot = 0; lobbyIdle = 0; }));
+      cv.addEventListener('wheel', (e) => { if (mode !== 'lobby') return; e.preventDefault(); lobbyZoom = clamp(lobbyZoom + Math.sign(e.deltaY) * 0.08, 0.6, 1.5); }, { passive: false });
+      cv.addEventListener('pointerdown', (e) => { if (mode !== 'lobby') return; lobbyDrag = { id: e.pointerId, x: e.clientX }; lobbyIdle = 0; try { cv.setPointerCapture(e.pointerId); } catch (er) { /* */ } });
+      cv.addEventListener('pointermove', (e) => { if (!lobbyDrag || e.pointerId !== lobbyDrag.id) return; lobbyRot += (e.clientX - lobbyDrag.x) * 0.012; lobbyDrag.x = e.clientX; lobbyIdle = 0; });
+      const dragEnd = (e) => { if (lobbyDrag && e.pointerId === lobbyDrag.id) lobbyDrag = null; }; cv.addEventListener('pointerup', dragEnd); cv.addEventListener('pointercancel', dragEnd);
       // ---------------------------------------------------------------- VÀO HẦM NGỤC
       async function startRun(dgId, tierId) {
-        const dg = core.DUNGEONS.find((d) => d.id === dgId), tier = core.TIERS[tierId]; if (!dg || !tier) return;
-        lobEl.hidden = true; say('Đang dựng hầm ngục…'); mode = 'load';
+        const dg = core.DUNGEONS.find((d) => d.id === dgId), tier = core.TIERS[tierId]; if (!dg || !tier || !core.unlocked(meta, dg)) return;
+        mainEl.classList.add('run'); topEl.hidden = true; $('#drTools').hidden = true; $('#drSlL').hidden = true; $('#drSlR').hidden = true; endEl.hidden = true; dlgEl.hidden = true; say('Đang dựng hầm ngục…'); mode = 'load'; loadEl.hidden = false; loadEl.textContent = 'Đang dựng hầm ngục…'; S.resize();
         if (S.lobbyGrp) S.lobbyGrp.visible = false; if (lobbyHero) lobbyHero.grp.visible = false; if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; lobbyWeaponKey = ''; }
         meta.runs++; save();
-        const map = core.genMap(dg), sx = map.rooms[0];
-        run = { dg, tier, map, cur: sx, gold: 0, items: [], kills: 0, roomsCleared: 0, combatTotal: map.rooms.filter((r) => r.type === 'combat' || r.type === 'boss').length, potions: C.potions + (meta.extraPotions || 0), t0: tNow, over: false, won: false };
+        const map = core.genMap(dg), sx = map.rooms[0], wts = core.lootWeights(dg, tier);
+        run = { dg, tier, map, cur: sx, gold: 0, items: [], kills: 0, roomsCleared: 0, combatTotal: map.rooms.filter((r) => r.type === 'combat' || r.type === 'boss').length, potions: C.potions + (meta.extraPotions || 0), t0: tNow, over: false, won: false, wts, wtsC: wts.map((w, i) => w * (1 + i * 0.5)), wtsB: wts.map((w, i) => w * (1 + i * 1.2)) };
         S.scene.background.setHex(dg.theme.fog); S.scene.fog.color.setHex(dg.theme.fog); S.torch.color.setHex(dg.theme.torch);
         hero = { x: 0, z: 0, fx: 0, fz: -1, atkT: 0, atkAnim: 0, dashT: 0, dashCd: 0, skillCd: 0, inv: 0, ent: null, weapon: null, wkey: '', hurtT: 0, r: 0.4, hp: 1, maxHP: 1, defense: 0, atk: 15, spd: 4.3, critP: 0.1, lifeP: 0, goldMul: 1, cdr: 0, wdef: null };
         mobs = []; bolts = []; shots = []; zones = []; pickups = [];
-        try { hero.ent = await S.spawn('character_hollow_knight', 2.0); } catch (e) { say('Không tải được mô hình nhân vật.'); run = null; lobbyView(); return; }
+        try { hero.ent = await S.spawn('character_hollow_knight', 2.0); hero.ent.gear = []; } catch (e) { say('Không tải được mô hình nhân vật.'); run = null; lobbyView(); updateLobbyHero(); return; }
         await applyGear(true);
-        mode = 'run'; $('#drHud').hidden = false; $('#drMap').hidden = false; $('#drBtns').hidden = false; $('#drKeys').hidden = false; if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) joyEl.hidden = false;
+        mode = 'run'; loadEl.hidden = true; $('#drHud').hidden = false; $('#drMap').hidden = false; $('#drBtns').hidden = false; $('#drKeys').hidden = false; if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) joyEl.hidden = false;
         await enterRoom(sx, null);
+        S.resize();
       }
       async function applyGear(first) {
-        const g = core.gearStats(meta.eq), prevMax = hero.maxHP, w = g.weapon || meta.eq.weapon, b = w ? core.baseOf(w) : null;
-        const hpBase = C.baseHP + st.health * C.hpPerHealth + g.hp; hero.maxHP = Math.round(hpBase); hero.hp = first ? hero.maxHP : Math.min(hero.maxHP, hero.hp + Math.max(0, hero.maxHP - prevMax));
-        hero.defense = C.defBase + st.health * C.defPerHealth + g.def; hero.atk = (w ? w.atk : 12) + Math.round(st.smarts * 0.02); hero.spd = C.speed * (1 + (st.health - 50) * C.speedPerHealth) * (1 + g.speed); hero.critP = C.critBase + st.smarts * C.critPerSmarts + g.crit; hero.lifeP = g.life; hero.goldMul = 1 + g.gold; hero.cdr = clamp(g.cdr, 0, 0.5); hero.wdef = b ? { melee: b.melee, range: b.range, cd: b.cd } : { melee: true, range: 1.9, cd: 0.62 };
-        if (w && hero.wkey !== w.id) { if (hero.weapon) { hero.weapon.remove(); hero.weapon = null; } try { hero.weapon = await makeWeapon(w); hero.wkey = w.id; } catch (e) { /* */ } }
+        const c = core.calcStats(meta, st), prevMax = hero.maxHP, w = c.g.weapon, b = w ? core.baseOf(w) : null;
+        hero.maxHP = c.maxHP; hero.hp = first ? hero.maxHP : Math.min(hero.maxHP, hero.hp + Math.max(0, hero.maxHP - prevMax));
+        hero.defense = c.def; hero.atk = c.atk; hero.spd = c.spd; hero.critP = c.crit; hero.lifeP = c.life; hero.goldMul = c.goldMul; hero.cdr = c.cdr;
+        hero.wdef = b ? { melee: b.melee, range: b.range, cd: b.cd } : { melee: true, range: 1.2, cd: 0.55 };
+        if (hero.wkey !== (w ? w.id : '')) { if (hero.weapon) { hero.weapon.remove(); hero.weapon = null; } hero.wkey = w ? w.id : ''; if (w) { try { hero.weapon = await makeWeapon(w); } catch (e) { /* */ } } }
+        if (hero.ent) dressHero(hero.ent, 2.0, false);
       }
       const HALFW = () => W / 2 - 0.75, HALFH = () => H / 2 - 0.75;
       const DOORS = { n: [0, -1, 's'], s: [0, 1, 'n'], w: [-1, 0, 'e'], e: [1, 0, 'w'] };
@@ -236,14 +364,19 @@
       }
       // ---------------------------------------------------------------- vòng lặp trận
       const bars = () => {
-        if (!run || !hero) return; $('#drMe').style.width = clamp(hero.hp / hero.maxHP * 100, 0, 100) + '%'; $('#drMeT').textContent = 'Bạn ' + Math.max(0, Math.round(hero.hp)) + '/' + hero.maxHP;
-        const alive = mobs.filter((m) => m.hp > 0), tot = alive.reduce((a, m) => a + m.hp, 0), mx = alive.reduce((a, m) => a + m.max, 0);
-        $('#drFoe').style.width = (mx ? clamp(tot / mx * 100, 0, 100) : 0) + '%'; $('#drFoeT').textContent = alive.length ? (alive.length === 1 && alive[0].def.boss ? alive[0].def.name : 'Quái còn ' + alive.length) : '🪙 ' + run.gold + ' vàng';
-        $('#drPot').textContent = '×' + run.potions; $('#drF').textContent = run.dg.name + ' · ' + run.tier.name + ' · phòng ' + run.map.rooms.filter((r) => r.visited).length + '/' + run.map.rooms.length + ' · 🪙' + run.gold;
+        if (!run || !hero) return; $('#drMe').style.width = clamp(hero.hp / hero.maxHP * 100, 0, 100) + '%'; $('#drMeT').textContent = 'HP ' + Math.max(0, Math.round(hero.hp)) + '/' + hero.maxHP;
+        const lv = core.levelOf(meta.xp); $('#drXp').style.width = (lv.need ? Math.round(lv.cur / lv.need * 100) : 100) + '%';
+        const alive = mobs.filter((m) => m.hp > 0), bosses = alive.filter((m) => m.isBoss), grp = bosses.length ? bosses : alive, tot = grp.reduce((a, m) => a + m.hp, 0), mx = grp.reduce((a, m) => a + m.max, 0);
+        $('#drFoeW').classList.toggle('boss', bosses.length > 0); $('#drFoeW').hidden = !alive.length;
+        $('#drFoe').style.width = (mx ? clamp(tot / mx * 100, 0, 100) : 0) + '%'; $('#drFoeT').textContent = bosses.length ? (bosses.length === 1 ? bosses[0].def.name : 'Trùm · ' + bosses.length + ' kẻ') + ' ' + Math.round(tot) + '/' + mx : 'Quái còn ' + alive.length;
+        $('#drLoc').textContent = run.dg.name + ' · ' + run.tier.name; const vis = run.map.rooms.filter((r) => r.visited).length;
+        $('#drRun').innerHTML = 'Cấp ' + lv.level + ' · Phòng ' + vis + '/' + run.map.rooms.length + ' · ' + ico('coin', '', 12) + ' ' + run.gold + ' · ' + run.items.length + ' đồ';
+        $('#drPot').textContent = '×' + run.potions;
         const cd = Math.max(0, hero.dashCd), sk = Math.max(0, hero.skillCd); $('#drCd').textContent = cd > 0.05 ? cd.toFixed(1) + 's' : ''; $('#drSk').textContent = sk > 0.05 ? sk.toFixed(0) + 's' : '';
+        $('#drBtD').classList.toggle('cd', cd > 0.05); $('#drBtS').classList.toggle('cd', sk > 0.05);
       };
       const banner = (t, ms) => { bnEl.textContent = t; bnEl.classList.add('on'); later(() => bnEl.classList.remove('on'), ms || 1600); };
-      const fl = (txt, cls, x, z, y) => { const e = document.createElement('b'); e.className = cls || ''; e.textContent = txt; e._p = { x, z, y: y || 1.8, t: 0 }; flEl.appendChild(e); setTimeout(() => e.remove(), 900); };
+      const fl = (txt, cls, x, z, y) => { if (!meta.set.dmg && /^foe/.test(cls || '') && !/crit/.test(cls)) return; const e = document.createElement('b'); e.className = cls || ''; e.textContent = txt; e._p = { x, z, y: y || 1.8, t: 0 }; flEl.appendChild(e); setTimeout(() => e.remove(), 900); };
       const project = (d) => { const v = V3(d.x, d.y, d.z).project(S.cam); return { x: (v.x * 0.5 + 0.5) * cv.clientWidth, y: (-v.y * 0.5 + 0.5) * cv.clientHeight }; };
       function drawMap() {
         const mc = $('#drMap'), x = mc.getContext('2d'); x.clearRect(0, 0, 132, 96); if (!run) return; const cw = 26, ch = 20, ox = 6, oy = 6;
@@ -256,20 +389,34 @@
         });
       }
       function score() { if (!run) return 0; if (run.won) return clamp(0.8 + 0.2 * clamp(hero.hp / hero.maxHP, 0, 1), 0, 1); const fr = run.roomsCleared / Math.max(1, run.combatTotal); return clamp(fr * 0.72, 0, 0.72); }
+      function leaveRun() {
+        run = null; if (roomObj) { roomObj.remove(); roomObj = null; } if (hero && hero.ent) { hero.ent.remove(); hero.ent = null; } if (hero && hero.weapon) { hero.weapon.remove(); hero.weapon = null; } pickups.forEach((q) => { if (q.ent) q.ent.remove(); if (q.mesh) S.scene.remove(q.mesh); }); pickups = []; mobs.forEach((m) => m.ent && m.ent.remove()); mobs = [];
+        bolts.forEach((b) => S.scene.remove(b.mesh)); bolts = []; shots.forEach((b) => S.scene.remove(b.mesh)); shots = []; zones.forEach((z) => S.scene.remove(z.mesh)); zones = []; flEl.innerHTML = '';
+        endEl.hidden = true; mainEl.classList.remove('run'); hero = null; lobbyWeaponKey = ''; say(''); lobbyView(); updateLobbyHero();
+      }
       function endRun(won, why) {
         if (!run || run.over) return; run.over = true; run.won = won; mode = 'end'; const sc = score(); best = Math.max(best, sc); sessionRuns++;
-        const keepGold = won ? run.gold : Math.round(run.gold * 0.6); meta.gold += keepGold; meta.kills += run.kills; meta.bestGold = Math.max(meta.bestGold || 0, run.gold);
-        if (won) { const cl = (meta.clears[run.dg.id] = meta.clears[run.dg.id] || {}); cl[run.tier.id] = (cl[run.tier.id] || 0) + 1; } save();
+        // phần thưởng chỉ trao một lần ở đây (run.over chặn gọi lại)
+        const keepGold = won ? run.gold : Math.round(run.gold * 0.6), xpGain = Math.round((run.kills * 4 + run.roomsCleared * 12 + (won ? 80 : 0)) * (1 + run.tier.id * 0.5)), before = core.levelOf(meta.xp).level;
+        meta.gold += keepGold; meta.xp = (meta.xp || 0) + xpGain; meta.kills += run.kills; meta.rooms = (meta.rooms || 0) + run.roomsCleared; meta.bestGold = Math.max(meta.bestGold || 0, run.gold);
+        const secs = Math.round(tNow - run.t0);
+        if (won) { const cl = (meta.clears[run.dg.id] = meta.clears[run.dg.id] || {}); cl[run.tier.id] = (cl[run.tier.id] || 0) + 1; meta.wins = (meta.wins || 0) + 1; const k = run.dg.id + ':' + run.tier.id; if (!meta.best[k] || secs < meta.best[k]) meta.best[k] = secs; }
+        const after = core.levelOf(meta.xp); save();
         const cash = Math.min(C.moneyCap, Math.round(keepGold * C.moneyPerGold * run.tier.money * ageK() / 1e4) * 1e4);
-        lobEl.hidden = false; $('#drBtns').hidden = true; $('#drKeys').hidden = true; $('#drHud').hidden = true; $('#drMap').hidden = true; joyEl.hidden = true; mobs.forEach((m) => m.ent && m.ent.remove()); mobs = [];
-        lobEl.innerHTML = '<div class="dr-end ' + (won ? 'win' : 'lose') + '"><h4>' + (won ? '🏆 Phá đảo ' + esc(run.dg.name) + '!' : '💀 Bạn gục ngã') + '</h4><p>' + esc(why || '') + '</p>' +
-          '<p>Đã dọn ' + run.roomsCleared + '/' + run.combatTotal + ' phòng · hạ ' + run.kills + ' quái · nhặt ' + run.gold + ' vàng' + (won ? '' : ' (giữ lại ' + keepGold + ')') + ' · ' + run.items.length + ' món trang bị.</p>' +
-          (run.items.length ? '<div class="dr-inv">' + run.items.map((it) => '<div class="dr-it"><span>' + it.icon + ' ' + rarSpan(it) + '<br><i>' + esc(core.statsText(it)) + '</i></span></div>').join('') + '</div>' : '') +
-          '<div class="mini-btns">' + (cash > 0 && lifeOn() ? '<button type="button" class="btn btn-primary" id="drCash">💰 Nhận ' + fmtMoney(cash) + ' vào cuộc đời</button>' : '<span class="dim">' + (lifeOn() ? 'Chưa kiếm được tiền lần này.' : 'Bắt đầu một cuộc đời để đổi vàng hầm ngục thành tiền.') + '</span>') + '<button type="button" class="btn btn-soft" id="drLobby2">🏰 Về sảnh</button><button type="button" class="btn btn-ghost" id="drDone2">✔ Xong, nộp kết quả</button></div></div>';
-        let claimed = false; const cb = $('#drCash'); if (cb) cb.onclick = () => { if (claimed) return; claimed = true; try { KN.Game.onlineMoney(cash, 'Hầm ngục Dreadfall: bán chiến lợi phẩm được ' + fmtMoney(cash) + '.', '🗡️'); } catch (e) { /* */ } cb.disabled = true; cb.textContent = '✔ Đã nhận ' + fmtMoney(cash); sfx('coin'); };
-        $('#drLobby2').onclick = () => { run = null; tab = 'dg'; if (roomObj) { roomObj.remove(); roomObj = null; } if (hero && hero.ent) { hero.ent.remove(); hero.ent = null; } if (hero && hero.weapon) { hero.weapon.remove(); hero.weapon = null; } pickups.forEach((q) => { if (q.ent) q.ent.remove(); if (q.mesh) S.scene.remove(q.mesh); }); pickups = []; bolts.forEach((b) => S.scene.remove(b.mesh)); bolts = []; shots.forEach((b) => S.scene.remove(b.mesh)); shots = []; zones.forEach((z) => S.scene.remove(z.mesh)); zones = []; S.scene.background.setHex(0x0b0810); S.scene.fog.color.setHex(0x0b0810); S.torch.color.setHex(0xff8a3c); lobbyView(); say(''); };
-        $('#drDone2').onclick = () => finishSession();
+        const nextDg = won ? core.DUNGEONS[core.DUNGEONS.findIndex((d) => d.id === run.dg.id) + 1] : null, nextOk = nextDg && core.unlocked(meta, nextDg);
+        $('#drBtns').hidden = true; $('#drKeys').hidden = true; $('#drHud').hidden = true; $('#drMap').hidden = true; joyEl.hidden = true; mobs.forEach((m) => m.ent && m.ent.remove()); mobs = [];
+        const lv = after, xpPct = lv.need ? Math.round(lv.cur / lv.need * 100) : 100;
+        endEl.hidden = false; endEl.innerHTML = '<div class="box ' + (won ? 'win' : 'lose') + '"><h4>' + ico(won ? 'trophy' : 'skull', '', 22) + ' ' + (won ? 'Phá đảo ' + esc(run.dg.name) + '!' : 'Bạn gục ngã') + '</h4><p class="why">' + esc(why || '') + '</p>' +
+          '<div class="rw"><span>' + ico('coin', '', 15) + ' <b>+' + keepGold + '</b> vàng' + (won ? '' : ' <small>(giữ 60% của ' + run.gold + ')</small>') + '</span><span>' + ico('star', '', 15) + ' <b>+' + xpGain + '</b> XP</span><span>' + run.kills + ' quái · ' + run.roomsCleared + '/' + run.combatTotal + ' phòng · ' + fmtT2(secs) + '</span></div>' +
+          '<div class="dr-xp lg"><i style="width:' + xpPct + '%"></i><span>Cấp ' + lv.level + (lv.need ? ' · ' + lv.cur + '/' + lv.need + ' XP' : ' · tối đa') + '</span></div>' + (after.level > before ? '<p class="lvup">Lên cấp ' + after.level + '! Bạn có ' + core.spFree(meta) + ' điểm kỹ năng chưa dùng (tab Kỹ năng).</p>' : '') +
+          '<p class="sub">Chiến lợi phẩm (' + run.items.length + ')</p>' + (run.items.length ? '<div class="dgrid loot">' + run.items.map((it) => UI.card(it, {})).join('') + '</div>' : '<p class="dim">Không có trang bị nào rơi ra lần này.</p>') +
+          '<div class="act">' + (nextOk ? '<button type="button" class="btn btn-primary btn-sm" id="drNext">Tiếp tục: ' + esc(nextDg.name) + '</button>' : '') + (cash > 0 && lifeOn() ? '<button type="button" class="btn btn-soft btn-sm" id="drCash">' + ico('coin', '', 14) + ' Nhận ' + fmtMoney(cash) + ' vào cuộc đời</button>' : '<span class="dim">' + (lifeOn() ? 'Chưa kiếm được tiền lần này.' : 'Cần một cuộc đời đang chơi để đổi vàng thành tiền.') + '</span>') + '<button type="button" class="btn btn-soft btn-sm" id="drLobby2">Về sảnh</button><button type="button" class="btn btn-ghost btn-sm" id="drDone2">Nộp kết quả</button></div></div>';
+        UI.hydrate(endEl); endEl.querySelectorAll('.dc').forEach((b) => (b.disabled = true));
+        let claimed = false; const cb = $('#drCash'); if (cb) cb.onclick = () => { if (claimed) return; claimed = true; try { KN.Game.onlineMoney(cash, 'Hầm ngục Dreadfall: bán chiến lợi phẩm được ' + fmtMoney(cash) + '.', '🗡️'); } catch (e) { /* */ } cb.disabled = true; cb.textContent = 'Đã nhận ' + fmtMoney(cash); sfx('coin'); };
+        $('#drLobby2').onclick = () => { selDg = run.dg.id; selTier = run.tier.id; tab = 'dg'; leaveRun(); };
+        $('#drDone2').onclick = () => finishSession(); const nx = $('#drNext'); if (nx) nx.onclick = () => { const id = nextDg.id; selDg = id; selTier = 0; leaveRun(); startRun(id, 0); };
       }
+      const fmtT2 = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
       function finishSession() { if (done) return; done = true; const txt = best >= 0.8 ? 'Bạn phá đảo hầm ngục và mang chiến lợi phẩm về sảnh.' : best > 0 ? 'Bạn dọn được một phần hầm ngục (' + Math.round(best * 100) + '%).' : 'Bạn chưa vào hầm ngục nào.'; later(() => res({ score: best, text: txt + ' Kho đồ và vàng được lưu trên máy này.' }), 300); }
       function hurtHero(raw, label) {
         if (hero.inv > 0 || run.over) return false; const d = Math.max(2, Math.round(raw - hero.defense * C.hurtCut)); hero.hp -= d; hero.hurtT = 0.25; hero.inv = 0.35; fl('-' + d, 'me', hero.x, hero.z, 2.1); sfx('bad'); bars();
@@ -319,8 +466,8 @@
         const gv = Math.max(1, Math.round(m.gold * run.tier.gold * hero.goldMul)), n = m.isBoss ? 10 : 1 + (Math.random() < 0.4 ? 1 : 0);
         for (let i = 0; i < n; i++) addPickup('coin', m.x + rand(-0.8, 0.8), m.z + rand(-0.8, 0.8), Math.max(1, Math.round(gv / n * rand(0.8, 1.3))));
         if (Math.random() < 0.12) addPickup('heart', m.x + rand(-0.5, 0.5), m.z + rand(-0.5, 0.5));
-        if (m.isBoss) { for (let i = 0; i < 2; i++) addPickup('item', m.x + rand(-1.4, 1.4), m.z + rand(-1.4, 1.4), core.rollItem(run.dg.lvl, run.tier.rar + 0.8, null, run.dg.id === 'abyss' ? 3 : 2)); }
-        else if (Math.random() < 0.05 + run.tier.rar * 0.03) addPickup('item', m.x, m.z, core.rollItem(run.dg.lvl, run.tier.rar));
+        if (m.isBoss) { for (let i = 0; i < 2; i++) addPickup('item', m.x + rand(-1.4, 1.4), m.z + rand(-1.4, 1.4), core.rollItem(run.dg.lvl, 0, null, run.dg.id === 'abyss' ? 3 : 2, run.wtsB)); }
+        else if (Math.random() < 0.05 + run.tier.rar * 0.03) addPickup('item', m.x, m.z, core.rollItem(run.dg.lvl, 0, null, 0, run.wts));
       }
       function addPickup(kind, x, z, val) {
         let mesh;
@@ -332,14 +479,16 @@
       function openChest() {
         const room = run.cur; room.opened = true; sfx('cheer'); banner('Mở rương!', 1100);
         for (let i = 0; i < 6; i++) addPickup('coin', rand(-1.5, 1.5), rand(-0.4, 0.8), Math.round(rand(4, 9) * run.tier.gold));
-        addPickup('item', -0.8, 0.7, core.rollItem(run.dg.lvl, run.tier.rar + 0.6, null, run.dg.lvl >= 3 ? 2 : 1)); if (Math.random() < 0.5) addPickup('item', 0.8, 0.7, core.rollItem(run.dg.lvl, run.tier.rar + 0.3));
+        addPickup('item', -0.8, 0.7, core.rollItem(run.dg.lvl, 0, null, run.dg.lvl >= 3 ? 2 : 1, run.wtsC)); if (Math.random() < 0.5) addPickup('item', 0.8, 0.7, core.rollItem(run.dg.lvl, 0, null, 0, run.wtsC));
         addPickup('heart', 0, 1.1);
       }
       function takeItem(q) {
-        const it = q.val; run.items.push(it); addInv(it); save(); sfx('good'); fl(it.icon + ' ' + core.RARITY[it.rar].name, 'foe crit', hero.x, hero.z, 2.4);
-        const cur = meta.eq[it.slot], better = !cur || rate(it) > rate(cur) * 1.05;
-        if (better) { if (cur && cur.id !== 'start') addInv(cur); meta.eq[it.slot] = it; const i = meta.inv.findIndex((x) => x.id === it.id); if (i >= 0) meta.inv.splice(i, 1); save(); say('Trang bị mới: ' + it.name + ' (' + core.RARITY[it.rar].name + ') — ' + core.statsText(it)); applyGear(false).then(bars); }
-        else say('Nhặt được ' + it.name + ' (' + core.RARITY[it.rar].name + '), cất vào kho.');
+        const it = q.val; run.items.push(it); if (it.rar >= 2) meta.rareFound = (meta.rareFound || 0) + 1; if (it.rar >= 3) meta.epicFound = (meta.epicFound || 0) + 1; const R = core.RARITY[it.rar], stored = addInv(it); sfx('good'); fl(R.name + ': ' + it.name, 'foe crit', hero.x, hero.z, 2.4);
+        if (!stored) { say('Kho đầy: ' + it.name + ' được bán tự động lấy ' + core.sellValue(it) + ' vàng.'); save(); return; }
+        // tự mang vào ô còn trống, hoặc thay món yếu hơn ≥5% nếu đủ cấp
+        let tgt = null; core.slotsFor(it).forEach((sid) => { if (core.canEquip(meta, it, sid)) return; const cur = meta.eq[sid]; if (!cur) { if (!tgt || meta.eq[tgt]) tgt = sid; } else if (!tgt && rate(it) > rate(cur) * 1.05) tgt = sid; });
+        if (tgt) { const i = meta.inv.findIndex((x) => x.id === it.id), old = meta.eq[tgt]; if (i >= 0) meta.inv.splice(i, 1); if (old) meta.inv.push(old); meta.eq[tgt] = it; save(); say('Trang bị mới: ' + it.name + ' (' + R.name + ') — ' + core.statsText(it)); applyGear(false).then(bars); }
+        else { save(); say('Nhặt được ' + it.name + ' (' + R.name + ')' + ((it.req || 1) > core.levelOf(meta.xp).level ? ', cần cấp ' + it.req + ' để dùng' : '') + ', cất vào kho.'); }
       }
       function swing() {
         const w = hero.wdef; hero.atkT = w.cd; hero.atkAnim = 0.22; const tg = nearest(w.range + 1.6); if (tg) { const dx = tg.x - hero.x, dz = tg.z - hero.z, d = Math.hypot(dx, dz) || 1; hero.fx = dx / d; hero.fz = dz / d; }
@@ -375,7 +524,7 @@
         const inX = Math.abs(hero.x) < 1.1, inZ = Math.abs(hero.z) < 1.1;
         hero.x = clamp(hero.x, (doorW && inZ) ? -W / 2 - 0.3 : -mx, (doorE && inZ) ? W / 2 + 0.3 : mx); hero.z = clamp(hero.z, (doorN && inX) ? -H / 2 - 0.3 : -mz, (doorS && inX) ? H / 2 + 0.3 : mz);
         let dirOut = null; if (hero.z < -H / 2 + 0.2 && doorN) dirOut = 'n'; else if (hero.z > H / 2 - 0.2 && doorS) dirOut = 's'; else if (hero.x < -W / 2 + 0.2 && doorW) dirOut = 'w'; else if (hero.x > W / 2 - 0.2 && doorE) dirOut = 'e';
-        if (dirOut && transT <= 0) { const nb = run.map.byKey.get(run.map.key(room.x + DOORS[dirOut][0], room.y + DOORS[dirOut][1])); if (nb) { transT = 1; mode = 'trans'; enterRoom(nb, DOORS[dirOut][2]).then(() => { mode = 'run'; }).catch(() => { mode = 'run'; }); return; } }
+        if (dirOut && transT <= 0) { const nb = run.map.byKey.get(run.map.key(room.x + DOORS[dirOut][0], room.y + DOORS[dirOut][1])); if (nb) { transT = 1; mode = 'trans'; enterRoom(nb, DOORS[dirOut][2]).then(() => { mode = 'run'; }).catch((er) => { console.error('enterRoom', er && er.stack || er); mode = 'run'; }); return; } }
         if (atkQueued && hero.atkT <= 0) swing(); if (keys.atk && hero.atkT <= 0) swing(); atkQueued = false;
         mobs.forEach((m) => updateMob(m, dt)); separate(); mobs.forEach((m) => { if (m.hp <= 0 && m.dying <= 0 && m.ent) { m.ent.remove(); m.ent = null; } }); mobs = mobs.filter((m) => m.hp > 0 || m.dying > 0);
         for (const b of bolts) { b.x += b.vx * dt; b.z += b.vz * dt; b.life -= dt; b.mesh.position.set(b.x, 1.2, b.z); if (Math.hypot(b.x - hero.x, b.z - hero.z) < 0.55 && hero.inv <= 0) { hurtHero(b.dmg, 'Tia ma thuật trúng bạn.'); b.life = 0; } if (Math.abs(b.x) > W / 2 + 0.5 || Math.abs(b.z) > H / 2 + 0.5) b.life = 0; }
@@ -403,7 +552,7 @@
         if (Math.floor(tNow * 8) % 2 === 0) { bars(); setDoors(); }
       }
       function draw(dt) {
-        if (mode === 'lobby' || mode === 'load' || !run) { if (lobbyHero && lobbyHero.grp.visible) { lobbyHero.grp.rotation.y += dt * 0.7; lobbyHero.grp.position.set(0, Math.abs(Math.sin(tNow * 2)) * 0.03, 0); if (lobbyWeapon) { const a = lobbyHero.grp.rotation.y - 1.15; lobbyWeapon.grp.position.set(Math.sin(a) * 0.8, 1.2, Math.cos(a) * 0.8); lobbyWeapon.grp.rotation.set(0.35, a, 0, 'YXZ'); } } S.render(tNow); return; }
+        if (mode === 'lobby' || mode === 'load' || !run) { if (lobbyHero && lobbyHero.grp.visible) { lobbyIdle += dt; if (!lobbyDrag && lobbyIdle > 4) lobbyRot += dt * 0.4; lobbyHero.grp.rotation.y = lobbyRot; lobbyHero.grp.position.set(0, 0, 0); if (S.lobbyGrp) S.lobbyGrp.rotation.y = 0; lobbyCam(); } S.render(tNow); return; }
         if (hero.ent) {
           const g = hero.ent.grp, mv = Math.hypot(keys.d - keys.a + joy.x, keys.s - keys.w + joy.z) > 0.1; g.position.set(hero.x, mv ? Math.abs(Math.sin(tNow * 9)) * 0.06 : 0, hero.z); g.rotation.y = Math.atan2(hero.fx, hero.fz) + (hero.atkAnim > 0 && hero.wdef.melee ? Math.sin((1 - hero.atkAnim / 0.22) * Math.PI) * 0.4 : 0); g.visible = !(hero.inv > 0 && Math.floor(tNow * 20) % 2 === 0 && hero.hurtT > -0.3);
           const wp = hero.weapon; if (wp) { const a0 = Math.atan2(hero.fx, hero.fz), mel = hero.wdef.melee, pv = hero.atkAnim > 0 ? 1 - hero.atkAnim / 0.22 : -1, off = !mel ? -0.6 : pv < 0 ? -1.15 : -1.15 + 2.3 * pv, th = !mel ? 0.1 + (pv >= 0 ? 0.25 : 0) : pv < 0 ? 0.35 : 1.25, sa = a0 + off; wp.grp.position.set(hero.x + Math.sin(sa) * 0.62, 0.95, hero.z + Math.cos(sa) * 0.62); wp.grp.rotation.set(th, sa, 0, 'YXZ'); wp.grp.visible = hero.dashT <= 0; }
@@ -423,12 +572,16 @@
       // ---- điều khiển
       const kmap = { w: 'w', arrowup: 'w', s: 's', arrowdown: 's', a: 'a', arrowleft: 'a', d: 'd', arrowright: 'd' };
       keyH = (e) => {
+        const k0 = e.key.toLowerCase(); if ((mode === 'run' || mode === 'pause') && (k0 === 'p' || k0 === 'escape') && !e.repeat) { pauseToggle(); e.preventDefault(); e.stopPropagation(); return; }
         if (mode !== 'run') return; const k = e.key.toLowerCase(); if (kmap[k]) { keys[kmap[k]] = 1; e.preventDefault(); e.stopPropagation(); return; }
         if (k === ' ' || k === 'j') { if (!e.repeat) atkQueued = true; keys.atk = 1; e.preventDefault(); e.stopPropagation(); } else if (k === 'shift' || k === 'k') { if (!e.repeat) dash(); e.preventDefault(); e.stopPropagation(); } else if (k === 'e' || k === 'q') { if (!e.repeat) potion(); e.preventDefault(); e.stopPropagation(); } else if (k === 'r' || k === 'f') { if (!e.repeat) skill(); e.preventDefault(); e.stopPropagation(); }
       };
       keyU = (e) => { const k = e.key.toLowerCase(); if (kmap[k]) keys[kmap[k]] = 0; if (k === ' ' || k === 'j') keys.atk = 0; };
       window.addEventListener('keydown', keyH, true); window.addEventListener('keyup', keyU, true);
       $('#drBtA').onpointerdown = (e) => { e.preventDefault(); atkQueued = true; keys.atk = 1; }; $('#drBtA').onpointerup = $('#drBtA').onpointerleave = () => { keys.atk = 0; };
+      function pauseToggle() { if (mode === 'run') { mode = 'pause'; keys.w = keys.a = keys.s = keys.d = keys.atk = 0; bnEl.textContent = 'TẠM DỪNG — bấm P để tiếp tục'; bnEl.classList.add('on'); } else if (mode === 'pause') { mode = 'run'; bnEl.classList.remove('on'); } }
+      $('#drPause').onclick = pauseToggle;
+      $('#drExit').onclick = async () => { if (mode !== 'run' && mode !== 'pause') return; const was = mode; mode = 'pause'; if (await ask('Rút lui khỏi hầm ngục?', 'Bạn chỉ giữ 60% vàng đã nhặt. Trang bị nhặt được vẫn ở trong kho.', 'Rút lui')) { bnEl.classList.remove('on'); dlgEl.hidden = true; endRun(false, 'Bạn rút lui khỏi hầm ngục.'); } else if (run && !run.over) mode = was === 'pause' && bnEl.classList.contains('on') ? 'pause' : 'run'; };
       $('#drBtD').onclick = dash; $('#drBtP').onclick = potion; $('#drBtS').onclick = skill;
       let joyId = null, jc = null;
       stEl.addEventListener('pointerdown', (e) => {
@@ -448,9 +601,9 @@
       };
       window.__dread = {
         dbg: () => { const nv = nav(), r = run && run.cur, g = nv && roomObj && roomObj.gates[nv.dir]; return { mode, hero: hero && hero.ent ? { x: hero.x, z: hero.z, hp: hero.hp, maxHP: hero.maxHP, dashCd: hero.dashCd, atkT: hero.atkT, skillCd: hero.skillCd } : null, mobs: mobs.filter((m) => m.hp > 0).map((m) => ({ x: m.x, z: m.z, st: m.state, kind: m.kind, hp: m.hp, boss: !!m.isBoss })), roomType: r && r.type, cleared: r && r.cleared, roomsCleared: run && run.roomsCleared, combatTotal: run && run.combatTotal, kills: run && run.kills, gold: run && run.gold, items: run && run.items.length, potions: run && run.potions, nav: nv && g ? { x: g.x, z: g.z } : null, nextType: nv && nv.room.type, pick: pickups.map((q) => ({ k: q.kind, x: q.x, z: q.z })), over: run && run.over, won: run && run.won, rooms: run && run.map.rooms.length }; },
-        keys, atk: () => { atkQueued = true; }, dash, potion, skill, sim, draw, isDone: () => done, start: (d, t) => startRun(d, t), meta, lobby: () => lobbyView(), run: () => run,
+        S, keys, hero: () => hero, mobs: () => mobs, shots: () => shots, atk: () => { atkQueued = true; }, dash, potion, skill, sim, draw, isDone: () => done, start: (d, t) => startRun(d, t), meta, lobby: () => lobbyView(), run: () => run,
       };
-      lobbyView();
+      lobbyView(); updateLobbyHero();
       if (window.__dreadAuto) startRun(window.__dreadAuto.dg || 'bone', window.__dreadAuto.tier || 0);
     });
   }
@@ -459,7 +612,7 @@
     if (!KN.Mini || !KN.Mini.register || !KN.DreadCore) return;
     if (KN.Mini.onAbort) KN.Mini.onAbort.push(close);
     KN.Mini.register('dread', (p) => dread(p).then((r) => { close(); return r; }), '🗡️ Hầm ngục Dreadfall',
-      'Hành động đi lại tự do kiểu Dungeon Quest / Soul Knight, chơi một mình (online co-op sẽ có sau). Ở sảnh: chọn 1 trong 5 hầm ngục và độ khó, xem trang bị, mua hòm, bán đồ. Trong hầm ngục: WASD hoặc mũi tên để di chuyển, Space/J/click để chém hoặc bắn (tự ngắm kẻ gần nhất), Shift/K để lướt né (bất tử ngắn), R/F kỹ năng đặc biệt, E/Q uống thuốc. Cửa khóa khi còn quái; hạ hết để đi tiếp, mở rương, uống nước hồi máu và đánh trùm ở phòng cuối. Quái báo đòn bằng vòng đỏ dưới chân. Trang bị rơi theo độ hiếm; vàng nhặt được đổi thành tiền vào cuộc đời khi kết thúc lượt. Điện thoại: chạm kéo bên trái để di chuyển, nút bên dưới để chém, lướt, kỹ năng, thuốc.',
+      'Hành động đi lại tự do kiểu Dungeon Quest / Soul Knight, chơi một mình (online co-op sẽ có sau). Ở sảnh: chọn hầm ngục và độ khó, kéo nhân vật để xoay, mặc trang bị vào 7 ô (cần đủ cấp), xem so sánh chỉ số, cộng điểm kỹ năng, mua hàng bằng vàng, làm nhiệm vụ. Trong hầm ngục: WASD hoặc mũi tên để di chuyển, Space/J/click để chém hoặc bắn (tự ngắm kẻ gần nhất), Shift/K lướt né, R/F kỹ năng, E/Q uống thuốc, P tạm dừng. Cửa khóa khi còn quái; hạ hết để đi tiếp, mở rương, uống nước hồi máu và đánh trùm ở phòng cuối rồi bước vào cổng linh hồn. Quái báo đòn bằng vòng đỏ dưới chân. Vàng nhặt được đổi thành tiền vào cuộc đời khi kết thúc lượt (nút Nhận tiền ở màn thưởng). Điện thoại: chạm kéo bên trái để di chuyển, nút bên dưới để chém, lướt, kỹ năng, thuốc.',
       (p) => 'Sức khỏe ' + Math.round(p.ctx.stats.health) + ': ' + Math.round(C.baseHP + p.ctx.stats.health * C.hpPerHealth) + ' máu gốc, đỡ đòn tốt hơn, chạy nhanh hơn · Trí tuệ ' + Math.round(p.ctx.stats.smarts) + ': tỉ lệ chí mạng ' + Math.round((C.critBase + p.ctx.stats.smarts * C.critPerSmarts) * 100) + '% (chưa tính trang bị)');
   }
   boot();
