@@ -855,11 +855,14 @@
 
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
-    { v: '1.81', date: '23/10/2026', items: [
+    { v: '1.82', date: '26/10/2026', items: [
       '🗡️ Minigame mới “Hầm ngục Dreadfall”: đi lại tự do như Dungeon Quest, chém quái, lướt né, 3 tầng và trùm Hiệp sĩ Tro, dùng mô hình 3D từ bộ DREADFALL (trong mục Minigame → Hành động).',
       '🌐 Bản tiếng Anh (bấm nút EN góc màn hình): dịch giao diện, cửa hàng, nghề, minigame và vài tình huống đầu đời. Phần truyện chưa dịch vẫn hiện tiếng Việt; sẽ dịch dần.',
       '🇬🇧 Luyện IELTS: 5 minigame mới (từ vựng, đọc hiểu, ngữ pháp, nghe, nói) trong mục Minigame, sổ từ vựng tự nhắc ôn lại, hoạt động “Thi IELTS thật” cho ra band ảnh hưởng học bổng. Nội dung do game soạn, không phải đề thi chính thức.',
       '🛒 Cửa hàng thêm hơn 40 món: công nghệ, sở thích, đồ học IELTS (sách, khóa học, gia sư), đầu tư sinh lời, và các món dùng một lần như du lịch, spa, quà tặng.',
+      '📱 Nghề “Đường dây lừa đảo” giờ xin việc trực tiếp từ 18 tuổi ở mục Tìm việc, không cần chờ bị rủ rê.',
+    ] },
+    { v: '1.81', date: '23/10/2026', items: [
       '⚡ Tải trang nhanh hơn: các tệp tình huống (khoảng 40% dung lượng) được nạp nền sau khi màn hình chính hiện ra, nên vào game nhanh hơn trên mạng chậm. Bấm bắt đầu sớm thì game tự nạp ngay.',
       '🎮 Làm lại nhiều minigame, thêm sổ thành tựu và thử thách hằng ngày, tạm dừng giữa ván, ca làm việc mới cho nhiều nghề.',
       '📋 HLV: khi đủ giỏi, bạn nhận lời mời của Liên đoàn và tự chọn giữa lên làm HLV đội tuyển quốc gia hoặc ở lại câu lạc bộ làm tiếp (ở lại thì được tăng niềm tin của ban lãnh đạo, vài năm sau lời mời mới quay lại). Trước đây game tự động đưa bạn lên đội tuyển.',
