@@ -102,4 +102,42 @@
     },
     del(key) { try { window.localStorage.removeItem(key); return true; } catch (e) { return false; } },
   };
+
+  // ---------------------------------------------------------------- nạp trễ các tệp tình huống (js/events_*.js, khoảng 40 phần trăm dung lượng)
+  // Tình huống chỉ cần khi bắt đầu/tiếp tục một cuộc đời, không cần để hiện màn hình chính. Sau khi trang tải xong, trình duyệt nhàn rỗi thì nạp nền
+  // (giữ đúng thứ tự); nếu người chơi bấm vào game quá sớm, game.js gọi ensureSync() để nạp ngay (đồng bộ) trước khi đọc KN.EVENTS.
+  // Khóa ?v= lấy từ KN_BUILD (do bản dựng đặt) để bộ nhớ đệm đúng phiên bản.
+  const LAZY_EVENTS = ['events_early', 'events_adult', 'events_mature', 'events_story_love', 'events_story_crime', 'events_story_money', 'events_story_accident', 'events_story_family', 'events_story_school', 'events_story_work', 'events_story_life', 'events_story_parenting', 'events_story_football', 'events_story_society', 'events_story_action', 'events_story_romance', 'events_story_era', 'events_story_giangho', 'events_story_study', 'events_story_twist', 'events_career_sport', 'events_career_star', 'events_career_office', 'events_career_service', 'events_global', 'events_holiday'];
+  const lazy = KN.lazy = { done: false, started: false, sync: false, files: LAZY_EVENTS.slice() };
+  const lazyUrl = (f) => 'js/' + f + '.js' + (window.KN_BUILD ? '?v=' + window.KN_BUILD : '');
+  const lazyFinish = () => { lazy.done = true; try { window.dispatchEvent(new Event('kn-events-ready')); } catch (e) { /* */ } };
+  lazy.start = function () {
+    if (lazy.started || lazy.done) return; lazy.started = true;
+    if (KN.EVENTS && KN.EVENTS.length) { lazyFinish(); return; } // trang kiểm tra / bản cũ đã nạp tĩnh
+    // tải trước song song (ưu tiên thấp), nhưng CHẠY lần lượt từng tệp, nghỉ giữa các tệp để không làm giật màn hình chính
+    LAZY_EVENTS.forEach((f) => { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'script'; l.href = lazyUrl(f); document.head.appendChild(l); });
+    let i = 0;
+    const yieldThen = (fn) => { if (window.requestIdleCallback) requestIdleCallback(fn, { timeout: 250 }); else setTimeout(fn, 20); };
+    const next = () => {
+      if (lazy.sync || lazy.done) return; // người chơi bấm sớm: ensureSync đã nạp hết, dừng chuỗi nền để không trùng
+      if (i >= LAZY_EVENTS.length) { lazyFinish(); return; }
+      const f = LAZY_EVENTS[i++], s = document.createElement('script'); s.src = lazyUrl(f);
+      s.onload = () => yieldThen(next); s.onerror = () => { console.warn('[KN.lazy] không nạp được', f); yieldThen(next); };
+      document.head.appendChild(s);
+    };
+    next();
+  };
+  // dự phòng: nạp đồng bộ khi cần ngay. Các tệp nạp nền chưa chạy xong vẫn sẽ chạy sau đó, nên đọc danh sách phải khử trùng id (xem evList trong game.js).
+  lazy.ensureSync = function () {
+    if (lazy.done) return;
+    if (KN.EVENTS && KN.EVENTS.length && !lazy.started && !lazy.sync) { lazyFinish(); return; }
+    if (lazy.sync) return;
+    lazy.sync = true;
+    LAZY_EVENTS.forEach((f) => {
+      try { const x = new XMLHttpRequest(); x.open('GET', lazyUrl(f), false); x.send(); if (x.status === 200) (0, eval)(x.responseText + '\n//# sourceURL=' + f + '.js'); } catch (e) { console.warn('[KN.lazy] nạp đồng bộ lỗi', f, e); }
+    });
+    lazyFinish();
+  };
+  const kick = () => { const go = () => lazy.start(); if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 2500 }); else setTimeout(go, 600); };
+  if (document.readyState === 'complete') kick(); else window.addEventListener('load', kick);
 })();

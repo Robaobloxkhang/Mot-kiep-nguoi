@@ -956,9 +956,17 @@
 
   // ------------------------------------------------------------------ event instances
   let EVMAP = null;
+  // danh sách tình huống: bảo đảm các tệp events_*.js đã nạp (nạp trễ, xem kn_boot.js) và khử trùng id phòng khi nạp nền + nạp đồng bộ chồng nhau
+  let EVLIST = null, EVLEN = -1;
+  function evList() {
+    if (KN.lazy && !KN.lazy.done) { KN.lazy.ensureSync(); EVMAP = null; }
+    const raw = KN.EVENTS || [];
+    if (EVLIST && EVLEN === raw.length) return EVLIST;
+    const seen = new Set(); EVLIST = raw.filter((e) => { if (!e || !e.id || seen.has(e.id)) return false; seen.add(e.id); return true; }); EVLEN = raw.length; EVMAP = null; return EVLIST;
+  }
   function evDef(id) {
     if (MS[id]) return MS[id];
-    if (!EVMAP) { EVMAP = {}; (KN.EVENTS || []).forEach((e) => { if (e && e.id) EVMAP[e.id] = e; }); }
+    if (!EVMAP) { const mp = {}; evList().forEach((e) => { if (e && e.id) mp[e.id] = e; }); EVMAP = mp; }
     return EVMAP[id] || null;
   }
   function choicesOf(def) { return def.choicesFn ? def.choicesFn() : def.choices || []; }
@@ -1008,7 +1016,7 @@
     return (def._office = !!o);
   }
   function pickEvents(n) {
-    const list = (KN.EVENTS || []).filter((e) => eligible(e, P().age));
+    const list = evList().filter((e) => eligible(e, P().age));
     const out = [];
     let guard = 0;
     while (out.length < n && list.length && guard++ < 30) {

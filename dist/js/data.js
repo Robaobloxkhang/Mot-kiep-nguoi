@@ -792,6 +792,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '⚡ Tải trang nhanh hơn: các tệp tình huống (khoảng 40% dung lượng) được nạp nền sau khi màn hình chính hiện ra, nên vào game nhanh hơn trên mạng chậm. Bấm bắt đầu sớm thì game tự nạp ngay.',
       '🎮 Làm lại nhiều minigame, thêm sổ thành tựu và thử thách hằng ngày, tạm dừng giữa ván, ca làm việc mới cho nhiều nghề.',
       '📋 HLV: khi đủ giỏi, bạn nhận lời mời của Liên đoàn và tự chọn giữa lên làm HLV đội tuyển quốc gia hoặc ở lại câu lạc bộ làm tiếp (ở lại thì được tăng niềm tin của ban lãnh đạo, vài năm sau lời mời mới quay lại). Trước đây game tự động đưa bạn lên đội tuyển.',
       '⚽ Trận HLV: đội đối thủ không còn chỉ để một người xông lên rồi cả đội đứng nhà. HLV máy tự dâng cao khi đang thua và lùi về khi dẫn điểm cuối trận, người thứ hai áp sát bóng, hậu vệ dâng lên khi đội giữ bóng.',
