@@ -117,6 +117,12 @@
     const h = G().haggleInfo(itemId), ctx = G().miniContext(); if (!h || !ctx) return null;
     return { type: 'haggle', need: 0.4, ctx, title: 'Mua ' + h.name, label: 'Mặc cả trước khi xuống tiền', price: h.price, item: h.name, mode: 'buy' };
   }
+  // hoạt động "Chơi game": chọn một minigame giải trí để chơi, điểm quyết định mức vui
+  const FUN_TYPES = ['dread', 'aim', 'clutch', 'chase', 'drive', 'hoops', 'penalty', 'sprint', 'cards'];
+  function planFun(type) {
+    if (!enabled() || !G().miniContext) return null; const ctx = G().miniContext(); if (!ctx || !FUN_TYPES.includes(type)) return null;
+    return { type, foe: 'thug', need: 0.5, ctx, title: '🎮 Chơi game', label: NAME[type], level: 2, mode: 'event' };
+  }
   const DUEL_TYPES = ['quiz', 'penalty', 'hax', 'keeper', 'hoops', 'sprint', 'swim', 'chase', 'drive', 'fight', 'cards', 'stock', 'cook'];
   function planDuel(type, seed, vsName) {
     const ctx = (G().miniContext && G().miniContext()) || { stats: { happy: 60, health: 60, smarts: 60, looks: 60 }, appearance: {}, age: 25 };
@@ -2182,7 +2188,7 @@
 
   const GAMES = { paint: paintGame, land: landGame, fix: fixGame, clutch, aim, scamchat, hoops, shoot: hoops, hax, sneak, quiz, penalty, keeper, sprint, swim, chase, drive, fight, interview, cook, stock, love, haggle, cpr, cards };
   KN.Mini = {
-    plan, planJob, planPropose, planHaggle, planDuel, run, NAME, DUEL_TYPES,
+    plan, planJob, planPropose, planHaggle, planDuel, planFun, FUN_TYPES, run, NAME, DUEL_TYPES,
     // file khác đăng ký thêm minigame (js/showbiz.js): fn(p) → Promise<{score, text}>, tự mở khung riêng
     register(type, fn, name, how, hint) { GAMES[type] = (p) => { close(); return fn(p); }; NAME[type] = name; HOWTO[type] = how; if (hint) EXTRA_HINT[type] = hint; },
     busy: () => !!root, HOWTO,

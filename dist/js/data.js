@@ -859,6 +859,7 @@
       '🏰 Hầm ngục Dreadfall làm lại giao diện kiểu game RPG Roblox: thanh trên cùng (cấp, máu, kinh nghiệm, vàng), nhân vật 3D ở giữa kéo để xoay, thu phóng, 7 ô trang bị (mũ, giáp, giày, vũ khí, tay phụ, 2 phụ kiện) và kho đồ dạng lưới có tìm kiếm, lọc, sắp xếp.',
       '⚔️ Chọn vật phẩm để xem chi tiết và so sánh với món đang mặc (số chênh lệch xanh/đỏ), khóa món quý, bán có xác nhận. Có cấp độ nhân vật, điểm kỹ năng, nhiệm vụ và cửa hàng riêng.',
       '🗺️ 5 hầm ngục nối thành đường tiến trình (Hành lang Xương, Cổng Nguyền Rủa, Hầm mộ Tro, Ngai Vua Rồng, Vực Linh Hồn) × 3 độ khó, bảng rơi đồ theo từng hầm, màn thưởng khi phá đảo. Vàng đổi được thành tiền trong cuộc đời. Co-op online sẽ có sau.',
+      '🎮 Hoạt động “Chơi game” giờ cho bạn chọn một minigame để chơi (Hầm ngục, ngắm bắn, rượt đuổi, lái xe, ném rổ…): chơi càng hay càng vui.',
     ] },
     { v: '1.82', date: '26/10/2026', items: [
       '🗡️ Minigame mới “Hầm ngục Dreadfall”: đi lại tự do như Dungeon Quest, chém quái, lướt né, 3 tầng và trùm Hiệp sĩ Tro, dùng mô hình 3D từ bộ DREADFALL (trong mục Minigame → Hành động).',

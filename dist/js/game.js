@@ -4587,6 +4587,10 @@
       default: {
         rollEff(a.eff, k, deltas);
         text = U.pick(a.texts || ['Bạn ' + a.label.toLowerCase() + '.']);
+        if (a.id === 'game' && arg && typeof arg.mini === 'number') {
+          const sc = U.clamp(arg.mini, 0, 1), bonus = Math.round((sc - 0.45) * 8 * k); if (bonus) addStat('happy', bonus, deltas);
+          text = sc >= 0.75 ? 'Bạn chơi cực hay, thắng liên tục và hưng phấn cả buổi tối.' : sc >= 0.45 ? 'Bạn chơi khá ổn, vui vẻ giết thời gian cùng bạn bè.' : 'Bạn chơi tệ, thua mấy ván liền và hơi cáu.';
+        }
         const extra = (a.id === 'cafe' || a.id === 'karaoke') && (partner || friend) ? { people: [{ p: partner || friend, anim: a.id === 'karaoke' ? 'dance' : 'talk' }] } : null;
         scene = actScene(a.scene || { loc: 'home', anim: 'idle' }, extra);
         if (a.id === 'gym' && Math.random() < 0.05) { addIllness('Chấn thương cơ'); text += ' Ối! Bạn bị chấn thương cơ vì tập quá sức.'; }

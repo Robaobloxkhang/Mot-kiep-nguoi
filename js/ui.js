@@ -735,7 +735,7 @@
     $('#modalBox').querySelectorAll('[data-ind]').forEach((b) => (b.onclick = () => { const nm = $('#coName').value; closeModal(); sfx('coin'); doAction(() => G().foundCompany(b.dataset.ind, nm)); }));
   }
   function bindTab(body, v) {
-    body.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => { sfx('click'); if (b.dataset.input === 'parttime') openPartTime(b.dataset.act); else if (b.dataset.input) openPlayPicker(b.dataset.act); else doAction(() => G().doActivity(b.dataset.act)); });
+    body.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => { sfx('click'); if (b.dataset.input === 'parttime') openPartTime(b.dataset.act); else if (b.dataset.input) openPlayPicker(b.dataset.act); else if (b.dataset.act === 'game' && KN.Mini && safe(() => KN.Mini.planFun('aim'))) openGamePicker(); else doAction(() => G().doActivity(b.dataset.act)); });
     body.querySelectorAll('[data-logf]').forEach((b) => (b.onclick = () => { sfx('click'); S.logOnly = b.dataset.logf === 'key'; render(); }));
     const rk = body.querySelector('#btnRisk'); if (rk) rk.onclick = () => { sfx('click'); openRisks(); };
     body.querySelectorAll('[data-person]').forEach((b) => b.onclick = () => { sfx('click'); openPerson(b.dataset.person); });
@@ -1171,6 +1171,12 @@
       opts.map((o) => '<button type="button" class="card gift" data-gig="' + o.id + '"' + (o.available ? '' : ' disabled') + '><span class="gi">' + o.icon + '</span><span class="gn">' + esc(o.name) + '</span><span class="gp' + (o.available ? '' : ' warn') + '">' + esc(o.available ? o.payText : o.reason) + '</span></button>').join('') + '</div>');
     $('#modalBox').querySelectorAll('[data-gig]').forEach((b) => b.onclick = () => { closeModal(); sfx('coin'); doAction(() => G().doActivity(actId, { gig: b.dataset.gig })); });
   }  // ---- đi chơi: gõ tự do hoặc chọn nhanh → trợ lý hướng nghiệp phân tích sở thích
+  // "Chơi game": chọn minigame giải trí; điểm càng cao càng vui
+  function openGamePicker() {
+    const M = KN.Mini; openModal('<h3>🎮 Chơi game gì?</h3><p class="sub">Chọn một minigame. Chơi hay thì vui hơn, chơi tệ thì hơi cáu.</p><div class="chipsel" id="gpList">' + M.FUN_TYPES.map((t) => '<button type="button" data-g="' + t + '">' + esc(M.NAME[t] || t) + '</button>').join('') + '</div><div class="btnrow" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn btn-ghost" data-close="1">Thôi</button><button type="button" class="btn btn-soft" id="gpRand">Ngẫu nhiên</button></div>');
+    const go = (t) => { const plan = M.planFun(t); closeModal(); sfx('click'); withMini(plan, (x) => G().doActivity('game', x)); };
+    $('#modalBox').querySelectorAll('[data-g]').forEach((b) => (b.onclick = () => go(b.dataset.g))); $('#gpRand').onclick = () => go(M.FUN_TYPES[Math.floor(Math.random() * M.FUN_TYPES.length)]);
+  }
   function openPlayPicker(actId) {
     const I = D.INTERESTS, v = G().view();
     openModal('<h3>🎈 Đi chơi</h3><p class="sub">Hôm nay ' + esc(v.name) + ' muốn chơi gì? Gõ tự do bằng tiếng Việt (vd: “đá bóng với mấy đứa trong xóm”, “vẽ tranh con mèo”, “tháo cái quạt ra xem”), hoặc chọn nhanh bên dưới. Trợ lý hướng nghiệp sẽ ghi nhận sở thích để gợi ý nghề sau này.</p>' +
