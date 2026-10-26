@@ -26,5 +26,8 @@ fs.writeFileSync(path.join(dist, 'version.json'), JSON.stringify({ build: stamp 
 // kiểm tra nhanh: mọi script trong index nguồn (trừ nạp trễ) có trong dist, và dist không thiếu tệp
 const src = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const missing = [...src.matchAll(/<script src="(js\/[^"?]+)/g)].map((m) => m[1]).filter((f) => !fs.existsSync(path.join(dist, f)));
+const inDist = new Set([...html.matchAll(/<script src="(js\/[^"?]+)/g)].map((m) => m[1]));
+const notInDist = [...src.matchAll(/<script src="(js\/[^"?]+)/g)].map((m) => m[1]).filter((f) => !inDist.has(f));
+if (notInDist.length) { console.error('dist/index.html thiếu thẻ script (thêm vào đúng vị trí như index.html): ' + notInDist.join(', ')); process.exit(1); }
 console.log(`Đã đồng bộ dist/, đóng dấu ${stamp} (${n} thẻ ?v=).` + (missing.length ? ' THIẾU: ' + missing.join(', ') : ''));
 process.exit(missing.length ? 1 : 0);
