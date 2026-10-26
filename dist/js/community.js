@@ -222,7 +222,7 @@
     ['keydown', 'keyup'].forEach((ev) => fbEl.addEventListener(ev, (e) => e.stopPropagation()));
     fbEl.innerHTML = '<div class="fb-box"><div class="fb-head"><b>📝 Gửi góp ý cho người làm game</b><button type="button" class="fb-x" data-x aria-label="Đóng">✖</button></div>' +
       '<div class="fb-body"><div class="fb-chips" id="fbKinds">' + FB_KINDS.map((k) => '<button type="button" data-k="' + k[0] + '" class="' + (k[0] === kind ? 'on' : '') + '">' + k[1] + '</button>').join('') + '</div>' +
-      '<label class="fb-l" for="fbText">Bạn muốn nói gì? <small id="fbCnt">0/1500</small></label><textarea id="fbText" maxlength="1500" rows="6" placeholder="Mô tả ý tưởng, lỗi gặp phải (xảy ra lúc nào, ở tuổi mấy, bấm gì) hay điều bạn muốn game có thêm…"></textarea>' +
+      '<label class="fb-l" for="fbText">Bạn muốn nói gì? <small id="fbCnt">0/1500</small></label><textarea id="fbText" maxlength="1500" rows="6" placeholder="Mô tả ý tưởng, lỗi gặp phải (xảy ra lúc nào, ở tuổi mấy, bấm gì) hay điều bạn muốn game có thêm…"></textarea>' + (KN.errlog && KN.errlog.list().length ? '<label class="fb-log"><input type="checkbox" id="fbLog" checked> Đính kèm nhật ký lỗi gần đây (' + KN.errlog.list().length + ' lỗi, chỉ gồm thông báo lỗi, không có dữ liệu cá nhân)</label>' : '') + '' +
       '<div class="fb-row"><div><label class="fb-l" for="fbName">Tên (không bắt buộc)</label><input id="fbName" maxlength="30" autocomplete="off" value="' + esc(nick()) + '" placeholder="Ẩn danh"></div><div><label class="fb-l" for="fbContact">Liên hệ lại (không bắt buộc)</label><input id="fbContact" maxlength="80" autocomplete="off" placeholder="Zalo, email…"></div></div>' +
       '<div class="fb-l">Ảnh minh hoạ (tối đa 2, tự nén nhỏ)</div><div class="fb-imgs" id="fbImgs"></div><input type="file" id="fbFile" accept="image/*" multiple hidden>' +
       '<p class="fb-msg" id="fbMsg"></p><div class="fb-btns"><button type="button" class="btn btn-soft btn-sm" id="fbAdmin">🔑 Quản trị</button><button type="button" class="btn btn-primary" id="fbSend">📨 Gửi góp ý</button></div>' +
@@ -255,7 +255,8 @@
       if (text.length < 5) { msg('Hãy viết ít nhất vài chữ nhé.', true); $('fbText').focus(); return; }
       $('fbSend').disabled = true; msg('Đang gửi…');
       try {
-        await api('/api/feedback', { op: 'send', pid: pid(), name: $('fbName').value, kind, text, contact: $('fbContact').value, ver, imgs });
+        const logOn = $('fbLog') && $('fbLog').checked, body = logOn ? text.slice(0, 1100) + '\n\n[Nhật ký lỗi]\n' + KN.errlog.text(380) : text; // máy chủ nhận tối đa 1500 ký tự
+        await api('/api/feedback', { op: 'send', pid: pid(), name: $('fbName').value, kind, text: body, contact: $('fbContact').value, ver, imgs });
         sfx('cheer'); toast('Đã gửi góp ý', 'Cảm ơn bạn! Người làm game sẽ đọc.', '📝', 'good');
         if ($('fbName').value) KN.store.set('kn_online_name', $('fbName').value.trim().slice(0, 20));
         closeFb();

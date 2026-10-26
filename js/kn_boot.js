@@ -108,7 +108,7 @@
   // (giữ đúng thứ tự); nếu người chơi bấm vào game quá sớm, game.js gọi ensureSync() để nạp ngay (đồng bộ) trước khi đọc KN.EVENTS.
   // Khóa ?v= lấy từ KN_BUILD (do bản dựng đặt) để bộ nhớ đệm đúng phiên bản.
   const LAZY_EVENTS = ['events_early', 'events_adult', 'events_mature', 'events_story_love', 'events_story_crime', 'events_story_money', 'events_story_accident', 'events_story_family', 'events_story_school', 'events_story_work', 'events_story_life', 'events_story_parenting', 'events_story_football', 'events_story_society', 'events_story_action', 'events_story_romance', 'events_story_era', 'events_story_giangho', 'events_story_study', 'events_story_twist', 'events_career_sport', 'events_career_star', 'events_career_office', 'events_career_service', 'events_global', 'events_holiday'];
-  const lazy = KN.lazy = { done: false, started: false, sync: false, files: LAZY_EVENTS.slice() };
+  const lazy = KN.lazy = { done: false, started: false, sync: false, files: LAZY_EVENTS.slice(), loaded: {} };
   const lazyUrl = (f) => 'js/' + f + '.js' + (window.KN_BUILD ? '?v=' + window.KN_BUILD : '');
   const lazyFinish = () => { lazy.done = true; try { window.dispatchEvent(new Event('kn-events-ready')); } catch (e) { /* */ } };
   lazy.start = function () {
@@ -117,12 +117,12 @@
     // tải trước song song (ưu tiên thấp), nhưng CHẠY lần lượt từng tệp, nghỉ giữa các tệp để không làm giật màn hình chính
     LAZY_EVENTS.forEach((f) => { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'script'; l.href = lazyUrl(f); document.head.appendChild(l); });
     let i = 0;
-    const yieldThen = (fn) => { if (window.requestIdleCallback) requestIdleCallback(fn, { timeout: 250 }); else setTimeout(fn, 20); };
+    const yieldThen = (fn) => setTimeout(fn, 40); // mỗi tệp chạy ≤ ~20ms; nghỉ 40ms giữa các tệp cho trình duyệt vẽ
     const next = () => {
       if (lazy.sync || lazy.done) return; // người chơi bấm sớm: ensureSync đã nạp hết, dừng chuỗi nền để không trùng
       if (i >= LAZY_EVENTS.length) { lazyFinish(); return; }
       const f = LAZY_EVENTS[i++], s = document.createElement('script'); s.src = lazyUrl(f);
-      s.onload = () => yieldThen(next); s.onerror = () => { console.warn('[KN.lazy] không nạp được', f); yieldThen(next); };
+      s.onload = () => { lazy.loaded[f] = 1; yieldThen(next); }; s.onerror = () => { console.warn('[KN.lazy] không nạp được', f); yieldThen(next); };
       document.head.appendChild(s);
     };
     next();
@@ -134,10 +134,28 @@
     if (lazy.sync) return;
     lazy.sync = true;
     LAZY_EVENTS.forEach((f) => {
-      try { const x = new XMLHttpRequest(); x.open('GET', lazyUrl(f), false); x.send(); if (x.status === 200) (0, eval)(x.responseText + '\n//# sourceURL=' + f + '.js'); } catch (e) { console.warn('[KN.lazy] nạp đồng bộ lỗi', f, e); }
+      if (lazy.loaded[f]) return; // đã chạy xong ở chuỗi nền thì không chạy lại (tránh nhân đôi tình huống)
+      try { lazy.loaded[f] = 1; const x = new XMLHttpRequest(); x.open('GET', lazyUrl(f), false); x.send(); if (x.status === 200) (0, eval)(x.responseText + '\n//# sourceURL=' + f + '.js'); } catch (e) { console.warn('[KN.lazy] nạp đồng bộ lỗi', f, e); }
     });
     lazyFinish();
   };
-  const kick = () => { const go = () => lazy.start(); if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 2500 }); else setTimeout(go, 600); };
+  const kick = () => setTimeout(() => lazy.start(), 600); // để màn hình chính vẽ xong rồi mới nạp nền
   if (document.readyState === 'complete') kick(); else window.addEventListener('load', kick);
+
+  // ---------------------------------------------------------------- nhật ký lỗi gần đây (chỉ lưu trên máy, KHÔNG tự gửi; người chơi chọn đính kèm khi gửi phản hồi)
+  const ERRKEY = 'kn_errlog';
+  const errlog = KN.errlog = {
+    list() { try { return JSON.parse(window.localStorage.getItem(ERRKEY) || '[]') || []; } catch (e) { return []; } },
+    add(msg, where) {
+      try {
+        const l = errlog.list(), m = String(msg || '').slice(0, 160), w = String(where || '').replace(/^.*\//, '').slice(0, 60);
+        if (l.length && l[l.length - 1].m === m && l[l.length - 1].w === w) { l[l.length - 1].n = (l[l.length - 1].n || 1) + 1; } else l.push({ t: Date.now(), m, w, n: 1 });
+        window.localStorage.setItem(ERRKEY, JSON.stringify(l.slice(-20)));
+      } catch (e) { /* không lưu được thì bỏ qua */ }
+    },
+    clear() { try { window.localStorage.removeItem(ERRKEY); } catch (e) { /* */ } },
+    text(max) { return errlog.list().slice(-6).map((x) => new Date(x.t).toISOString().slice(5, 16) + ' ' + x.m + (x.w ? ' @' + x.w : '') + (x.n > 1 ? ' ×' + x.n : '')).join('\n').slice(0, max || 380); },
+  };
+  window.addEventListener('error', (e) => { if (e && e.message && !/ResizeObserver/.test(e.message)) errlog.add(e.message, (e.filename || '') + ':' + (e.lineno || '')); });
+  window.addEventListener('unhandledrejection', (e) => { const r = e && e.reason; errlog.add('Promise: ' + (r && r.message ? r.message : r), ''); });
 })();

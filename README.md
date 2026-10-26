@@ -92,6 +92,22 @@ Rồi mở:
 
 Các tính năng online cần máy chủ Vercel nên chỉ chạy đầy đủ trên bản đã deploy.
 
+## Kiểm tra tự động
+
+Trước khi đẩy bản mới, chạy bộ kiểm tra (cần Playwright; game thì không cần cài gì thêm):
+
+```
+npm i -D playwright && npx playwright install chromium
+node dev/tests/run.mjs                 # kiểm tra toàn bộ (khá lâu vì chơi thử từng minigame và ca làm việc)
+node dev/tests/run.mjs --quick         # chỉ lấy mẫu một phần
+node dev/tests/run.mjs --only=boot,lazy,saves,a11y
+node dev/tests/run.mjs --root=dist     # kiểm tra bản đã đóng gói
+```
+
+Gồm: mở trang không lỗi JS, nạp trễ tình huống (cả hai đường), mọi minigame mở được, mọi ca làm việc có minigame chạy được, **save của các phiên bản cũ** (`dev/tests/fixtures/`) vẫn nạp và chơi tiếp được, và quét truy cập ở khung điện thoại 390px. Trang `dev/check.html` vẫn dùng để kiểm tra dữ liệu/sự kiện bằng tay.
+
+Sau khi sửa mã, đồng bộ bản đóng gói và đóng dấu phiên bản (để người chơi cũ nhận được bản mới) bằng `node dev/sync-dist.mjs`.
+
 ## Đưa lên mạng
 
 ```powershell

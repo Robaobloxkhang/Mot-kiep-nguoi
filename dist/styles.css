@@ -1650,3 +1650,4 @@ details.more.risk p { margin: 0 0 8px; }
 @media (prefers-reduced-motion: reduce) {
   .mini-ring, .mini-ring *, .mini-bar i, .mini-pause, .arc-go, .arc-daily, .am-t, .mini-meta span { animation: none !important; transition: none !important; }
 }
+.fb-log { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--fg-dim); margin: 6px 0; } .fb-log input { margin-top: 3px; }
