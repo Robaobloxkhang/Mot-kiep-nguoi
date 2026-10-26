@@ -1,5 +1,5 @@
 // Một Kiếp Người — bộ kiểm tra tự động (không cần thêm gì vào game).
-// Chạy:  node dev/tests/run.mjs [--root=.|dist] [--only=boot,lazy,minigames,jobtasks,saves,a11y] [--quick]
+// Chạy:  node dev/tests/run.mjs [--root=.|dist] [--only=boot,lazy,minigames,jobtasks,shop,saves,a11y] [--quick]
 // Cần Playwright + Chromium trên máy chạy test:  npm i -D playwright && npx playwright install chromium
 //   (có thể chỉ đường dẫn Chromium sẵn có bằng biến môi trường CHROMIUM_PATH)
 // Ghi chú: test dùng máy chủ tĩnh tạm thời trên cổng ngẫu nhiên, không gọi API online.
@@ -131,6 +131,26 @@ if (want('jobtasks')) {
     done++; if (!ok) { bad++; record(`ca ${cid}#${ti}`, false, why); }
   }
   record(`ca làm việc: ${done} ca chạy, ${skipped} bỏ qua (sự kiện ngẫu nhiên chen ngang), ${bad} lỗi`, bad === 0 && errs.length === 0, errs.slice(0, 2).join(' | '));
+  await ctx.close();
+}
+
+// ---------------------------------------------------------------- 4b. cửa hàng: mua đủ mọi món, lên tuổi không NaN
+if (want('shop')) {
+  console.log('[shop] mua mọi món trong cửa hàng, sống thêm vài năm, bán lại');
+  const { page, ctx, errs } = await openPage();
+  const r = await page.evaluate(() => {
+    const G = KN.Game; G.newLife({}); const S = G._state(); const bad = [];
+    for (let i = 0; i < 30; i++) { S.pending.length = 0; S.stats.health = 95; S.stats.happy = 80; G.ageUp(); }
+    S.pending.length = 0; S.money = 5e12; S.flags.master = S.flags.master || 0;
+    const items = G.shopItems(); let bought = 0, once = 0;
+    items.forEach((it) => { const x = G.buy(it.id); if (x && x.ok !== false) { bought++; if (it.type === 'once') once++; } else bad.push('mua ' + it.id + ': ' + (x && x.error)); });
+    const boost = G.ieltsBoost();
+    for (let i = 0; i < 4; i++) { S.pending.length = 0; S.stats.health = Math.max(S.stats.health, 60); G.ageUp(); }
+    const nan = ['money', 'happy', 'health', 'smarts', 'looks'].filter((k) => !isFinite(k === 'money' ? S.money : S.stats[k])); if (nan.length) bad.push('NaN: ' + nan.join(','));
+    S.assets.slice().forEach((a) => { if (!isFinite(a.value)) bad.push('giá trị NaN: ' + a.name); });
+    return { n: items.length, bought, once, boost, bad };
+  });
+  record(`cửa hàng: ${r.n} món, mua được ${r.bought} (${r.once} dùng một lần), cộng IELTS tối đa ${r.boost}`, r.bad.length === 0 && r.bought >= r.n - 3 && errs.length === 0, (r.bad.concat(errs)).slice(0, 3).join(' | '));
   await ctx.close();
 }
 

@@ -311,6 +311,55 @@
     { id: 'car4', type: 'car', name: 'Siêu xe thể thao', price: 16 * TY, icon: '🏎️', happy: 22, desc: 'Tiếng máy gầm lên là cả phố ngoái nhìn.' },
     { id: 'house4', type: 'house', name: 'Penthouse view sông', price: 45 * TY, icon: '🌇', happy: 34, desc: 'Tầng thượng, hồ bơi riêng, ngắm pháo hoa từ phòng khách.' },
     { id: 'yacht1', type: 'luxury', name: 'Du thuyền riêng', price: 60 * TY, icon: '🛥️', happy: 30, desc: 'Cuối tuần ra vịnh Hạ Long, mời cả họ lên chơi.' },
+    // ---- công nghệ
+    { id: 'laptop1', type: 'tech', name: 'Laptop học tập', price: 18 * TR, icon: '💻', happy: 3, desc: 'Gõ bài, học online, xem phim đêm khuya.' },
+    { id: 'laptop2', type: 'tech', name: 'Laptop cao cấp', price: 45 * TR, icon: '💻', happy: 5, desc: 'Mỏng nhẹ, pin trâu, khoe ở quán cà phê cũng ngầu.' },
+    { id: 'tablet1', type: 'tech', name: 'Máy tính bảng', price: 12 * TR, icon: '📲', happy: 3, desc: 'Đọc sách, ghi chú, vẽ vời lúc rảnh.' },
+    { id: 'console1', type: 'tech', name: 'Máy chơi game', price: 14 * TR, icon: '🎮', happy: 6, desc: 'Cuối tuần cày game với bạn bè.' },
+    { id: 'camera1', type: 'tech', name: 'Máy ảnh mirrorless', price: 30 * TR, icon: '📷', happy: 5, desc: 'Chụp phố, chụp bạn bè, chụp cả bữa cơm.' },
+    { id: 'drone1', type: 'tech', name: 'Flycam', price: 20 * TR, icon: '🚁', happy: 5, desc: 'Nhìn quê hương từ trên cao.' },
+    { id: 'tele1', type: 'tech', name: 'Kính thiên văn', price: 15 * TR, icon: '🔭', happy: 4, desc: 'Đêm trời trong thấy cả vành sao Thổ.' },
+    // ---- sở thích & thể thao
+    { id: 'cycle1', type: 'hobby', name: 'Xe đạp thành phố', price: 3 * TR, icon: '🚲', happy: 3, desc: 'Đạp đi học, đi chợ, đi hóng gió.' },
+    { id: 'cycle2', type: 'hobby', name: 'Xe đạp thể thao', price: 25 * TR, icon: '🚴', happy: 5, desc: 'Cuối tuần đạp vài chục cây, về ăn gì cũng ngon.' },
+    { id: 'guitar1', type: 'hobby', name: 'Đàn guitar', price: 5 * TR, icon: '🎸', happy: 4, desc: 'Vài hợp âm cũng đủ làm bữa tụ họp thêm vui.' },
+    { id: 'piano1', type: 'hobby', name: 'Đàn piano', price: 60 * TR, icon: '🎹', happy: 7, desc: 'Âm thanh ấm áp lấp đầy căn nhà mỗi tối.' },
+    { id: 'gym1', type: 'hobby', name: 'Bộ tạ tập tại nhà', price: 8 * TR, icon: '🏋️', happy: 3, desc: 'Khỏi phải ra phòng gym giờ cao điểm.' },
+    { id: 'camp1', type: 'hobby', name: 'Bộ đồ cắm trại', price: 10 * TR, icon: '⛺', happy: 4, desc: 'Lều, bếp gas mini, đèn pin, và cả một trời sao.' },
+    { id: 'rod1', type: 'hobby', name: 'Bộ cần câu', price: 4 * TR, icon: '🎣', happy: 3, desc: 'Ngồi cả buổi chẳng được con nào mà vẫn vui.' },
+    { id: 'golf1', type: 'hobby', name: 'Bộ gậy golf', price: 120 * TR, icon: '⛳', happy: 6, desc: 'Sân golf là nơi chốt hợp đồng.' },
+    // ---- xa xỉ
+    { id: 'jewel1', type: 'luxury', name: 'Nhẫn kim cương', price: 280 * TR, icon: '💍', happy: 7, desc: 'Lấp lánh dưới mọi ánh đèn.' },
+    { id: 'jewel2', type: 'luxury', name: 'Vòng ngọc phỉ thúy', price: 150 * TR, icon: '📿', happy: 5, desc: 'Càng đeo càng lên nước.' },
+    { id: 'wine1', type: 'luxury', name: 'Hầm rượu vang', price: 350 * TR, icon: '🍷', happy: 6, desc: 'Mỗi chai là một năm ủ, mỗi bữa tiệc là một câu chuyện.' },
+    // ---- bất động sản mới
+    { id: 'house0', type: 'house', name: 'Căn hộ studio', price: 1.4 * TY, icon: '🏙️', happy: 12, desc: 'Nhỏ gọn, đủ cho một người, gần trung tâm.' },
+    { id: 'land2', type: 'land', name: 'Đất nền ven đô', price: 3.5 * TY, icon: '🏞️', happy: 6, desc: 'Quy hoạch sắp mở đường, giữ vài năm là có lời.' },
+    { id: 'land3', type: 'land', name: 'Dãy phòng trọ', price: 4.2 * TY, icon: '🏘️', happy: 4, desc: 'Sinh viên đông, tiền thuê về đều đều.' },
+    // ---- học tập & IELTS
+    { id: 'dict1', type: 'study', name: 'Từ điển Oxford', price: 0.9 * TR, icon: '📖', happy: 1, desc: 'Tra từ chuẩn, có cả ví dụ và cách phát âm.' },
+    { id: 'book1', type: 'study', name: 'Bộ sách luyện IELTS', price: 1.2 * TR, icon: '📚', happy: 1, desc: 'Cambridge 1 đến 18, giấy đã cũ vì lật nhiều.' },
+    { id: 'app1', type: 'study', name: 'Ứng dụng từ vựng premium', price: 1.8 * TR, icon: '📱', happy: 1, desc: 'Nhắc từ cũ đúng lúc sắp quên.' },
+    { id: 'phones1', type: 'study', name: 'Tai nghe luyện nghe', price: 3.5 * TR, icon: '🎧', happy: 2, desc: 'Nghe không lẫn tiếng ồn, bắt từng âm cuối.' },
+    { id: 'mock1', type: 'study', name: 'Gói thi thử IELTS', price: 4 * TR, icon: '📝', happy: 1, desc: 'Phòng thi giả, chấm điểm thật, biết mình đang ở đâu.' },
+    { id: 'course1', type: 'study', name: 'Khóa IELTS online', price: 6 * TR, icon: '🖥️', happy: 2, desc: 'Học lúc nào cũng được, quay lại xem bài giảng.' },
+    { id: 'tutor1', type: 'study', name: 'Gia sư kèm 1 kèm 1', price: 25 * TR, icon: '🧑‍🏫', happy: 3, desc: 'Cô giáo sửa từng câu viết, từng lỗi phát âm.' },
+    { id: 'center1', type: 'study', name: 'Khóa trung tâm cam kết đầu ra', price: 40 * TR, icon: '🏫', happy: 3, desc: 'Lớp nhỏ, lộ trình rõ, cam kết học lại nếu chưa đạt.' },
+    // ---- dịch vụ & đầu tư
+    { id: 'ins1', type: 'invest', name: 'Bảo hiểm sức khỏe', price: 12 * TR, icon: '🩺', happy: 2, desc: 'Ốm đau đỡ lo viện phí.' },
+    { id: 'dep1', type: 'invest', name: 'Sổ tiết kiệm dài hạn', price: 100 * TR, icon: '🏦', happy: 1, desc: 'Lãi nhỏ nhưng đều và an toàn.' },
+    { id: 'fund1', type: 'invest', name: 'Chứng chỉ quỹ', price: 200 * TR, icon: '📈', happy: 2, desc: 'Giao cho quỹ lo, sinh lời theo thị trường.' },
+    { id: 'bond1', type: 'invest', name: 'Trái phiếu doanh nghiệp', price: 500 * TR, icon: '📜', happy: 2, desc: 'Lãi cao hơn gửi ngân hàng, kèm chút rủi ro.' },
+    { id: 'biz1', type: 'invest', name: 'Hùn vốn quán cà phê', price: 350 * TR, icon: '☕', happy: 4, desc: 'Cuối năm chia lãi, có khi lỗ, có khi lãi to.' },
+    // ---- dùng một lần (mua xong dùng ngay, không thành tài sản)
+    { id: 'vit1', type: 'once', name: 'Bồi bổ sức khỏe', price: 1.5 * TR, icon: '💊', happy: 0, fx: { health: 4 }, limit: 2, desc: 'Thuốc bổ, đồ ăn tử tế, ngủ đủ giấc.' },
+    { id: 'check1', type: 'once', name: 'Gói khám tổng quát', price: 4 * TR, icon: '🩻', happy: 1, fx: { health: 3 }, limit: 1, desc: 'Yên tâm vì biết cơ thể mình ổn.' },
+    { id: 'spa1', type: 'once', name: 'Ngày làm đẹp ở spa', price: 3 * TR, icon: '💆', happy: 4, fx: { looks: 2 }, limit: 2, desc: 'Một ngày thả lỏng, ra về sáng bừng.' },
+    { id: 'trip1', type: 'once', name: 'Chuyến du lịch nội địa', price: 6 * TR, icon: '🧳', happy: 8, fx: {}, limit: 2, desc: 'Đổi gió vài ngày, về lại thấy yêu đời.' },
+    { id: 'concert1', type: 'once', name: 'Vé xem hòa nhạc', price: 2.5 * TR, icon: '🎫', happy: 6, fx: {}, limit: 2, desc: 'Hát theo hết cả bài, khản giọng mà sướng.' },
+    { id: 'party1', type: 'once', name: 'Tiệc mời bạn bè', price: 8 * TR, icon: '🥳', happy: 6, fx: { rel: 4 }, limit: 2, desc: 'Cả nhóm tụ họp, chuyện cũ chuyện mới.' },
+    { id: 'gift1', type: 'once', name: 'Quà cho người thân', price: 2 * TR, icon: '🎁', happy: 3, fx: { rel: 6 }, limit: 3, desc: 'Món nhỏ, nhưng người nhận nhớ mãi.' },
+    { id: 'book2', type: 'once', name: 'Mua sách hay', price: 0.3 * TR, icon: '📕', happy: 1, fx: { smarts: 1 }, limit: 3, desc: 'Đọc hết trong một tuần.' },
   ];
   // lợi ích lâu dài khi sở hữu: joy = hạnh phúc nền mỗi năm, prestige = đẳng cấp, looksY = ngoại hình mỗi năm,
   // rent = lợi suất cho thuê mỗi năm (tỷ lệ giá trị), fam = gắn kết gia đình mỗi năm, unlock = hoạt động mở khóa
@@ -324,9 +373,23 @@
     land1: { joy: 0.5, prestige: 1, rent: 0.015 }, gold1: {},
     watch1: { joy: 2, prestige: 2, looksY: 1 }, bag1: { joy: 2, prestige: 2, looksY: 1 }, art1: { joy: 1.5, prestige: 2, smartsY: 0.5 },
     yacht1: { joy: 6, prestige: 8, fam: 2, unlock: 'yachtparty' },
+    // grp = nhóm tính lợi ích riêng (mỗi món khác loại cộng đủ); ielts = điểm cộng vào mô phỏng band; healthY = sức khỏe mỗi năm; yld = lợi suất mỗi năm (sau thuế 10%)
+    laptop1: { joy: 1, smartsY: 0.5, grp: 'laptop' }, laptop2: { joy: 1.5, smartsY: 0.5, prestige: 1, grp: 'laptop' },
+    tablet1: { joy: 1, smartsY: 0.3, grp: 'tablet1' }, console1: { joy: 2, grp: 'console1' }, camera1: { joy: 1.5, prestige: 1, grp: 'camera1' },
+    drone1: { joy: 1.5, grp: 'drone1' }, tele1: { joy: 1, smartsY: 0.4, grp: 'tele1' },
+    cycle1: { joy: 0.8, healthY: 0.4, grp: 'cycle' }, cycle2: { joy: 1.2, healthY: 0.7, prestige: 1, grp: 'cycle' },
+    guitar1: { joy: 1.5, grp: 'guitar1' }, piano1: { joy: 2, prestige: 1, fam: 1, grp: 'piano1' }, gym1: { joy: 0.8, healthY: 0.7, looksY: 0.5, grp: 'gym1' },
+    camp1: { joy: 1.5, fam: 1, grp: 'camp1' }, rod1: { joy: 1, grp: 'rod1' }, golf1: { joy: 1.5, prestige: 3, grp: 'golf1' },
+    jewel1: { joy: 2, prestige: 3, looksY: 0.5, grp: 'jewel1' }, jewel2: { joy: 1.5, prestige: 2, looksY: 0.5, grp: 'jewel2' }, wine1: { joy: 2, prestige: 2, grp: 'wine1' },
+    house0: { joy: 2, prestige: 2, rent: 0.045, unlock: 'housewarm' },
+    land2: { joy: 0.5, prestige: 2, rent: 0.02 }, land3: { joy: 0.5, prestige: 1, rent: 0.06 },
+    dict1: { ielts: 1, grp: 'dict1' }, book1: { ielts: 3, smartsY: 0.2, grp: 'book1' }, app1: { ielts: 3, grp: 'app1' }, phones1: { ielts: 2, joy: 0.5, grp: 'phones1' },
+    mock1: { ielts: 5, grp: 'mock1' }, course1: { ielts: 6, smartsY: 0.3, grp: 'course1' }, tutor1: { ielts: 10, smartsY: 0.5, grp: 'tutor1' }, center1: { ielts: 12, smartsY: 0.5, grp: 'center1' },
+    ins1: { joy: 1, healthY: 0.5, grp: 'ins1' }, dep1: { yld: 0.06, grp: 'dep1' }, fund1: { yld: 0.07, grp: 'fund1' }, bond1: { yld: 0.085, grp: 'bond1' }, biz1: { joy: 1, yld: 0.1, prestige: 1, grp: 'biz1' },
   };
   SHOP.forEach((it) => Object.assign(it, ASSET_PERKS[it.id] || {}));
   // đẳng cấp xã hội theo tổng điểm prestige
+  const SHOP_MIN_AGE = { tech: 12, hobby: 12, study: 12, once: 12, invest: 18, luxury: 18 };
   const PRESTIGE_RANKS = [[0, 'Bình dân'], [3, 'Khá giả'], [8, 'Có của ăn của để'], [15, 'Đại gia'], [25, 'Giới thượng lưu']];
 
   // Quà tặng — likes: kid (<13) · teen (13–19) · adult · elder (≥55) · love (người yêu / vợ chồng) · pet
@@ -792,6 +855,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🛒 Cửa hàng thêm hơn 40 món: công nghệ, sở thích, đồ học IELTS (sách, khóa học, gia sư), đầu tư sinh lời, và các món dùng một lần như du lịch, spa, quà tặng.',
       '⚡ Tải trang nhanh hơn: các tệp tình huống (khoảng 40% dung lượng) được nạp nền sau khi màn hình chính hiện ra, nên vào game nhanh hơn trên mạng chậm. Bấm bắt đầu sớm thì game tự nạp ngay.',
       '🎮 Làm lại nhiều minigame, thêm sổ thành tựu và thử thách hằng ngày, tạm dừng giữa ván, ca làm việc mới cho nhiều nghề.',
       '📋 HLV: khi đủ giỏi, bạn nhận lời mời của Liên đoàn và tự chọn giữa lên làm HLV đội tuyển quốc gia hoặc ở lại câu lạc bộ làm tiếp (ở lại thì được tăng niềm tin của ban lãnh đạo, vài năm sau lời mời mới quay lại). Trước đây game tự động đưa bạn lên đội tuyển.',
@@ -1297,6 +1361,6 @@
   KN.DATA = {
     TR, TY, fmtMoney, fmtShort, randomName, CITIES, cityName, SKIN_TONES, HAIR_COLORS, HAIR_STYLES, OUTFIT_COLORS, BOTTOM_COLORS, TOP_STYLES,
     randomAppearance, STAGES, stageOf, MAJORS, CAREERS, SHOP, ACT_CATS, ACTIVITIES, TRAVEL, ILLNESSES, CANCERS, CANCER_STAGE, ROLE_LABELS, INTERACTIONS, ROLE_ACTIONS,
-    INDUSTRIES, FURN_SLOTS, FURNITURE, PET_SPECIES, CHILD_TRAITS, SKINS, ACHIEVEMENTS, GOALS, FIRST, MID, LAST, GIFTS, LIFESTYLES, PERKS, SPECIAL_HAIR, PRESTIGE_RANKS, CHANGELOG, INTERESTS, SPORT_KW, YOUTH_SPORT, FOREIGN_CLUBS, DIFFICULTY, VOC_TRADES, HAZARDS, PARENTING, PARENT_MAJORS, PARTTIME,
+    INDUSTRIES, FURN_SLOTS, FURNITURE, PET_SPECIES, CHILD_TRAITS, SKINS, ACHIEVEMENTS, GOALS, FIRST, MID, LAST, GIFTS, LIFESTYLES, PERKS, SPECIAL_HAIR, PRESTIGE_RANKS, SHOP_MIN_AGE, CHANGELOG, INTERESTS, SPORT_KW, YOUTH_SPORT, FOREIGN_CLUBS, DIFFICULTY, VOC_TRADES, HAZARDS, PARENTING, PARENT_MAJORS, PARTTIME,
   };
 })();

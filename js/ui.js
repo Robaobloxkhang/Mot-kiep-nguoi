@@ -643,13 +643,13 @@
     if (adult) ov += '<div class="sec-title">Mức sống <small>chi tiêu và hạnh phúc mỗi năm</small></div><div class="lifestyle">' + v.lifestyles.map((l) => '<button type="button" class="ls" data-ls="' + l.id + '" aria-pressed="' + (v.lifestyle === l.id) + '"><span class="li">' + l.icon + '</span><b>' + esc(l.label) + '</b><small>' + esc(l.desc) + '</small></button>').join('') + '</div>';
     // --- 🛒 mua sắm: lọc theo loại
     const items = G().shopItems();
-    const groups = [['phone', '📱 Điện thoại'], ['motorbike', '🛵 Xe máy'], ['car', '🚗 Ô tô'], ['house', '🏠 Nhà'], ['land', '🌾 Đất'], ['gold', '🪙 Vàng'], ['luxury', '💎 Xa xỉ']].filter(([t2]) => items.some((i) => i.type === t2));
+    const groups = [['phone', '📱 Điện thoại'], ['motorbike', '🛵 Xe máy'], ['car', '🚗 Ô tô'], ['house', '🏠 Nhà'], ['land', '🌾 Đất'], ['gold', '🪙 Vàng'], ['luxury', '💎 Xa xỉ'], ['tech', '💻 Công nghệ'], ['hobby', '🎸 Sở thích'], ['study', '📚 Học tập/IELTS'], ['invest', '📈 Đầu tư'], ['once', '🎁 Dùng một lần']].filter(([t2]) => items.some((i) => i.type === t2));
     let shop = '';
     if (!items.length) shop = '<div class="empty">Lớn thêm chút nữa mới tự mua sắm được nhé.</div>';
     else {
       const g = subtabs('shop', groups);
       shop = g.html.replace('class="subtabs"', 'class="subtabs chips"') + items.filter((i) => i.type === g.cur).map((i) => '<div class="card item"><span class="ai">' + i.icon + '</span><span style="min-width:0"><span class="in">' + esc(i.name) + '</span><br><span class="id">' + esc(i.desc) + '</span>' + (i.perkText ? '<br><span class="aperk">' + esc(i.perkText) + '</span>' : '') + '</span><span style="text-align:right"><span class="price">' + esc(i.priceText) + '</span><br>' +
-        (i.owned ? '<span class="p-sub">Đã có</span>' : i.loanable ? '<button type="button" class="btn btn-soft btn-sm" data-loan="' + i.id + '" title="' + esc(i.loanText) + '">🏦 Vay mua</button>' : '<button type="button" class="btn btn-primary btn-sm" data-buy="' + i.id + '"' + (i.affordable ? '' : ' disabled title="' + esc(i.reason || '') + '"') + '>Mua</button>') + (i.loanable ? '<br><small class="p-sub">' + esc(i.loanText) + '</small>' : '') + '</span></div>').join('');
+        (i.owned ? '<span class="p-sub">Đã có</span>' : i.loanable ? '<button type="button" class="btn btn-soft btn-sm" data-loan="' + i.id + '" title="' + esc(i.loanText) + '">🏦 Vay mua</button>' : '<button type="button" class="btn btn-primary btn-sm" data-buy="' + i.id + '"' + (i.affordable ? '' : ' disabled title="' + esc(i.reason || '') + '"') + '>Mua' + (i.once ? ' <small>(còn ' + i.left + ')</small>' : '') + '</button>') + (i.loanable ? '<br><small class="p-sub">' + esc(i.loanText) + '</small>' : '') + '</span></div>').join('');
     }
     // --- 🏠 nhà: trang trí 3D + đồ hiện trong cảnh Nhà
     let home = '';

@@ -3871,7 +3871,7 @@
     const mk = market();
     goldYear(L, mk);
     S.assets.forEach((a) => {
-      const k = { phone: 0.7, motorbike: 0.88, car: 0.9, house: mk.reK * U.rand(0.99, 1.02), land: mk.reK * U.rand(0.96, 1.08), stock: mk.stK * U.rand(0.88, 1.12), gold: null, luxury: a.itemId === 'art1' ? 1.05 : 0.93, coin: { sot: U.rand(1.3, 3.2), vo: U.rand(0.05, 0.35), suy: U.rand(0.45, 1.05), binh: U.rand(0.6, 1.8) }[mk.phase] }[a.type];
+      const k = { phone: 0.7, motorbike: 0.88, car: 0.9, house: mk.reK * U.rand(0.99, 1.02), land: mk.reK * U.rand(0.96, 1.08), stock: mk.stK * U.rand(0.88, 1.12), gold: null, luxury: a.itemId === 'art1' ? 1.05 : /^(jewel|wine)/.test(a.itemId || '') ? 1.02 : 0.93, tech: 0.78, hobby: 0.92, study: 0.5, invest: a.itemId === 'biz1' ? U.rand(0.9, 1.12) : a.itemId === 'fund1' ? mk.stK * U.rand(0.97, 1.03) : 1.01, coin: { sot: U.rand(1.3, 3.2), vo: U.rand(0.05, 0.35), suy: U.rand(0.45, 1.05), binh: U.rand(0.6, 1.8) }[mk.phase] }[a.type];
       a.value = a.type === 'gold' ? Math.round(S.goldPrice * 0.97) : Math.round(a.value * (k || 1));
     });
     loansYear(L, deltas);
@@ -6191,6 +6191,10 @@
     if (k.prestige) parts.push('đẳng cấp +' + k.prestige);
     if (k.looksY) parts.push('ngoại hình tăng dần');
     if (k.smartsY) parts.push('trí tuệ tăng dần');
+    if (k.healthY) parts.push('sức khỏe tăng dần');
+    if (k.ielts) parts.push('+' + k.ielts + ' điểm luyện IELTS');
+    if (k.yld) parts.push('sinh lời ~' + Math.round(k.yld * 1000) / 10 + '%/năm');
+    if (k.type === 'once' && k.fx) parts.push(Object.keys(k.fx).map((x) => ({ health: 'sức khỏe', smarts: 'trí tuệ', looks: 'ngoại hình', rel: 'tình cảm người thân' }[x] + ' +' + k.fx[x])).join(', '));
     if (k.fam) parts.push('gia đình gắn kết hơn');
     if (k.rent) parts.push('cho thuê ~' + D.fmtShort(Math.round((value || 0) * k.rent / 12)) + '/tháng');
     if (k.unlock) { const a = actDef(k.unlock); if (a) parts.push('mở: ' + a.label.toLowerCase()); }
@@ -6198,19 +6202,22 @@
     return parts.join(' · ');
   }
   function assetsYear(L, deltas) {
-    const pa = P().age; let joy = 0, looks = 0, smarts = 0, fam = 0, rentIncome = 0;
+    const pa = P().age; let joy = 0, looks = 0, smarts = 0, fam = 0, rentIncome = 0, hlth = 0, yldIncome = 0;
     const byType = {};
     S.assets.forEach((a) => {
       const k = assetPerk(a);
       if (a.rented) { rentIncome += Math.round((a.value || 0) * (k.rent || 0)); return; }
-      (byType[a.type] = byType[a.type] || []).push(k);
+      (byType[k.grp || a.type] = byType[k.grp || a.type] || []).push(k);
     });
     // món tốt nhất mỗi loại tính đủ, món thứ hai trở đi chỉ tính 30%
-    Object.values(byType).forEach((list) => { list.sort((x, y) => (y.joy || 0) - (x.joy || 0)); list.forEach((k, i) => { const w = i ? 0.3 : 1; joy += (k.joy || 0) * w; looks += (k.looksY || 0) * w; smarts += (k.smartsY || 0) * w; fam = Math.max(fam, k.fam || 0); }); });
+    Object.values(byType).forEach((list) => { list.sort((x, y) => (y.joy || 0) - (x.joy || 0)); list.forEach((k, i) => { const w = i ? 0.3 : 1; joy += (k.joy || 0) * w; looks += (k.looksY || 0) * w; smarts += (k.smartsY || 0) * w; hlth += (k.healthY || 0) * w; fam = Math.max(fam, k.fam || 0); }); });
+    S.assets.forEach((a) => { const k = assetPerk(a); if (k.yld && !a.rented) yldIncome += Math.round((a.value || 0) * k.yld); });
     S.assetJoy = Math.round(joy * 10) / 10; S.prestige = prestige();
     if (pa < 12) return;
     if (looks) addStat('looks', U.rand(0, looks), deltas);
     if (smarts) addStat('smarts', U.rand(0, smarts), deltas);
+    if (hlth) addStat('health', U.rand(0, hlth), deltas);
+    if (yldIncome > 0) { const tx = Math.round(yldIncome * 0.1); addMoney(yldIncome - tx, deltas); L('Đầu tư sinh lời năm nay: ' + fmtMoney(yldIncome) + ' (đã trừ thuế ' + fmtMoney(tx) + ').', 'good', '📈'); }
     if (fam) alive().filter((x) => ['spouse', 'child', 'mother', 'father', 'partner', 'grandchild'].includes(x.role)).forEach((x) => (x.relation = r100(x.relation + U.rand(0, fam))));
     if (rentIncome > 0) {
       const tax = Math.round(rentIncome * 0.1); addMoney(rentIncome - tax, deltas);
@@ -6231,13 +6238,19 @@
     addLog(text, 'neutral', '🔑'); changed();
     return result({ title: a.rented ? 'Cho thuê ' + a.name : 'Thôi cho thuê', icon: '🔑', text, tone: 'neutral', scene: sceneFor(a.type === 'land' ? 'countryside' : 'home', { anim: a.rented ? 'nod' : 'cheer', fx: a.rented ? 'money' : 'sparkle' }) });
   }
+  // đồ dùng một lần: đếm số lần đã mua trong năm hiện tại (S.counters.onceBuys = { year, ids })
+  function onceCount(id) { const o = S.counters.onceBuys; return o && o.year === S.year ? (o.ids[id] || 0) : 0; }
+  function onceMark(id) { let o = S.counters.onceBuys; if (!o || o.year !== S.year) o = S.counters.onceBuys = { year: S.year, ids: {} }; o.ids[id] = (o.ids[id] || 0) + 1; }
+  // điểm cộng cho mô phỏng band IELTS từ sách, khóa học, gia sư… đang sở hữu (tối đa 25)
+  function ieltsBoost() { return S ? Math.min(25, S.assets.reduce((n, a) => n + (assetPerk(a).ielts || 0), 0)) : 0; }
   function shopItems() {
     if (!S || P().age < 12) return [];
     return D.SHOP.map((it) => {
       const price = priceOf(it), owned = S.assets.some((a) => a.itemId === it.id);
-      const ageOk = P().age >= (it.type === 'phone' ? 12 : it.type === 'motorbike' ? 16 : 18);
+      const minAge = D.SHOP_MIN_AGE[it.type] || (it.type === 'phone' ? 12 : it.type === 'motorbike' ? 16 : 18), ageOk = P().age >= minAge;
+      const once = it.type === 'once', bought = once ? onceCount(it.id) : 0, onceFull = once && bought >= (it.limit || 1);
       const down = Math.round(price * 0.3), canLoan = it.type === 'house' && !owned && P().age >= 22 && !!S.job && S.money >= down && S.money < price && !(S.loans || []).length;
-      return { id: it.id, type: it.type, name: it.name, price, priceText: fmtMoney(price), icon: it.icon, desc: it.desc, perkText: perkText(Object.assign({ type: it.type }, it), price), affordable: S.money >= price && ageOk, owned: owned && it.type !== 'gold', reason: !ageOk ? 'Chưa đủ tuổi' : S.money < price ? 'Chưa đủ tiền' : null,
+      return { id: it.id, type: it.type, name: it.name, price, priceText: fmtMoney(price), icon: it.icon, desc: it.desc, perkText: perkText(Object.assign({ type: it.type }, it), price), affordable: S.money >= price && ageOk && !onceFull, owned: owned && it.type !== 'gold' && !once, once, left: once ? Math.max(0, (it.limit || 1) - bought) : 0, reason: !ageOk ? 'Chưa đủ tuổi' : onceFull ? 'Đã mua đủ trong năm nay' : S.money < price ? 'Chưa đủ tiền' : null,
         loanable: canLoan, loanText: canLoan ? 'Trả trước ' + fmtMoney(down) + ', góp ' + fmtMoney(annuity(price - down, LOAN_RATE, LOAN_YEARS)) + '/năm × ' + LOAN_YEARS + ' năm' : null };
     });
   }
@@ -6254,6 +6267,15 @@
     const view = shopItems().find((x) => x.id === itemId);
     if (view.owned) return fail('Bạn đã có món này rồi.');
     if (!view.affordable) return fail(view.reason || 'Chưa đủ tiền');
+    if (it.type === 'once') {
+      const price1 = priceOf(it), deltas1 = { money: -price1 }; S.money -= price1; onceMark(it.id);
+      addStat('happy', it.happy, deltas1);
+      ['health', 'smarts', 'looks'].forEach((k) => { if (it.fx && it.fx[k]) addStat(k, it.fx[k], deltas1); });
+      if (it.fx && it.fx.rel) alive().filter((x) => ['spouse', 'child', 'mother', 'father', 'partner', 'grandchild', 'friend'].includes(x.role)).forEach((x) => (x.relation = r100(x.relation + it.fx.rel)));
+      const t1 = U.pick(['Bạn chi ' + fmtMoney(price1) + ': ' + it.name.toLowerCase() + '. ', 'Tiêu một chút cho ' + it.name.toLowerCase() + '. ']) + it.desc;
+      addLog('Chi ' + fmtMoney(price1) + ' cho ' + it.name.toLowerCase() + '.', 'good', it.icon); checkProgress(); changed();
+      return result({ title: it.name, icon: it.icon, text: t1, tone: 'good', deltas: deltas1, scene: sceneFor('home', { anim: 'cheer', fx: 'sparkle' }) });
+    }
     const off = extra && HAGGLE_TYPES.includes(it.type) ? U.clamp(+extra.discount || 0, 0, 0.15) : 0;
     const full = priceOf(it), price = Math.round(full * (1 - off) / 1e4) * 1e4, deltas = { money: -price };
     S.money -= price;
@@ -6814,7 +6836,7 @@
   const helpers = { has, alive, age: () => P().age, flag: (f) => !!S.flags[f], money: () => S.money, stat: statVal, kin, fullName };
 
   KN.Game = {
-    newLife, ageUp, choose, activities, doActivity, interact, eduAction, jobAction, jobListings, applyJob, shopItems, buy, buyLoan, sell, rentAsset,
+    newLife, ageUp, choose, activities, doActivity, interact, eduAction, jobAction, jobListings, applyJob, shopItems, ieltsBoost, buy, buyLoan, sell, rentAsset,
     campKpi: () => (S && S.camp && S.camp.kind === 'scam' ? { target: S.camp.kpi || 2, year: S.jail ? S.year - S.jail.since + 1 : 1 } : S && S.job && S.job.id === 'luadao' ? { target: 2 + S.job.level, year: 1 } : null),
     deathInfo, deathScene, afterlifeScene, continueAs, demoScene, view, onlineSnapshot, remoteEffect, setMode, peekSave, getMode: () => MODE,
     choiceOdds,
