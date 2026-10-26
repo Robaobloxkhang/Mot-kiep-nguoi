@@ -145,12 +145,13 @@ if (want('shop')) {
     const items = G.shopItems(); let bought = 0, once = 0;
     items.forEach((it) => { const x = G.buy(it.id); if (x && x.ok !== false) { bought++; if (it.type === 'once') once++; } else bad.push('mua ' + it.id + ': ' + (x && x.error)); });
     const boost = G.ieltsBoost();
+    S.english = 55; const ex = G.doActivity('ielts_exam'); if (!ex || ex.ok === false) bad.push('thi IELTS: ' + (ex && ex.error)); else if (!(S.flags.ieltsBand >= 3)) bad.push('không có band IELTS'); G.ieltsStudy(0.8);
     for (let i = 0; i < 4; i++) { S.pending.length = 0; S.stats.health = Math.max(S.stats.health, 60); G.ageUp(); }
     const nan = ['money', 'happy', 'health', 'smarts', 'looks'].filter((k) => !isFinite(k === 'money' ? S.money : S.stats[k])); if (nan.length) bad.push('NaN: ' + nan.join(','));
     S.assets.slice().forEach((a) => { if (!isFinite(a.value)) bad.push('giá trị NaN: ' + a.name); });
     return { n: items.length, bought, once, boost, bad };
   });
-  record(`cửa hàng: ${r.n} món, mua được ${r.bought} (${r.once} dùng một lần), cộng IELTS tối đa ${r.boost}`, r.bad.length === 0 && r.bought >= r.n - 3 && errs.length === 0, (r.bad.concat(errs)).slice(0, 3).join(' | '));
+  record(`cửa hàng: ${r.n} món, mua được ${r.bought} (${r.once} dùng một lần), cộng IELTS tối đa ${r.boost}, thi IELTS thật chạy được`, r.bad.length === 0 && r.bought >= r.n - 3 && errs.length === 0, (r.bad.concat(errs)).slice(0, 3).join(' | '));
   await ctx.close();
 }
 

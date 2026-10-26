@@ -4425,17 +4425,24 @@
         break;
       }
       case 'ielts': {
-        const g = U.rand(7, 13) * (0.6 + S.stats.smarts / 100); S.english = r100((S.english || 0) + g); deltas.english = Math.round(g); rollEff({ smarts: [1, 3], happy: [-2, 0] }, 1, deltas);
-        const band = S.english >= 85 ? '8.0' : S.english >= 70 ? '7.0' : S.english >= 60 ? '6.0' : S.english >= 50 ? '5.5' : S.english >= 40 ? '4.5' : '3.5';
-        if (S.english >= 60) S.flags.ielts = S.year;
-        text = 'Ba tháng luyện đề đến khàn giọng. Bạn thi thử được IELTS ' + band + (S.english >= 60 ? ' — đủ điều kiện du học, làm việc ở nước ngoài!' : '. Còn phải cố thêm.');
+        const g = U.rand(7, 13) * (0.6 + S.stats.smarts / 100) * (1 + ieltsBoost() / 100); S.english = r100((S.english || 0) + g); deltas.english = Math.round(g); rollEff({ smarts: [1, 3], happy: [-2, 0] }, 1, deltas);
+        S.counters.ieltsPts = Math.min(25, (S.counters.ieltsPts || 0) + 3);
+        const band = ieltsBand(0).toFixed(1);
+        text = 'Ba tháng luyện đề đến khàn giọng. Bạn thi thử được khoảng IELTS ' + band + (+band >= 6 ? ' — đủ để nghĩ tới du học hay làm việc ở nước ngoài. Khi tự tin, hãy đăng ký thi IELTS thật.' : '. Còn phải cố thêm.') + (ieltsBoost() ? ' (Sách và khóa học bạn đã mua giúp được nhiều.)' : '');
         scene = actScene({ loc: 'school', anim: 'study', fx: S.english >= 60 ? 'levelup' : 'idea', npcs: [{ role: 'teacher', anim: 'talk', say: 'Speaking part 2, please!' }] });
+        break;
+      }
+      case 'ielts_exam': {
+        const b = ieltsBand(U.rand(-3, 3)); S.flags.ieltsBand = Math.max(S.flags.ieltsBand || 0, b); S.flags.ieltsYear = S.year; if (b >= 6) S.flags.ielts = S.year;
+        S.counters.ieltsTaken = (S.counters.ieltsTaken || 0) + 1; rollEff({ smarts: [0, 2], happy: b >= 6.5 ? [3, 6] : [-4, 0] }, 1, deltas);
+        text = 'Phòng thi im phăng phắc, bốn kỹ năng liên tiếp trong một buổi sáng. Hai tuần sau bạn nhận kết quả IELTS: ' + b.toFixed(1) + (b >= 7 ? ' — xin học bổng và hồ sơ định cư đều có cửa!' : b >= 6 ? ' — đủ cho nhiều chương trình du học và công việc cần tiếng Anh.' : '. Chưa đủ cho hồ sơ du học, hãy luyện thêm rồi thi lại.');
+        tone = b >= 6 ? 'good' : 'neutral'; scene = actScene({ loc: 'school', anim: b >= 6 ? 'cheer' : 'facepalm', fx: b >= 6 ? 'levelup' : 'sweat' });
         break;
       }
       case 'masters': {
         if (S.flags.master) { S.yearActs[id]--; return fail('Bạn đã có bằng thạc sĩ rồi'); }
-        const sch = S.stats.smarts >= 80 && Math.random() < 0.6, cost = sch ? 0 : 900e6;
-        if (!sch && S.money < cost) { S.yearActs[id]--; return fail('Cần 900 triệu, hoặc trí tuệ ≥ 80 để xin học bổng'); }
+        const sch = (S.stats.smarts >= 80 || (S.flags.ieltsBand || 0) >= 7) && Math.random() < 0.6, cost = sch ? 0 : 900e6;
+        if (!sch && S.money < cost) { S.yearActs[id]--; return fail('Cần 900 triệu, hoặc trí tuệ ≥ 80 / IELTS ≥ 7.0 để xin học bổng'); }
         addMoney(-cost, deltas); S.flags.master = S.year; S.edu.degrees.push('Thạc sĩ (nước ngoài)'); S.english = r100((S.english || 0) + 12);
         const quitNote = S.job ? ' Bạn đã nghỉ việc ' + D.CAREERS[S.job.id].title.toLowerCase() + ' để lên đường du học.' : '';
         if (S.job) S.job = null;
@@ -6243,6 +6250,17 @@
   function onceMark(id) { let o = S.counters.onceBuys; if (!o || o.year !== S.year) o = S.counters.onceBuys = { year: S.year, ids: {} }; o.ids[id] = (o.ids[id] || 0) + 1; }
   // điểm cộng cho mô phỏng band IELTS từ sách, khóa học, gia sư… đang sở hữu (tối đa 25)
   function ieltsBoost() { return S ? Math.min(25, S.assets.reduce((n, a) => n + (assetPerk(a).ielts || 0), 0)) : 0; }
+  // band IELTS ước tính từ tiếng Anh, sách/khóa học đang có và số buổi luyện trong game (mỗi nấc 0,5)
+  function ieltsBand(noise) { const raw = (S.english || 0) * 0.9 + ieltsBoost() * 0.8 + (S.counters.ieltsPts || 0) * 1 + (noise || 0); return Math.max(3, Math.min(9, Math.round((3 + raw / 100 * 6) * 2) / 2)); }
+  // minigame IELTS (js/ielts.js) gọi sau mỗi lượt: học thật thì tiếng Anh nhích lên (tối đa 6 lượt có tác dụng mỗi năm)
+  function ieltsStudy(score) {
+    if (!S || S.dead || !P || P().age < 8) return;
+    const c = S.counters.ieltsYear; if (!c || c.y !== S.year) S.counters.ieltsYear = { y: S.year, n: 0 };
+    if (S.counters.ieltsYear.n >= 6) return; S.counters.ieltsYear.n++;
+    S.english = r100((S.english || 0) + 1.2 * Math.max(0, Math.min(1, score)));
+    S.counters.ieltsPts = Math.min(25, (S.counters.ieltsPts || 0) + 1.5 * Math.max(0, Math.min(1, score)));
+    changed();
+  }
   function shopItems() {
     if (!S || P().age < 12) return [];
     return D.SHOP.map((it) => {
@@ -6836,7 +6854,7 @@
   const helpers = { has, alive, age: () => P().age, flag: (f) => !!S.flags[f], money: () => S.money, stat: statVal, kin, fullName };
 
   KN.Game = {
-    newLife, ageUp, choose, activities, doActivity, interact, eduAction, jobAction, jobListings, applyJob, shopItems, ieltsBoost, buy, buyLoan, sell, rentAsset,
+    newLife, ageUp, choose, activities, doActivity, interact, eduAction, jobAction, jobListings, applyJob, shopItems, ieltsBoost, ieltsBand, ieltsStudy, buy, buyLoan, sell, rentAsset,
     campKpi: () => (S && S.camp && S.camp.kind === 'scam' ? { target: S.camp.kpi || 2, year: S.jail ? S.year - S.jail.since + 1 : 1 } : S && S.job && S.job.id === 'luadao' ? { target: 2 + S.job.level, year: 1 } : null),
     deathInfo, deathScene, afterlifeScene, continueAs, demoScene, view, onlineSnapshot, remoteEffect, setMode, peekSave, getMode: () => MODE,
     choiceOdds,

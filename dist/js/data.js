@@ -485,6 +485,7 @@
     { id: 'trieuphu', label: 'Đi thi "Ai là triệu phú"', icon: '💰', cat: 'mind', minAge: 18, cost: 0, limit: 1, special: 'trieuphu', desc: '15 câu hỏi, 3 quyền trợ giúp, giải cao nhất 250 triệu. 3 năm thi một lần.' },
     { id: 'thihat', label: 'Đi thi hát truyền hình', icon: '🎤', cat: 'fun', minAge: 15, maxAge: 40, cost: 0, limit: 1, special: 'thihat', desc: 'Giọng Ca Vàng: giấu mặt → đối đầu → liveshow → chung kết. 2 năm thi một lần.' },
     { id: 'ielts', label: 'Luyện thi IELTS', icon: '🇬🇧', cat: 'mind', minAge: 15, cost: 15 * TR, limit: 1, special: 'ielts' },
+    { id: 'ielts_exam', label: 'Thi IELTS thật', icon: '📝', cat: 'mind', minAge: 16, cost: 5 * TR, limit: 1, special: 'ielts_exam' },
     { id: 'masters', label: 'Du học thạc sĩ', icon: '🎓', cat: 'mind', minAge: 22, maxAge: 40, cost: 0, limit: 1, special: 'masters', needEnglish: 65, needDegree: true },
     { id: 'checkup', label: 'Khám sức khỏe tổng quát', icon: '🩻', cat: 'body', minAge: 18, cost: 3 * TR, limit: 1, special: 'checkup', scene: { loc: 'hospital', anim: 'sit', npcs: [{ role: 'doctor', anim: 'talk' }] } },
     { id: 'taichi', label: 'Tập dưỡng sinh', icon: '🧓', cat: 'body', minAge: 50, cost: 0, limit: 2, eff: { health: [2, 4], happy: [1, 3] }, scene: { loc: 'park', anim: 'dance', time: 'dawn', npcs: [{ role: 'neighbor', anim: 'dance' }, { role: 'neighbor', anim: 'dance' }] }, texts: ['Năm giờ sáng, bạn cùng hội người cao tuổi tập dưỡng sinh bên hồ.', 'Vươn vai, hít thở, vỗ tay. Xương khớp kêu răng rắc nhưng thấy khỏe hẳn.'] },
@@ -855,6 +856,7 @@
   // bảng “Có gì mới” ở màn hình chính — mới nhất ở đầu, mỗi dòng thật ngắn
   const CHANGELOG = [
     { v: '1.81', date: '23/10/2026', items: [
+      '🇬🇧 Luyện IELTS: 5 minigame mới (từ vựng, đọc hiểu, ngữ pháp, nghe, nói) trong mục Minigame, sổ từ vựng tự nhắc ôn lại, hoạt động “Thi IELTS thật” cho ra band ảnh hưởng học bổng. Nội dung do game soạn, không phải đề thi chính thức.',
       '🛒 Cửa hàng thêm hơn 40 món: công nghệ, sở thích, đồ học IELTS (sách, khóa học, gia sư), đầu tư sinh lời, và các món dùng một lần như du lịch, spa, quà tặng.',
       '⚡ Tải trang nhanh hơn: các tệp tình huống (khoảng 40% dung lượng) được nạp nền sau khi màn hình chính hiện ra, nên vào game nhanh hơn trên mạng chậm. Bấm bắt đầu sớm thì game tự nạp ngay.',
       '🎮 Làm lại nhiều minigame, thêm sổ thành tựu và thử thách hằng ngày, tạm dừng giữa ván, ca làm việc mới cho nhiều nghề.',

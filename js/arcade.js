@@ -26,6 +26,7 @@
     ['Thể thao', ['hax', 'penalty', 'keeper', 'hoops', 'sprint', 'swim', 'race']],
     ['Hành động', ['fight', 'chase', 'drive', 'sneak', 'ride', 'aim', 'clutch', 'land']],
     ['Trí tuệ', ['quiz', 'millionaire', 'detective', 'interview', 'pitch', 'stock', 'cards']],
+    ['Tiếng Anh · IELTS', ['ielts_vocab', 'ielts_read', 'ielts_grammar', 'ielts_listen', 'ielts_speak']],
     ['Đời sống & nghề', ['cook', 'haggle', 'love', 'cpr', 'surgery', 'fishing', 'sing', 'paint', 'fix']],
   ];
   const EXTRA = { haggle: { mode: 'buy', price: 3.5e7, item: 'Chiếc xe máy cũ' }, love: { partnerName: 'Lan' }, fight: { foe: 'thug' } };
@@ -47,12 +48,16 @@
       const nm = names[t], ic = nm.split(' ')[0], label = nm.replace(/^\S+\s/, ''), s = st(t), dur = mm ? mm.DUR[t] : 0, isNew = mm && mm.NEWV.includes(t), fav = data.fav[t], isD = dc && dc.type === t;
       return '<div class="arc-card2' + (isD ? ' daily' : '') + '"><button type="button" class="arc-fav" data-fav="' + t + '" title="Yêu thích" aria-label="Yêu thích">' + (fav ? '⭐' : '☆') + '</button><button type="button" class="arc-go" data-mg="' + t + '"><span class="arc-ic">' + ic + '</span><b>' + esc(label) + (isNew ? ' <em>MỚI</em>' : '') + (isD ? ' <em class="d">HÔM NAY</em>' : '') + '</b><small>' + esc(short(t)) + '</small><span class="arc-meta">' + (dur ? '⏱ ~' + (dur >= 90 ? Math.round(dur / 60) + ' phút' : dur + 's') : '') + (s.plays ? ' · 🏅 ' + s.best + '% · ' + s.plays + ' lượt' : ' · chưa chơi') + '</span></button></div>';
     };
+    // sổ từ vựng IELTS (js/ielts.js): hiện khi xem nhóm Tiếng Anh hoặc tất cả
+    let nbCard = '';
+    if (KN.Ielts && (ui.cat === 'all' || ui.cat === 'Tiếng Anh · IELTS')) { const nb = KN.Ielts.notebook(); nbCard = '<div class="arc-daily"><div><b>📓 Sổ từ vựng IELTS</b><small>' + nb.total + ' từ đã gặp · ' + nb.mastered + ' từ đã thuộc · <b>' + nb.due + '</b> từ cần ôn hôm nay</small></div><button type="button" class="btn btn-primary btn-sm" data-review ' + (nb.due ? '' : 'disabled title="Chưa có từ nào đến hạn ôn"') + '>Ôn ngay</button></div>'; }
     const nAch = mm ? Object.keys(data.ach).length : 0;
     const daily = dc ? '<div class="arc-daily' + (dState.done ? ' done' : '') + '"><div><b>🎯 Thử thách hôm nay</b><small>Đạt từ <b>' + dc.target + '%</b> ở <b>' + esc(names[dc.type] || dc.type) + '</b> · thưởng ' + mm.fmt(dc.reward) + (mm.lifeOn() ? '' : ' (nhận khi đang sống một cuộc đời)') + '</small></div>' + (dState.done ? (dState.claimed ? '<span class="arc-ok">✔ Đã nhận</span>' : '<button type="button" class="btn btn-primary" data-claim="daily">Nhận thưởng</button>') : '<button type="button" class="btn btn-soft" data-mg="' + dc.type + '" data-daily="1">Chơi ngay</button>') + '</div>' : '';
     KN.UI.openModal('<div class="online arcade"><h3>🕹️ Minigame</h3><p class="sub">Chơi lại mọi minigame bất cứ lúc nào — kỷ lục và thành tựu lưu trên máy này. Chơi thử không thay đổi cuộc đời đang sống (trừ phần thưởng bạn chủ động nhận).</p>' + daily +
       '<div class="arc-tools"><input type="search" id="arcQ" placeholder="🔍 Tìm minigame…" value="' + esc(ui.q) + '"><select id="arcS"><option value="default"' + (ui.sort === 'default' ? ' selected' : '') + '>Sắp xếp: mặc định</option><option value="best"' + (ui.sort === 'best' ? ' selected' : '') + '>Kỷ lục cao nhất</option><option value="least"' + (ui.sort === 'least' ? ' selected' : '') + '>Chơi ít nhất</option><option value="quick"' + (ui.sort === 'quick' ? ' selected' : '') + '>Ngắn nhất</option></select><button type="button" class="btn btn-soft" data-book>📒 Thành tựu ' + nAch + '/' + (mm ? mm.ACH.length : 0) + '</button></div>' +
       '<div class="arc-cats">' + cats.map(([k, l]) => '<button type="button" data-cat="' + k + '" class="' + (ui.cat === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div>' +
       '<div class="arc-lv"><span>Độ khó</span>' + LV.map(([l], i) => '<button type="button" data-lv="' + i + '" class="' + (i === lv ? 'on' : '') + '">' + l + '</button>').join('') + '</div>' +
+      nbCard +
       (list.length ? '<div class="arc-grid2">' + list.map(card).join('') + '</div>' : '<p class="sub">Không có minigame nào khớp.' + (ui.cat === 'fav' ? ' Bấm ☆ ở thẻ để thêm vào yêu thích.' : '') + '</p>') +
       '<div class="sec-title">Chơi với bạn bè</div><div class="arc-grid"><button type="button" class="arc-card wide" data-on="hax"><span class="arc-ic">⚽</span><b>Bóng đá & bóng rổ Hax</b><small>online tối đa 8 người</small></button><button type="button" class="arc-card wide" data-on="race"><span class="arc-ic">🏍️</span><b>Đua xe máy</b><small>online tối đa 8 người</small></button></div></div>');
     const box = document.getElementById('modalBox');
@@ -63,6 +68,7 @@
     box.querySelectorAll('[data-lv]').forEach((b) => (b.onclick = () => { set('kn_arcade_lv', +b.dataset.lv); sfx('click'); open(); }));
     box.querySelectorAll('[data-on]').forEach((b) => (b.onclick = () => { KN.UI.closeModal(); if (b.dataset.on === 'hax') KN.Hax && KN.Hax.open(); else KN.Race && KN.Race.open(); }));
     box.querySelectorAll('[data-claim]').forEach((b) => (b.onclick = () => { const r = mm.claim(b.dataset.claim); sfx(r.ok ? 'coin' : 'bad'); if (KN.UI.toast) KN.UI.toast(r.ok ? 'Đã nhận thưởng' : 'Chưa nhận được', r.text, r.ok ? '🎯' : 'ℹ️'); open(); }));
+    const rv = box.querySelector('[data-review]'); if (rv) rv.onclick = async () => { KN.UI.closeModal(); sfx('click'); await KN.Mini.test('ielts_vocab', 0.5, null, { title: 'Ôn từ vựng', label: 'Sổ từ vựng IELTS', review: true }); open(); };
     const bk = box.querySelector('[data-book]'); if (bk) bk.onclick = () => { sfx('click'); book(); };
     box.querySelectorAll('[data-mg]').forEach((b) => (b.onclick = async () => {
       const t = b.dataset.mg, isDaily = b.dataset.daily ? dc.key : null; KN.UI.closeModal(); sfx('click');

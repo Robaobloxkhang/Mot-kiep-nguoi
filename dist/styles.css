@@ -1651,3 +1651,15 @@ details.more.risk p { margin: 0 0 8px; }
   .mini-ring, .mini-ring *, .mini-bar i, .mini-pause, .arc-go, .arc-daily, .am-t, .mini-meta span { animation: none !important; transition: none !important; }
 }
 .fb-log { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--fg-dim); margin: 6px 0; } .fb-log input { margin-top: 3px; }
+
+/* luyện IELTS */
+.ie-box { width: min(760px, 100%); }
+.ie-pass { padding: 14px 16px; border-radius: var(--r-sm, 12px); background: rgba(255, 255, 255, .06); border: 1px solid var(--line-2); line-height: 1.6; font-size: 15px; margin: 8px 0 10px; max-height: 34vh; overflow: auto; }
+.ie-ta { width: 100%; box-sizing: border-box; margin: 8px 0; padding: 12px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); color: var(--fg); font: 500 15px/1.5 var(--f-body); resize: vertical; }
+.mini-opt:focus-visible, .ie-ta:focus-visible { outline: 2px solid var(--lantern, #ffb347); outline-offset: 2px; }
+
+/* công tắc ngôn ngữ EN/VI */
+.kn-lang { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); right: calc(env(safe-area-inset-right, 0px) + 10px); z-index: 9990; min-width: 44px; min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(20, 22, 40, .72); color: var(--fg); font: 800 13px var(--f-body); letter-spacing: .04em; cursor: pointer; backdrop-filter: blur(6px); }
+.kn-lang:hover { background: rgba(40, 44, 80, .85); }
+.kn-lang:focus-visible { outline: 2px solid var(--lantern, #ffb347); outline-offset: 2px; }
+@media (max-width: 640px) { .kn-lang { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); right: 10px; } }
