@@ -560,3 +560,110 @@
         ['🔁 Quyết định bay vòng lại, hạ cánh lần hai', null, 1, null, 'Bạn bay vòng lại an toàn, trễ vài phút nhưng không ai phàn nàn.', '', 'safe']] },
   ]);
 })();
+
+/* ---- bổ sung (đợt 2): thêm ca cho các nghề chỉ có 1 ca — mỗi ca có lựa chọn dùng minigame và một lựa chọn an toàn ---- */
+(function () {
+  'use strict';
+  const J = (window.KN || {}).JOB_TASKS; if (!J) return;
+  const add = (id, tasks) => { if (J[id]) J[id].tasks.push(...tasks); };
+  add('thietke', [
+    { t: 'Khách chê bản thiết kế', i: '🎨', loc: 'office', a: 'talk', npc: ['stranger', 'angry', 'Tôi không thấy cái mình cần!'],
+      x: 'Khách hàng lớn xem bản thiết kế bạn mất cả tuần làm và phàn nàn: màu sắc không hợp, bố cục “thiếu hồn”. Họ cho bạn một cơ hội thuyết phục.',
+      c: [['🎤 Giải thích ý tưởng và lắng nghe góp ý', 'smarts', 0.5, 'interview', 'Khách dần hiểu ý đồ của bạn, chốt bản thiết kế với vài chỉnh sửa nhỏ và hẹn hợp tác dài hạn.', 'Bạn nói không thuyết phục, khách chuyển sang hãng khác.', 'mid'],
+        ['🔁 Làm lại hoàn toàn theo ý khách', null, 1, null, 'Bạn thức mấy đêm làm lại. Khách hài lòng nhưng bạn kiệt sức và không còn dấu ấn riêng.', '', 'safe']] },
+    { t: 'Logo trong một đêm', i: '✏️', loc: 'bedroom', a: 'type', npc: ['boss', 'point', 'Sáng mai phải có!'],
+      x: 'Một thương hiệu mới nhờ bạn vẽ logo gấp trước buổi ra mắt sáng mai. Bạn chỉ còn một đêm và một ý tưởng lóe lên.',
+      c: [['✏️ Phác thảo tay từng nét thật chắc', 'looks', 0.5, 'paint', 'Logo gọn, ấn tượng. Thương hiệu dùng ngay và giới thiệu thêm khách cho bạn.', 'Nét vẽ run, logo trông vội vàng. Khách miễn cưỡng chấp nhận bản tạm.', 'big'],
+        ['📚 Lấy mẫu có sẵn và chỉnh sửa', null, 1, null, 'Bạn xong sớm với bản an toàn, khách nhận mà không có gì đặc biệt.', '', 'safe']] },
+  ]);
+  add('kysunn', [
+    { t: 'Dịch bệnh trên vùng trồng', i: '🌾', loc: 'countryside', a: 'think', npc: ['stranger', 'cry', 'Lúa vàng hết rồi kỹ sư ơi!'],
+      x: 'Bà con báo cả cánh đồng lúa có đốm lạ lan nhanh. Bạn phải chẩn đoán đúng bệnh trước khi lan ra các xã bên cạnh.',
+      c: [['🔬 Lấy mẫu, đối chiếu rồi mới kết luận', 'smarts', 0.5, 'quiz', 'Bạn xác định đúng tác nhân và hướng dẫn xử lý kịp thời. Vụ mùa được cứu, bà con mang gạo mới đến cảm ơn.', 'Bạn chẩn đoán nhầm, mất thêm vài ngày quý giá và thiệt hại lan rộng hơn.', 'big'],
+        ['📞 Gọi viện nghiên cứu hỗ trợ', null, 1, null, 'Chuyên gia viện xuống hướng dẫn. An toàn, nhưng chậm hơn và bạn học được ít.', '', 'safe']] },
+    { t: 'Tập huấn cho bà con', i: '🧑‍🌾', loc: 'countryside', a: 'talk', npc: ['stranger', 'talk', 'Làm thế có tốn thêm tiền không?'],
+      x: 'Bạn được giao hướng dẫn bà con một kỹ thuật canh tác mới. Nhiều người nghi ngờ vì đã quen làm theo cách cũ.',
+      c: [['🎤 Giải thích bằng ví dụ thực tế', 'smarts', 0.5, 'interview', 'Bà con tin vì thấy lợi ích cụ thể, nhiều hộ đăng ký làm thử. Bạn được cả xã quý mến.', 'Bạn nói quá khô khan, bà con gật đầu cho xong rồi về làm như cũ.', 'mid'],
+        ['📄 Phát tài liệu hướng dẫn', null, 1, null, 'Bà con nhận tờ rơi, vài hộ đọc và làm thử. Không có gì xấu xảy ra.', '', 'safe']] },
+  ]);
+  add('vdv_vo', [
+    { t: 'Giao hữu với đối thủ cũ', i: '🥋', loc: 'ring', a: 'box', npc: ['coworker', 'cheer', 'Trả mối nợ năm ngoái đi!'],
+      x: 'Đối thủ từng đánh bại bạn năm ngoái mời giao hữu trước giải lớn. Đây là cơ hội xem phong độ và lấy lại tự tin.',
+      c: [['🥊 Chủ động tấn công từ đầu', 'health', 0.5, 'fight', 'Bạn lấn lướt từ hiệp đầu và thắng điểm. Tự tin trở lại đúng lúc trước giải.', 'Bạn bị phản đòn và thua điểm. Có chút nản nhưng bạn rút ra nhiều bài học.', 'big'],
+        ['🛡️ Đánh thận trọng, ưu tiên phòng thủ', null, 1, null, 'Bạn giữ an toàn và hòa trận. Không tiến không lùi.', '', 'safe']] },
+    { t: 'Tập nặng trước giải', i: '🏋️', loc: 'ring', a: 'run', npc: ['boss', 'point', 'Thêm một hiệp nữa!'],
+      x: 'Huấn luyện viên đẩy cường độ tập lên cao trong tuần cuối. Cơ thể bạn đau nhức nhưng giải đấu chỉ còn vài ngày.',
+      c: [['💪 Cắn răng tập hết giáo án', 'health', 0.5, 'sprint', 'Bạn vượt qua tuần tập nặng, thể lực lên đỉnh đúng ngày thi đấu.', 'Bạn tập quá sức và bị chấn thương nhẹ, phải nghỉ vài ngày.', 'big'],
+        ['😴 Giảm tải, nghỉ ngơi đúng mức', null, 1, null, 'Bạn nghỉ đúng lúc, vào giải tỉnh táo nhưng thể lực chưa đỉnh.', '', 'safe']] },
+  ]);
+  add('caulong', [
+    { t: 'Trận đôi nam nữ', i: '🏸', loc: 'court', a: 'swing', npc: ['coworker', 'cheer', 'Tin ở nhau nhé!'],
+      x: 'Bạn thi đấu đôi nam nữ ở giải tỉnh. Đối thủ liên tục dồn cầu vào góc yếu của bạn.',
+      c: [['🎯 Đập cầu dứt điểm đúng điểm yếu', 'health', 0.5, 'aim', 'Cú đập chuẩn xác ghi điểm quyết định. Hai bạn thắng chung cuộc.', 'Cầu bay ra ngoài, đối thủ lật ngược thế trận.', 'big'],
+        ['🤝 Chơi chắc, nhường đồng đội xử lý', null, 1, null, 'Cả hai chơi thận trọng, thắng hiệp khó nhọc nhưng vững vàng.', '', 'safe']] },
+    { t: 'Chạy nhanh bắt cầu cuối', i: '🏃', loc: 'court', a: 'run', npc: ['boss', 'point', 'Nhanh chân lên!'],
+      x: 'Set cuối, tỉ số sát nút. Đối thủ liên tục đưa cầu sát lưới rồi lùi cuối sân bắt bạn chạy liên tục.',
+      c: [['🏃 Dồn sức chạy từng đường cầu', 'health', 0.5, 'sprint', 'Thể lực tốt giúp bạn bắt hết các đường cầu và giành điểm. Khán giả vỗ tay vang.', 'Bạn hụt hơi và chậm nhịp, đối thủ ghi điểm liên tiếp.', 'big'],
+        ['🧠 Đổi chiến thuật, đánh cầu cao sâu', null, 1, null, 'Bạn đổi nhịp thành công, nhẹ sức hơn và giữ được thế trận.', '', 'safe']] },
+  ]);
+  add('bongro', [
+    { t: 'Lượt ném phạt quyết định', i: '🏀', loc: 'court', a: 'dribble', npc: ['coworker', 'clap', 'Bình tĩnh nào!'],
+      x: 'Còn hai giây, đội bạn kém một điểm và bạn có hai quả ném phạt. Cả khán đài nín thở.',
+      c: [['🏀 Ném phạt, tập trung hết mức', 'health', 0.5, 'hoops', 'Hai quả ném vào gọn gàng. Còi mãn cuộc vang lên, đội bạn thắng sát nút!', 'Quả ném thứ hai dội vành, đội bạn thua đau.', 'big'],
+        ['🤝 Xin phép HLV nhường người ném', null, 1, null, 'Đồng đội nhận ném và thành công một quả. Bạn an toàn nhưng bỏ lỡ khoảnh khắc toả sáng.', '', 'safe']] },
+    { t: 'Kèm người đối thủ chủ lực', i: '🏃', loc: 'court', a: 'run', npc: ['boss', 'point', 'Bám sát nó!'],
+      x: 'HLV giao bạn kèm cầu thủ ghi điểm hay nhất đội bạn. Anh ta nhanh và liên tục tìm cách thoát người.',
+      c: [['🏃 Bám sát từng bước chạy', 'health', 0.5, 'chase', 'Bạn khoá chặt đối thủ, anh ta ghi rất ít điểm. HLV khen ngợi tinh thần thi đấu.', 'Bạn bị bỏ lại phía sau, đối thủ ghi điểm dễ dàng.', 'mid'],
+        ['🛡️ Đứng phòng thủ vùng', null, 1, null, 'Bạn giữ vị trí an toàn, đối thủ ghi điểm ở mức vừa phải.', '', 'safe']] },
+  ]);
+  add('boi', [
+    { t: 'Chung kết 100 mét', i: '🏊', loc: 'beach', a: 'swim', npc: ['coworker', 'cheer', 'Một hơi thôi!'],
+      x: 'Chung kết 100 mét tự do. Bạn bơi ở làn 4 và đối thủ sát bên cạnh. Tiếng còi xuất phát sắp vang lên.',
+      c: [['🏊 Bứt tốc ở 50 mét cuối', 'health', 0.5, 'swim', 'Bạn bứt tốc đúng lúc và chạm tường đầu tiên. Cả khán đài reo hò.', 'Bạn đuối sức ở những mét cuối và về thứ ba.', 'big'],
+        ['⏱️ Bơi đều tay, giữ nhịp', null, 1, null, 'Bạn về đích an toàn ở thứ hạng khá, không áp lực.', '', 'safe']] },
+    { t: 'Tập hít thở dưới nước', i: '🫧', loc: 'beach', a: 'swim', npc: ['boss', 'talk', 'Nhịp thở quyết định tất cả.'],
+      x: 'HLV bắt bạn tập kiểm soát nhịp thở: bơi liên tục nhiều lượt, chỉ được thở theo nhịp quy định.',
+      c: [['🫁 Tập đúng nhịp, không bỏ lượt', 'health', 0.5, 'swim', 'Bạn làm chủ nhịp thở, thể lực và tốc độ cải thiện rõ rệt.', 'Bạn thở sai nhịp, sặc nước và phải dừng giữa chừng.', 'mid'],
+        ['🛟 Tập nhẹ, nghỉ giữa các lượt', null, 1, null, 'Bạn tập nhẹ nhàng, ít tiến bộ nhưng không mệt.', '', 'safe']] },
+  ]);
+  add('dienkinh', [
+    { t: 'Chung kết 100 mét chạy', i: '🏃', loc: 'stadium', a: 'run', npc: ['coworker', 'cheer', 'Tập trung vào tiếng súng!'],
+      x: 'Bạn đứng ở vạch xuất phát chung kết 100 mét. Xuất phát xấu sẽ mất cả giải; xuất phát quá sớm sẽ bị phạt.',
+      c: [['🏃 Bứt tốc ngay từ tiếng súng', 'health', 0.5, 'sprint', 'Bạn vọt lên dẫn đầu và về nhất. Kỷ lục cá nhân được xác lập.', 'Bạn xuất phát chậm và chỉ về cuối bảng.', 'big'],
+        ['⏱️ Chạy giữ nhịp, tránh sai phạm', null, 1, null, 'Bạn chạy ổn định, về đích ở thứ hạng khá.', '', 'safe']] },
+    { t: 'Chạy tiếp sức', i: '🤝', loc: 'stadium', a: 'run', npc: ['coworker', 'point', 'Nhận gậy này!'],
+      x: 'Bạn chạy chặng cuối của đội tiếp sức. Gậy đến tay bạn khi đội đang xếp thứ hai, sát nút người dẫn đầu.',
+      c: [['🏃 Nhận gậy rồi dốc toàn lực', 'health', 0.5, 'sprint', 'Bạn vượt đối thủ ở những mét cuối và đưa đội về nhất.', 'Bạn không đuổi kịp, đội về nhì.', 'big'],
+        ['🛡️ Giữ vị trí, không mạo hiểm', null, 1, null, 'Bạn chạy ổn định và về nhì cùng đội.', '', 'safe']] },
+  ]);
+  add('bongchuyen', [
+    { t: 'Quả giao bóng quyết định', i: '🏐', loc: 'court', a: 'swing', npc: ['coworker', 'clap', 'Một quả thôi!'],
+      x: 'Tỉ số 24–24 ở set quyết định. Bạn cầm bóng sau vạch giao. Đối thủ đã nhìn ra thói quen giao của bạn.',
+      c: [['🎯 Giao bóng căng vào góc khó', 'health', 0.5, 'aim', 'Quả giao găm vào góc, đội bạn dẫn trước và thắng set.', 'Bóng ra ngoài, đối thủ ghi điểm và thắng set.', 'big'],
+        ['🤝 Giao bóng an toàn, chờ đối thủ sai', null, 1, null, 'Bóng vào sân, hai bên giằng co tiếp, bạn giữ được nhịp.', '', 'safe']] },
+    { t: 'Cứu bóng sát đất', i: '🏃', loc: 'court', a: 'jump', npc: ['coworker', 'cheer', 'Cứu đi!'],
+      x: 'Đối thủ đập một quả bóng sát đường biên. Bạn chỉ còn một khoảnh khắc để lao ra cứu.',
+      c: [['🏃 Lao hết tốc lực ra cứu bóng', 'health', 0.5, 'sprint', 'Bạn cứu được bóng, đồng đội phản công ghi điểm. Cả đội vỗ tay.', 'Bạn chậm một nhịp, bóng chạm sân và đội mất điểm.', 'mid'],
+        ['🛡️ Giữ vị trí hàng phòng ngự', null, 1, null, 'Bạn giữ đội hình ổn định, không mạo hiểm.', '', 'safe']] },
+  ]);
+  add('nguoimau', [
+    { t: 'Buổi phỏng vấn tạp chí', i: '📰', loc: 'studio', a: 'talk', npc: ['stranger', 'talk', 'Bí quyết của bạn là gì?'],
+      x: 'Một tạp chí thời trang mời bạn phỏng vấn nhân dịp ra bộ ảnh mới. Phóng viên hỏi dồn cả chuyện đời tư.',
+      c: [['🎤 Trả lời khéo, giữ hình ảnh chuyên nghiệp', 'smarts', 0.5, 'interview', 'Bài phỏng vấn được đánh giá cao, lượng theo dõi tăng và có thêm lời mời hợp đồng.', 'Bạn lỡ lời, bài báo bị trích dẫn xuyên tạc.', 'big'],
+        ['🙅 Chỉ trả lời về công việc', null, 1, null, 'Bài phỏng vấn ngắn gọn, ít kịch tính nhưng an toàn.', '', 'safe']] },
+    { t: 'Đàm phán cát-xê', i: '💵', loc: 'office', a: 'talk', npc: ['boss', 'talk', 'Đây là mức chúng tôi có thể trả.'],
+      x: 'Một nhãn hàng lớn mời bạn làm gương mặt đại diện nhưng đưa mức cát-xê thấp hơn kỳ vọng.',
+      c: [['🧧 Thương lượng mức cát-xê', 'smarts', 0.5, 'haggle', 'Nhãn hàng nhượng bộ, hợp đồng có giá tốt hơn hẳn.', 'Nhãn hàng không đồng ý và chuyển sang người mẫu khác.', 'mid'],
+        ['✍️ Nhận mức giá đưa ra, giữ quan hệ', null, 1, null, 'Bạn ký hợp đồng, mức cát-xê thường nhưng có thêm hợp đồng dài hạn.', '', 'safe']] },
+  ]);
+  add('giangho', [
+    { t: 'Tranh giành địa bàn', i: '🥊', loc: 'street', a: 'box', npc: ['stranger', 'angry', 'Địa bàn này của tao!'],
+      x: 'Một nhóm khác kéo đến đòi lấy địa bàn của bạn. Cả hai bên đều đã chuẩn bị. Một bước sai là máu đổ.',
+      c: [['🥊 Đứng ra đối đầu', 'health', 0.5, 'fight', 'Bạn thắng thế và nhóm kia rút lui. Uy tín của bạn tăng, nhưng nguy cơ bị công an để ý cũng tăng.', 'Bạn thua và bị thương nặng, uy tín sụt giảm trong giới.', 'shady'],
+        ['🤝 Xin giảng hòa, chia lại địa bàn', null, 1, null, 'Hai bên thoả thuận được, không có ai bị thương. Bạn mất một phần địa bàn nhưng giữ được yên ổn.', '', 'safe']] },
+    { t: 'Công an truy quét', i: '🚓', loc: 'street', a: 'run', npc: ['stranger', 'point', 'Đứng lại!'],
+      x: 'Công an ập vào khu vực bạn thường đứng. Bạn nghe tiếng còi và thấy đèn xe chớp phía cuối đường.',
+      c: [['🏃 Bỏ chạy thật nhanh', 'health', 0.5, 'chase', 'Bạn chạy thoát qua mấy con hẻm quen thuộc. Tim còn đập mạnh khi về đến chỗ trú.', 'Bạn bị bắt giữa đường và bị đưa về đồn.', 'shady'],
+        ['🙌 Đứng lại hợp tác', null, 1, null, 'Bạn bình tĩnh trình diện và được lập biên bản nhẹ. Không bị giữ lâu.', '', 'safe']] },
+  ]);
+})();

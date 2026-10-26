@@ -737,7 +737,7 @@
       const tt = fold((p.title || '') + ' ' + (p.label || '')), chased = p.role === 'chased' || /(bo chay|tron|chuon|chay tron|tron thoat|bi duoi)/.test(tt);
       const { box, cv, c, hud } = canvasGame(chased ? '🏃 Chạy trốn' : '🚓 Rượt đuổi', '<div class="mini-pad"><button type="button" data-k="l">◀ <kbd>←</kbd></button><button type="button" data-k="j">⤴ Nhảy <kbd>↑</kbd></button><button type="button" data-k="s">⤵ Trượt <kbd>↓</kbd></button><button type="button" data-k="b">💥 Tăng tốc <kbd>Space</kbd></button><button type="button" data-k="r">▶ <kbd>→</kbd></button></div>',
         '<kbd>←</kbd><kbd>→</kbd> đổi làn · <kbd>↑</kbd> nhảy qua vật thấp 📦 · <kbd>↓</kbd> trượt dưới xà ngang · vật chắn 🧱 phải né sang làn khác · <kbd>Space</kbd> tăng tốc · ⚡ là lối tắt (ăn được rút ngắn khoảng cách nhưng ngay sau là xà ngang). Vuốt trên màn hình cũng được.');
-      const sg = chased ? -1 : 1, mySpeed = 8.2 + hp / 100 * 3, tgtSpeed = 8.0 + p.need * 2.2;
+      const sg = chased ? -1 : 1, mySpeed = 8.0 + hp / 100 * 2.8, tgtSpeed = 8.4 + p.need * 2.2;
       const obs = chaseGen(rnd, CH_CFG);
       let z = 0, lane = 1, lx = 1, jump = 0, slide = 0, slow = 0, boost = 0, bcd = 0, gap = chased ? CH_CFG.gap0 * 0.8 : CH_CFG.gap0, t = -1.5, done = false, msg = '', msgT = 0, hits = 0, bolts = 0, tstun = 0;
       const say = (m) => { msg = m; msgT = 0.7; };
@@ -758,8 +758,8 @@
           const v = mySpeed * (slow > 0 ? 0.35 : 1) * (boost > 0 ? CH_CFG.boostMul : 1);
           z += v * dt;
           // đối phương cũng vấp ngẫu nhiên → cơ hội thu hẹp khoảng cách
-          if (rnd() < dt * 0.22) tstun = 1.1;
-          const tv = tgtSpeed * (tstun > 0 ? 0.4 : 1);
+          if (rnd() < dt * 0.12) tstun = 1.0;
+          const tv = tgtSpeed * (tstun > 0 ? 0.5 : 1);
           gap += (chased ? v - tv : tv - v) * dt; // chaser: gap = khoảng tới tên trộm; chased: gap = quãng dẫn trước cảnh sát
           const o = obs.find((x) => !x.hit && Math.abs(x.z - z) < 0.7 && x.lane === lane);
           if (o) {
@@ -1247,7 +1247,7 @@
           if (t >= DUR) {
             done = true; if (sh > 0) { cash += sh * price * (1 - FEE); sh = 0; }
             const r = val() / 100 - 1, lesson = r < 0 && !slOn && !auto ? ' 💡 Bài học: đặt lệnh cắt lỗ để giới hạn thua lỗ, đừng “găm” hy vọng.' : r >= 0 ? ' 💡 Lãi chỉ thật khi bạn chốt; luôn tính phí giao dịch.' : ' 💡 Thua lỗ là bình thường — điều quan trọng là kiểm soát mức lỗ mỗi lệnh.';
-            setTimeout(() => res({ score: clamp(0.5 + r * 2.5, 0, 1), text: 'Tài khoản ' + (r >= 0 ? 'lãi ' : 'lỗ ') + Math.abs(r * 100).toFixed(1) + '% (trước phí ' + (((val() + fees) / 100 - 1) * 100).toFixed(1) + '%, phí ' + fees.toFixed(2) + '; giá cả phiên ' + (price >= 100 ? 'tăng ' : 'giảm ') + Math.abs(price - 100).toFixed(1) + '%' + (auto ? '; ' + auto + ' lệnh điều kiện khớp' : '') + ').' + lesson }), 700);
+            setTimeout(() => res({ score: clamp(0.4 + r * 2.5, 0, 1), text: 'Tài khoản ' + (r >= 0 ? 'lãi ' : 'lỗ ') + Math.abs(r * 100).toFixed(1) + '% (trước phí ' + (((val() + fees) / 100 - 1) * 100).toFixed(1) + '%, phí ' + fees.toFixed(2) + '; giá cả phiên ' + (price >= 100 ? 'tăng ' : 'giảm ') + Math.abs(price - 100).toFixed(1) + '%' + (auto ? '; ' + auto + ' lệnh điều kiện khớp' : '') + ').' + lesson }), 700);
           }
         }
         c.fillStyle = '#0f1424'; c.fillRect(0, 0, 640, 400);
@@ -2119,7 +2119,7 @@
     return new Promise((res) => {
       const hp = p.ctx.stats.health, resp = 0.7 + hp / 100 * 0.5;
       const { box, cv, c, hud } = canvasGame('🛬 Hạ cánh', '<div class="mini-pad"><button type="button" data-v="-1">⬆ Kéo lên <kbd>↑</kbd></button><button type="button" data-v="1">⬇ Hạ xuống <kbd>↓</kbd></button></div>', 'Giữ <kbd>↑</kbd> kéo mũi lên (giảm độ dốc), <kbd>↓</kbd> hạ mũi xuống. Bám sát <b style="color:#39cf98">đường trượt xanh</b>, chạm đường băng thật êm (tốc độ rơi thấp). Gió giật sẽ đẩy bạn lệch.');
-      let t = -1, x = 0, y = 80, vy = 11, pitch = 0, devs = [], touched = false, done = false, gust = 0, gustT = 2, msg = '', keys = { u: false, d: false };
+      let t = -1, x = 0, y = 80, vy = 11, trim = 0, pitch = 0, devs = [], touched = false, done = false, gust = 0, gustT = 2, msg = '', keys = { u: false, d: false };
       const W = 640, GX0 = 40, GX1 = 560, GY0 = 80, GY1 = 320, slopeY = (px) => GY0 + (px - GX0) / (GX1 - GX0) * (GY1 - GY0);
       const press = (d, on) => { if (d < 0) keys.u = on; else keys.d = on; };
       box.querySelectorAll('[data-v]').forEach((b) => { const d = +b.dataset.v; b.onpointerdown = (e) => { e.preventDefault(); press(d, true); }; b.onpointerup = b.onpointerleave = () => press(d, false); });
@@ -2131,7 +2131,8 @@
           gustT -= dt; if (gustT <= 0) { gustT = rand(1.2, 2.6); gust = rand(-1, 1) * (LAND_CFG.gust + p.need * LAND_CFG.gustNeed); }
           gust *= 1 - dt * 1.2;
           pitch += ((keys.d ? 1 : 0) - (keys.u ? 1 : 0)) * 90 * resp * dt; pitch *= 1 - dt * 0.6; pitch = clamp(pitch, -60, 90);
-          vy += (pitch * 0.4 + 11 - vy) * dt * 2 + gust * dt * 1.3; vy = clamp(vy, -25, 70);
+          trim = clamp(trim + rand(-1, 1) * dt * 22, -13, 13); /* cánh trôi lệch: không chạm cần thì tự lệch đường trượt */
+          vy += (pitch * 0.4 + 11 + trim - vy) * dt * 2 + gust * dt * 1.3; vy = clamp(vy, -25, 70);
           y += vy * dt; x += (GX1 - GX0) / LAND_CFG.dur * dt;
           devs.push(Math.abs(y - slopeY(x)));
           if (y >= GY1 || x >= GX1) { done = true; touched = true; const vs = Math.max(0, vy / 10), dv = devs.reduce((a, b) => a + b, 0) / devs.length, sc = landScore(dv, vs); sfx(vs < 2.2 ? 'good' : 'bad'); msg = vs < 1.4 ? 'Chạm đất êm ru!' : vs < 2.4 ? 'Chạm đất ổn' : 'Hạ cánh cứng!'; setTimeout(() => res({ score: sc, text: msg + ' Lệch đường trượt trung bình ' + dv.toFixed(0) + 'px, tốc độ rơi lúc chạm ' + vs.toFixed(1) + '.' }), 1000); }

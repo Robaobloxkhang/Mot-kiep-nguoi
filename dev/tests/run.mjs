@@ -95,9 +95,11 @@ if (want('minigames')) {
     await page.waitForTimeout(1300);
     for (const k of ['ArrowRight', ' ', '1', 'ArrowUp']) { await page.keyboard.press(k); }
     await page.waitForTimeout(300);
-    const open = await page.evaluate(() => !!document.querySelector('.mini'));
-    await page.evaluate(() => { if (KN.Mini.abort) KN.Mini.abort(); const m = document.querySelector('.mini'); if (m) m.remove(); });
-    await page.waitForTimeout(250);
+    const open = await page.waitForSelector('.mini', { timeout: 3000 }).then(() => true, () => false);
+    await page.evaluate(() => { if (KN.Mini.abort) KN.Mini.abort(); }); // thoát đúng đường để các module riêng (showbiz, jobsmini, race) tự dọn
+    await page.waitForTimeout(500);
+    await page.evaluate(() => { const m = document.querySelector('.mini'); if (m) m.remove(); });
+    await page.waitForTimeout(150);
     record('minigame ' + t, open && errs.length === before, open ? errs.slice(before).join(' | ') : 'khung minigame không mở');
   }
   await ctx.close();
