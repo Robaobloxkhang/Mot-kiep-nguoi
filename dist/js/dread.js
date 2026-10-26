@@ -287,7 +287,9 @@
         // đồng bộ 3D
         if (hero.ent) {
           const g = hero.ent.grp; g.position.set(hero.x, Math.abs(Math.sin(tNow * 9)) * 0.06 * (Math.hypot(keys.d - keys.a + joy.x, keys.s - keys.w + joy.z) > 0.1 ? 1 : 0), hero.z); g.rotation.y = Math.atan2(hero.fx, hero.fz) + (hero.atkAnim > 0 ? Math.sin((1 - hero.atkAnim / 0.22) * Math.PI) * 0.6 : 0);
-          hero.ent.mat.emissive && 0; const wp = hero.weapon; if (wp) { const pv = hero.atkAnim > 0 ? (1 - hero.atkAnim / 0.22) : -1, sw = pv < 0 ? 0 : pv; const ang = Math.atan2(hero.fx, hero.fz) + (pv < 0 ? 0.9 : 0.9 - sw * 1.9); const r = 0.75; wp.ent.grp.position.set(hero.x + Math.sin(ang) * r, 1.0, hero.z + Math.cos(ang) * r); wp.ent.grp.rotation.set(-Math.PI / 2 + (pv < 0 ? 0.9 : 0.2), ang, 0, 'YXZ'); wp.ent.grp.visible = hero.dashT <= 0; }
+          const wp = hero.weapon; if (wp) { // kiếm: cầm dựng bên hông, khi chém quét ngang từ hông này sang hông kia
+            const a0 = Math.atan2(hero.fx, hero.fz), pv = hero.atkAnim > 0 ? 1 - hero.atkAnim / 0.22 : -1, off = pv < 0 ? -1.15 : -1.15 + 2.3 * pv, th = pv < 0 ? 0.35 : 1.25, sa = a0 + off;
+            wp.ent.grp.position.set(hero.x + Math.sin(sa) * 0.62, 0.95 + (pv < 0 ? Math.sin(tNow * 3) * 0.02 : 0), hero.z + Math.cos(sa) * 0.62); wp.ent.grp.rotation.set(th, sa, 0, 'YXZ'); wp.ent.grp.visible = hero.dashT <= 0; }
         }
         mobs.forEach((m) => {
           if (!m.ent) return; const g = m.ent.grp, wind = m.state === 'wind', lunge = m.state === 'rush' ? 0 : 0; void lunge;
