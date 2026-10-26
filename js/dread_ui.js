@@ -56,7 +56,7 @@
       const T = window.THREE;
       geos[name] = core().loadGlb(name).then((g) => {
         const bg = new T.BufferGeometry();
-        bg.setAttribute('position', new T.BufferAttribute(g.pos, 3)); bg.setAttribute('color', new T.BufferAttribute(g.col, 3)); bg.setIndex(new T.BufferAttribute(g.idx, 1)); bg.computeVertexNormals(); bg.computeBoundingBox(); bg.computeBoundingSphere();
+        bg.setAttribute('position', new T.BufferAttribute(g.pos, 3)); bg.setAttribute('color', new T.BufferAttribute(g.col, 3)); bg.setIndex(new T.BufferAttribute(g.idx, 1)); bg.computeVertexNormals(); bg.computeBoundingBox(); bg.computeBoundingSphere(); bg.userData.parts = g.parts;
         return bg;
       });
       geos[name].catch(() => { delete geos[name]; });

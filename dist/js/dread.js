@@ -46,13 +46,28 @@
     scene.add(new T.HemisphereLight(0x9a96c8, 0x2e1c14, 1.0));
     const key = new T.DirectionalLight(0xffe6c4, 0.85); key.position.set(-4, 9, 5); scene.add(key);
     const torch = new T.PointLight(0xff8a3c, 1.3, 14); torch.position.set(0, 3.2, 0); scene.add(torch);
+    const fill = new T.DirectionalLight(0x9fb4ff, 0.5), rim = new T.DirectionalLight(0xc4d4ff, 1.0); fill.position.set(5, 2.5, 3.5); rim.position.set(-2.5, 4.5, -6); scene.add(fill, rim);
+    const hemi = scene.children.find((o) => o.isHemisphereLight);
+    // bản đồ môi trường nhỏ dựng tại chỗ (nền xanh than + hai dải sáng) để kim loại có phản chiếu
+    try {
+      const pm = new T.PMREMGenerator(renderer), es = new T.Scene(), eg = new T.SphereGeometry(20, 24, 16), cl = []; const ps = eg.attributes.position, c0 = new T.Color(0x2b3245), c1 = new T.Color(0x8795b4), c2 = new T.Color(0xeef2ff), cc = new T.Color();
+      for (let i = 0; i < ps.count; i++) { const y = ps.getY(i) / 20; cc.copy(y < 0 ? c0 : c1).lerp(c2, Math.max(0, y) * 0.9); cl.push(cc.r, cc.g, cc.b); } eg.setAttribute('color', new T.Float32BufferAttribute(cl, 3));
+      es.add(new T.Mesh(eg, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide })));
+      const sb1 = new T.Mesh(new T.PlaneGeometry(9, 6), new T.MeshBasicMaterial({ color: new T.Color(4, 3.7, 3.3), side: T.DoubleSide })); sb1.position.set(-9, 6, 9); sb1.lookAt(0, 0, 0); es.add(sb1);
+      const sb2 = new T.Mesh(new T.PlaneGeometry(3, 8), new T.MeshBasicMaterial({ color: new T.Color(1.6, 2.0, 3.2), side: T.DoubleSide })); sb2.position.set(8, 4, -9); sb2.lookAt(0, 0, 0); es.add(sb2);
+      scene.environment = pm.fromScene(es, 0.03).texture; pm.dispose(); eg.dispose();
+    } catch (e) { /* không có môi trường phản chiếu vẫn hiển thị được */ }
     const mat = new T.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     const geos = {}, owned = [], mats = [];
     const geoOf = (name) => KN.DreadUI.geo(name);
     const lam = (hex, o) => { const m = new T.MeshLambertMaterial(Object.assign({ color: hex }, o || {})); mats.push(m); return m; };
     const bas = (hex, o) => { const m = new T.MeshBasicMaterial(Object.assign({ color: hex }, o || {})); mats.push(m); return m; };
     const stage = {
-      T, renderer, scene, cam, torch, lam, bas,
+      T, renderer, scene, cam, torch, lam, bas, key,
+      // bộ đèn: sảnh = đèn chính ấm + đèn bổ trợ lạnh + đèn viền sau lưng; trong hầm ngục = đèn đuốc như cũ
+      rig(lobby) {
+        hemi.intensity = lobby ? 0.55 : 1.0; key.intensity = lobby ? 1.2 : 0.85; key.color.setHex(lobby ? 0xfff0dc : 0xffe6c4); key.position.set(lobby ? -3.5 : -4, lobby ? 5 : 9, 5); fill.visible = rim.visible = lobby; torch.visible = !lobby;
+      },
       resize() { const w = canvas.clientWidth || 640, h = canvas.clientHeight || 300; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); },
       // một thực thể từ GLB: nhóm đã chuẩn hóa về chiều cao h, chân đặt ở y=0, nhìn về +z
       async spawn(name, h, flash, tint) {
@@ -287,35 +302,31 @@
       // ---------------------------------------------------------------- xem trước nhân vật 3D (kéo để xoay, thu phóng, đặt lại)
       let lobbyRot = 0, lobbyZoom = 1, lobbyIdle = 0, lobbyDrag = null, lobbyWeapon = null, lobbyWeaponKey = '', lobbyBuilding = false;
       async function setupLobbyScene() {
-        if (!S.lobbyGrp) { S.lobbyGrp = new T.Group(); const ped = new T.Mesh(new T.CylinderGeometry(1.15, 1.35, 0.18, 28), S.lam(0x2a2d3a)); ped.position.y = -0.11; S.lobbyGrp.add(ped); const ring = new T.Mesh(new T.TorusGeometry(1.17, 0.03, 6, 40), S.bas(0xd9a441)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; S.lobbyGrp.add(ring); const glow = new T.Mesh(new T.CircleGeometry(1.1, 28), S.bas(0x6a7fb0, { transparent: true, opacity: 0.16 })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.005; S.lobbyGrp.add(glow); S.scene.add(S.lobbyGrp); }
-        S.scene.background = null; S.scene.fog = null; S.torch.color.setHex(0xffe2b8);
-        S.lobbyGrp.visible = true; if (!lobbyHero) { lobbyHero = await S.spawn('character_hollow_knight', 2.4); lobbyHero.gear = []; } lobbyHero.grp.visible = true; loadEl.hidden = true;
+        if (!S.lobbyGrp) { S.lobbyGrp = new T.Group(); const ped = new T.Mesh(new T.CylinderGeometry(1.15, 1.35, 0.18, 28), S.lam(0x2a2d3a)); ped.position.y = -0.11; S.lobbyGrp.add(ped); const ring = new T.Mesh(new T.TorusGeometry(1.17, 0.03, 6, 40), S.bas(0x8a6a30)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.01; S.lobbyGrp.add(ring); const glow = new T.Mesh(new T.CircleGeometry(1.1, 28), S.bas(0x6a7fb0, { transparent: true, opacity: 0.16 })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.005; S.lobbyGrp.add(glow); S.scene.add(S.lobbyGrp); }
+        S.scene.background = null; S.scene.fog = null; S.rig(true);
+        S.lobbyGrp.visible = true; if (!lobbyHero) { lobbyHero = await KN.DreadGear.spawnHero(S, 2.5); } lobbyHero.grp.visible = true; loadEl.hidden = true;
       }
       const lobbyCam = () => { S.cam.position.set(0, 1.9 + 0.5 * lobbyZoom, 4.6 * lobbyZoom + 0.6); S.cam.lookAt(0, 1.2, 0); S.torch.position.set(1.5, 3.4, 3.5); };
       // trang phục trên người: mô hình bộ kit chỉ có vũ khí cận chiến, nên mũ/giáp/giày/khiên/nhẫn được dựng bằng khối đơn giản gắn thẳng vào nhân vật
       function dressHero(ent, hh, withWeapon) {
-        if (!ent) return; const s = ent.scale, k = hh / 2.4, col = (it) => { const c = new T.Color(core.RARITY[it.rar].color); c.lerp(new T.Color(0x8a90a0), 0.5); return c; };
-        (ent.gear || []).forEach((g) => { ent.grp.remove(g.m); if (g.own) { g.m.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); } if (g.rm) g.rm(); }); ent.gear = [];
-        const put = (m, x, y, z, rx, ry, rz) => { m.position.set(x * k / s, y * k / s, z * k / s); m.scale.multiplyScalar(k / s); if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0); ent.grp.add(m); ent.gear.push({ m, own: true }); return m; };
-        const mat = (it) => new T.MeshLambertMaterial({ color: col(it), flatShading: true });
-        const E = meta.eq;
-        if (E.helmet) put(new T.Mesh(new T.SphereGeometry(0.43, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), mat(E.helmet)), 0, 2.0, 0.0);
-        if (E.armor) { [-1, 1].forEach((sg) => put(new T.Mesh(new T.SphereGeometry(0.2, 12, 8), mat(E.armor)), sg * 0.5, 1.52, 0)); put(new T.Mesh(new T.BoxGeometry(0.62, 0.16, 0.36), mat(E.armor)), 0, 1.07, 0); }
-        if (E.boots) [-1, 1].forEach((sg) => put(new T.Mesh(new T.BoxGeometry(0.26, 0.15, 0.4), mat(E.boots)), sg * 0.2, 0.08, 0.07));
-        if (E.offhand) { const b = E.offhand.base; if (b === 'tome') put(new T.Mesh(new T.BoxGeometry(0.34, 0.06, 0.26), mat(E.offhand)), 0.58, 0.88, 0.22, 0.2, 0.3, 0); else put(new T.Mesh(new T.CylinderGeometry(b === 'tower' ? 0.4 : 0.3, b === 'tower' ? 0.4 : 0.3, 0.07, 18), mat(E.offhand)), 0.62, 1.0, 0.1, 0, 0, Math.PI / 2); }
-        if (E.ring) put(new T.Mesh(new T.TorusGeometry(0.1, 0.035, 6, 14), mat(E.ring)), 0.54, 0.7, 0.06, Math.PI / 2, 0, 0);
-        if (E.ring2) put(new T.Mesh(new T.TorusGeometry(0.1, 0.035, 6, 14), mat(E.ring2)), -0.54, 0.7, 0.06, Math.PI / 2, 0, 0);
-        if (withWeapon) { if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; } const w = E.weapon; lobbyWeaponKey = w ? w.id : ''; if (w) { const b = core.baseOf(w); makeWeapon(w, k * 0.92).then((we) => { if (!we) return; if (lobbyWeaponKey !== w.id || mode !== 'lobby') { we.remove(); return; } S.scene.remove(we.grp); ent.grp.add(we.grp); we.grp.scale.setScalar(1 / s); we.grp.position.set(-0.5 * k / s, 0.78 * k / s, 0.12 * k / s); we.grp.rotation.set((we.flip ? Math.PI : 0) + 0.5, 0, 0.08); lobbyWeapon = we; we.remove = () => { ent.grp.remove(we.grp); lobbyWeapon = null; }; }).catch(() => {}); } }
+        if (!ent) return; KN.DreadGear.dress(ent, meta.eq, S);
+        if (withWeapon) {
+          if (lobbyWeapon) { lobbyWeapon.remove(); lobbyWeapon = null; } const w = meta.eq.weapon; lobbyWeaponKey = w ? w.id : '';
+          if (w) makeWeapon(w, ent.scale).then((we) => {
+            if (!we) return; if (lobbyWeaponKey !== w.id || mode !== 'lobby') { we.remove(); return; }
+            S.scene.remove(we.grp); ent.grp.add(we.grp); we.grp.scale.setScalar(1 / ent.scale); we.grp.position.copy(ent.hand); we.grp.rotation.set((we.flip ? Math.PI : 0) + 0.45, 0, 0.06); lobbyWeapon = we; we.remove = () => { ent.grp.remove(we.grp); lobbyWeapon = null; };
+          }).catch((er) => { console.error('weapon', er && er.stack || er); });
+        }
       }
       async function updateLobbyHero() {
         if (lobbyBuilding) return; lobbyBuilding = true;
-        try { await setupLobbyScene(); dressHero(lobbyHero, 2.4, true); } catch (e) { loadEl.textContent = 'Không tải được mô hình nhân vật.'; } lobbyBuilding = false;
+        try { await setupLobbyScene(); dressHero(lobbyHero, 2.5, true); } catch (e) { loadEl.textContent = 'Không tải được mô hình nhân vật.'; } lobbyBuilding = false;
       }
       // vũ khí bọc trong nhóm "hold": gốc của hold = điểm cầm trong bàn tay; mô hình kiếm bị ngược (mũi ở dưới) nên lật bằng flip
       async function makeWeapon(it, mul) {
-        const b = core.baseOf(it); if (!b) return null; const m = mul || 1, h = (b.h || 1.5) * m;
+        const b = core.baseOf(it); if (!b) return null; const m = mul || 1, h = (b.mlen || b.h || 1.5) * m;
         const e = b.proc ? S.proc(b.proc) : await S.spawn(b.model, h); S.scene.remove(e.grp); const hold = new T.Group(); hold.add(e.grp); if (b.proc) e.grp.scale.setScalar(m);
-        e.grp.position.y = -(b.grip || 0) * h; S.scene.add(hold);
+        e.grp.position.y = -(b.grip || 0) * (b.proc ? (b.h || 1.3) * m : h); S.scene.add(hold);
         return { grp: hold, flip: !!b.flip, scale: 1, remove() { S.scene.remove(hold); hold.parent && hold.parent.remove(hold); e.remove(); } };
       }
       $('#drTools').querySelectorAll('[data-z]').forEach((b) => (b.onclick = () => { const z = +b.dataset.z; lobbyZoom = z === 0 ? 1 : clamp(lobbyZoom - z * 0.14, 0.6, 1.5); if (z === 0) lobbyRot = 0; lobbyIdle = 0; }));
@@ -331,10 +342,10 @@
         meta.runs++; save();
         const map = core.genMap(dg), sx = map.rooms[0], wts = core.lootWeights(dg, tier);
         run = { dg, tier, map, cur: sx, gold: 0, items: [], kills: 0, roomsCleared: 0, combatTotal: map.rooms.filter((r) => r.type === 'combat' || r.type === 'boss').length, potions: C.potions + (meta.extraPotions || 0), t0: tNow, over: false, won: false, wts, wtsC: wts.map((w, i) => w * (1 + i * 0.5)), wtsB: wts.map((w, i) => w * (1 + i * 1.2)) };
-        S.scene.background = new T.Color(dg.theme.fog); S.scene.fog = new T.Fog(dg.theme.fog, 13, 32); S.torch.color.setHex(dg.theme.torch);
+        S.scene.background = new T.Color(dg.theme.fog); S.scene.fog = new T.Fog(dg.theme.fog, 13, 32); S.rig(false); S.torch.color.setHex(dg.theme.torch);
         hero = { x: 0, z: 0, fx: 0, fz: -1, atkT: 0, atkAnim: 0, dashT: 0, dashCd: 0, skillCd: 0, inv: 0, ent: null, weapon: null, wkey: '', hurtT: 0, r: 0.4, hp: 1, maxHP: 1, defense: 0, atk: 15, spd: 4.3, critP: 0.1, lifeP: 0, goldMul: 1, cdr: 0, wdef: null };
         mobs = []; bolts = []; shots = []; zones = []; pickups = [];
-        try { hero.ent = await S.spawn('character_hollow_knight', 2.0); hero.ent.gear = []; } catch (e) { say('Không tải được mô hình nhân vật.'); run = null; lobbyView(); updateLobbyHero(); return; }
+        try { hero.ent = await KN.DreadGear.spawnHero(S, 2.0); } catch (e) { say('Không tải được mô hình nhân vật.'); run = null; lobbyView(); updateLobbyHero(); return; }
         await applyGear(true);
         mode = 'run'; loadEl.hidden = true; $('#drHud').hidden = false; $('#drMap').hidden = false; $('#drBtns').hidden = false; $('#drKeys').hidden = false; if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) joyEl.hidden = false;
         await enterRoom(sx, null);
@@ -345,7 +356,7 @@
         hero.maxHP = c.maxHP; hero.hp = first ? hero.maxHP : Math.min(hero.maxHP, hero.hp + Math.max(0, hero.maxHP - prevMax));
         hero.defense = c.def; hero.atk = c.atk; hero.spd = c.spd; hero.critP = c.crit; hero.lifeP = c.life; hero.goldMul = c.goldMul; hero.cdr = c.cdr;
         hero.wdef = b ? { melee: b.melee, range: b.range, cd: b.cd } : { melee: true, range: 1.2, cd: 0.55 };
-        if (hero.wkey !== (w ? w.id : '')) { if (hero.weapon) { hero.weapon.remove(); hero.weapon = null; } hero.wkey = w ? w.id : ''; if (w) { try { hero.weapon = await makeWeapon(w); } catch (e) { /* */ } } }
+        if (hero.wkey !== (w ? w.id : '')) { if (hero.weapon) { hero.weapon.remove(); hero.weapon = null; } hero.wkey = w ? w.id : ''; if (w) { try { hero.weapon = await makeWeapon(w, hero.ent.scale); } catch (e) { /* */ } } }
         if (hero.ent) dressHero(hero.ent, 2.0, false);
       }
       const HALFW = () => W / 2 - 0.75, HALFH = () => H / 2 - 0.75;
@@ -564,7 +575,7 @@
         if (mode === 'lobby' || mode === 'load' || !run) { if (lobbyHero && lobbyHero.grp.visible) { lobbyIdle += dt; if (!lobbyDrag && lobbyIdle > 4) lobbyRot += dt * 0.4; lobbyHero.grp.rotation.y = lobbyRot; lobbyHero.grp.position.set(0, 0, 0); if (S.lobbyGrp) S.lobbyGrp.rotation.y = 0; lobbyCam(); } S.render(tNow); return; }
         if (hero.ent) {
           const g = hero.ent.grp, mv = Math.hypot(keys.d - keys.a + joy.x, keys.s - keys.w + joy.z) > 0.1; g.position.set(hero.x, mv ? Math.abs(Math.sin(tNow * 9)) * 0.06 : 0, hero.z); g.rotation.y = Math.atan2(hero.fx, hero.fz) + (hero.atkAnim > 0 && hero.wdef.melee ? Math.sin((1 - hero.atkAnim / 0.22) * Math.PI) * 0.4 : 0); g.visible = !(hero.inv > 0 && Math.floor(tNow * 20) % 2 === 0 && hero.hurtT > -0.3);
-          const wp = hero.weapon; if (wp) { const a0 = Math.atan2(hero.fx, hero.fz), mel = hero.wdef.melee, pv = hero.atkAnim > 0 ? 1 - hero.atkAnim / 0.22 : -1, off = !mel ? -0.6 : pv < 0 ? -1.15 : -1.15 + 2.3 * pv, th = !mel ? 0.1 + (pv >= 0 ? 0.25 : 0) : pv < 0 ? 0.35 : 1.25, sa = a0 + off; wp.grp.position.set(hero.x + Math.sin(sa) * 0.62, 0.95, hero.z + Math.cos(sa) * 0.62); wp.grp.rotation.set(th + (wp.flip ? Math.PI : 0), sa, 0, 'YXZ'); wp.grp.visible = hero.dashT <= 0; }
+          const wp = hero.weapon; if (wp) { const a0 = Math.atan2(hero.fx, hero.fz), mel = hero.wdef.melee, pv = hero.atkAnim > 0 ? 1 - hero.atkAnim / 0.22 : -1, off = !mel ? 0.6 : pv < 0 ? 1.15 : 1.15 - 2.3 * pv, th = !mel ? 0.1 + (pv >= 0 ? 0.25 : 0) : pv < 0 ? 0.35 : 1.25, sa = a0 + off; wp.grp.position.set(hero.x + Math.sin(sa) * 0.45, 0.78, hero.z + Math.cos(sa) * 0.45); wp.grp.rotation.set(th + (wp.flip ? Math.PI : 0), sa, 0, 'YXZ'); wp.grp.visible = hero.dashT <= 0; }
         }
         mobs.forEach((m) => {
           if (!m.ent) return; const g = m.ent.grp, wind = m.state === 'wind', fy = (m.def.float || 0) + (m.def.float ? Math.sin(tNow * 2 + m.x) * 0.15 : 0), sq = wind ? 1 + Math.sin(tNow * 40) * 0.04 : 1;
@@ -610,7 +621,7 @@
       };
       window.__dread = {
         dbg: () => { const nv = nav(), r = run && run.cur, g = nv && roomObj && roomObj.gates[nv.dir]; return { mode, hero: hero && hero.ent ? { x: hero.x, z: hero.z, hp: hero.hp, maxHP: hero.maxHP, dashCd: hero.dashCd, atkT: hero.atkT, skillCd: hero.skillCd } : null, mobs: mobs.filter((m) => m.hp > 0).map((m) => ({ x: m.x, z: m.z, st: m.state, kind: m.kind, hp: m.hp, boss: !!m.isBoss })), roomType: r && r.type, cleared: r && r.cleared, roomsCleared: run && run.roomsCleared, combatTotal: run && run.combatTotal, kills: run && run.kills, gold: run && run.gold, items: run && run.items.length, potions: run && run.potions, nav: nv && g ? { x: g.x, z: g.z } : null, nextType: nv && nv.room.type, pick: pickups.map((q) => ({ k: q.kind, x: q.x, z: q.z })), over: run && run.over, won: run && run.won, rooms: run && run.map.rooms.length }; },
-        S, keys, hero: () => hero, mobs: () => mobs, shots: () => shots, atk: () => { atkQueued = true; }, dash, potion, skill, sim, draw, isDone: () => done, start: (d, t) => startRun(d, t), meta, lobby: () => lobbyView(), run: () => run,
+        S, makeWeapon, lw: () => lobbyWeapon, keys, hero: () => hero, mobs: () => mobs, shots: () => shots, atk: () => { atkQueued = true; }, dash, potion, skill, sim, draw, isDone: () => done, start: (d, t) => startRun(d, t), meta, lobby: () => lobbyView(), run: () => run,
       };
       lobbyView(); updateLobbyHero();
       if (window.__dreadAuto) startRun(window.__dreadAuto.dg || 'bone', window.__dreadAuto.tier || 0);

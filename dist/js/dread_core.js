@@ -23,15 +23,22 @@
       if (a.componentType === 5121) return { n, a: new Uint8Array(buf.slice(off, off + a.count * n)), norm: true };
       throw new Error('kiểu dữ liệu GLB chưa hỗ trợ');
     };
-    const P = [], C = [], I = []; let base = 0;
-    json.meshes.forEach((m) => m.primitives.forEach((p) => {
-      const pos = read(p.attributes.POSITION), col = p.attributes.COLOR_0 != null ? read(p.attributes.COLOR_0) : null, cnt = pos.a.length / 3;
-      for (let i = 0; i < pos.a.length; i++) P.push(pos.a[i]);
-      for (let i = 0; i < cnt; i++) { if (col) { const k = col.n, s = col.norm ? 255 : 1; C.push(col.a[i * k] / s, col.a[i * k + 1] / s, col.a[i * k + 2] / s); } else C.push(0.7, 0.7, 0.7); }
-      if (p.indices != null) { const ix = read(p.indices).a; for (let i = 0; i < ix.length; i++) I.push(ix[i] + base); } else for (let i = 0; i < cnt; i++) I.push(base + i);
-      base += cnt;
-    }));
-    return { pos: new Float32Array(P), col: new Float32Array(C), idx: new Uint32Array(I) };
+    const P = [], C = [], I = [], parts = []; let base = 0;
+    // duyệt theo nút có tên để biết từng bộ phận (đầu, tay, giày…); bỏ thanh kiếm tặng kèm trong mô hình nhân vật vì trang bị tự gắn vũ khí riêng
+    let order = (json.nodes || []).filter((n) => n.mesh != null && !/^starter_sword/.test(n.name || ''));
+    if (!order.length) order = json.meshes.map((m, i) => ({ mesh: i, name: 'mesh' + i }));
+    order.forEach((nd) => {
+      const i0 = I.length, v0 = base; let sr = 0, sg = 0, sb = 0, sc = 0;
+      json.meshes[nd.mesh].primitives.forEach((p) => {
+        const pos = read(p.attributes.POSITION), col = p.attributes.COLOR_0 != null ? read(p.attributes.COLOR_0) : null, cnt = pos.a.length / 3;
+        for (let i = 0; i < pos.a.length; i++) P.push(pos.a[i]);
+        for (let i = 0; i < cnt; i++) { if (col) { const k = col.n, s = col.norm ? 255 : 1, r = col.a[i * k] / s, g = col.a[i * k + 1] / s, b = col.a[i * k + 2] / s; C.push(r, g, b); sr += r; sg += g; sb += b; sc++; } else C.push(0.7, 0.7, 0.7); }
+        if (p.indices != null) { const ix = read(p.indices).a; for (let i = 0; i < ix.length; i++) I.push(ix[i] + base); } else for (let i = 0; i < cnt; i++) I.push(base + i);
+        base += cnt;
+      });
+      parts.push({ name: nd.name || '', v0, v1: base, start: i0, count: I.length - i0, avg: sc ? [sr / sc, sg / sc, sb / sc] : [0.7, 0.7, 0.7] });
+    });
+    return { pos: new Float32Array(P), col: new Float32Array(C), idx: new Uint32Array(I), parts };
   }
   function loadGlb(name) {
     if (!cache[name]) { cache[name] = fetch(BASE + name + '.glb').then((r) => { if (!r.ok) throw new Error('404'); return r.arrayBuffer(); }).then(parseGlb); cache[name].catch(() => { delete cache[name]; }); }
@@ -77,9 +84,9 @@
   ];
   // vũ khí gốc: model GLB (cận chiến) hoặc kiểu dựng tay (tầm xa)
   const WEAPONS = [
-    { base: 'sword', name: 'Kiếm sắt', icon: '🗡️', model: 'weapon_iron_sword', h: 1.7, flip: true, grip: 0.88, atk: 15, range: 1.9, cd: 0.62, melee: true },
-    { base: 'axe', name: 'Rìu Mộ', icon: '🪓', model: 'weapon_grave_axe', h: 1.5, grip: 0.25, atk: 22, range: 2.1, cd: 0.78, melee: true },
-    { base: 'fang', name: 'Nanh Đêm', icon: '⚔️', model: 'weapon_nightfang', h: 2.1, flip: true, grip: 0.82, atk: 30, range: 2.4, cd: 0.66, melee: true, minLvl: 3 },
+    { base: 'sword', name: 'Kiếm sắt', icon: '🗡️', model: 'weapon_iron_sword', h: 1.7, flip: true, grip: 0.88, mlen: 1.25, atk: 15, range: 1.9, cd: 0.62, melee: true },
+    { base: 'axe', name: 'Rìu Mộ', icon: '🪓', model: 'weapon_grave_axe', h: 1.5, grip: 0.25, mlen: 1.15, atk: 22, range: 2.1, cd: 0.78, melee: true },
+    { base: 'fang', name: 'Nanh Đêm', icon: '⚔️', model: 'weapon_nightfang', h: 2.1, flip: true, grip: 0.82, mlen: 1.6, atk: 30, range: 2.4, cd: 0.66, melee: true, minLvl: 3 },
     { base: 'bow', name: 'Cung Cốt', icon: '🏹', proc: 'bow', h: 1.24, grip: 0.5, atk: 11, range: 9, cd: 0.52, melee: false },
     { base: 'staff', name: 'Trượng Tro', icon: '🔮', proc: 'staff', h: 1.72, grip: 0.3, atk: 13, range: 8, cd: 0.7, melee: false, minLvl: 2 },
   ];
