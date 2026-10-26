@@ -644,6 +644,11 @@
     return true;
   }
   function promote() {    const c = D.CAREERS[S.job.id];
+    // HLV câu lạc bộ → HLV đội tuyển quốc gia không còn tự động: người chơi được mời và tự chọn (xem ms_hlv_tuyen)
+    if (S.job.id === 'hlv' && S.job.level === 1) {
+      if (!(S.flags.hlvStayYear && S.year - S.flags.hlvStayYear < 3) && S.pending.length < 2 && !S.pending.some((e) => e.id === 'ms_hlv_tuyen')) queueMilestone('ms_hlv_tuyen');
+      return false;
+    }
     if (S.job.level < c.levels.length - 1) { S.job.level++; S.job.perf = 55; S.job.levelYears = 0; S.counters.promoted = (S.counters.promoted || 0) + 1; unlock('promoted'); return true; }
     return false;
   }
@@ -3463,6 +3468,22 @@
     if (k === 'lazy') return { key: k, label: '🙈 Làm cho có, không dụ ai', hint: 'Không hại ai nhưng bị trừ hiệu suất', fn: () => { j.perf = r100(j.perf - 12); return { text: 'Bạn gọi cho vui, hỏi han vài câu rồi cúp máy. Không ai bị hại, nhưng quản lý ghi tên bạn vào danh sách “làm biếng”.', effects: { karma: 1, happy: -1 }, scene: { anim: 'shrug', fx: 'question' } }; } };
     return { key: 'quit', label: '🚪 Bỏ đường dây, về làm lương thiện', hint: 'Đi sớm thì bớt tội, nhưng bọn họ không dễ tha', fn: () => { S.job = null; S.flags.ldNo = S.year; delete S.flags.ld_invite; const p = 0.6; if (Math.random() < p) return { text: 'Bạn nộp đơn nghỉ và xoá hết tin nhắn. Quản lý hầm hè dọa dẫm nhưng cuối cùng cũng để bạn đi. Bạn bắt đầu lại từ số không, nhẹ lòng hơn nhiều.', effects: { karma: 5, happy: 4 }, scene: { loc: 'street', anim: 'walk', fx: 'sparkle' } }; return { text: 'Bạn xin nghỉ nhưng bọn họ không chịu để yên: chặn đường đánh bạn một trận rồi lấy luôn điện thoại. Bạn thoát ra được, nhưng trầy trật.', effects: { karma: 5, health: -12, happy: -3 }, scene: { loc: 'street', time: 'night', anim: 'fall', npcs: [{ role: 'thug', anim: 'angry' }], fx: 'dust' }, tone: 'bad' }; } };
   }
+
+
+  // ------------------------------------------------------------------ HLV: lên đội tuyển quốc gia hay ở lại câu lạc bộ (người chơi chọn)
+  ms({ id: 'ms_hlv_tuyen', title: 'Lời mời từ Liên đoàn bóng đá', icon: '🇻🇳', age: [20, 99], internal: true,
+    text: 'Sau những thành tích gần đây của bạn ở câu lạc bộ, Liên đoàn bóng đá gửi lời mời chính thức: bạn có muốn làm huấn luyện viên đội tuyển quốc gia? Đó là vinh dự lớn, nhưng bạn sẽ rời đội bóng đã gắn bó, không còn quyền mua bán cầu thủ mà chỉ triệu tập, và áp lực từ cả nước sẽ đè lên vai bạn.',
+    scene: { loc: 'office', time: 'day', anim: 'think', expr: 'surprised', npcs: [{ role: 'boss', anim: 'talk', say: 'Đội tuyển cần một người như anh.' }], fx: 'sparkle', shot: 'close' },
+    choices: [
+      { label: '🇻🇳 Nhận lời, lên làm HLV đội tuyển quốc gia', hint: 'Dẫn dắt tuyển quốc gia (AFF Cup, triệu tập cầu thủ) — rời câu lạc bộ hiện tại', fn: () => {
+        if (!S.job || S.job.id !== 'hlv') return { text: 'Bạn không còn làm huấn luyện viên nên lời mời đã hết hiệu lực.' };
+        S.job.level = 2; S.job.perf = 55; S.job.levelYears = 0; S.counters.promoted = (S.counters.promoted || 0) + 1; unlock('promoted');
+        return { text: 'Bạn chia tay câu lạc bộ trong nước mắt của các cầu thủ và nhận chiếc áo đỏ sao vàng. Từ hôm nay bạn là HLV đội tuyển quốc gia.', effects: { happy: 6, karma: 1 }, scene: { loc: 'stadium', anim: 'cheer', fx: 'confetti' }, tone: 'good' }; } },
+      { label: '🏟️ Ở lại câu lạc bộ, làm tiếp', hint: 'Giữ ghế HLV trưởng, xây dựng đội bóng lâu dài; vài năm nữa lời mời có thể quay lại', fn: () => {
+        S.flags.hlvStayYear = S.year;
+        if (S.mgr) S.mgr.board = Math.min(100, (S.mgr.board || 60) + 8);
+        return { text: 'Bạn lịch sự từ chối: “Tôi còn dang dở với đội bóng này.” Các cầu thủ và ban lãnh đạo câu lạc bộ rất cảm động, niềm tin vào bạn tăng lên.', effects: { happy: 3 }, scene: { loc: 'stadium', anim: 'clap', fx: 'sparkle' }, tone: 'good' }; } },
+    ] });
 
   // ------------------------------------------------------------------ BỆNH VIỆN & BẢO HIỂM: nhập viện bất ngờ, hoá đơn viện phí, bảo hiểm trả một phần (có thể bị từ chối)
   const HV_BILL = [[8e6, 25e6], [40e6, 110e6], [150e6, 450e6]];

@@ -261,7 +261,9 @@
       const t = Math.max(0, Math.min(70, ((p.x - b.x) * b.vx + (p.y - b.y) * b.vy) / (sp * sp))), cx = b.x + b.vx * t, cy = b.y + b.vy * t;
       if (t > 0 && Math.hypot(cx - p.x, cy - p.y) < 110) { const v = go(cx, cy, speed); v.k = false; return v; }
     }
-    const co = m.coach && m.coach.team === p.team ? m.coach : null;
+    // trận HLV: đội không có người chỉ đạo cũng có “HLV máy” — đang thua thì dâng cao, dẫn điểm cuối trận thì lùi về; tránh cảnh chỉ một người xông lên còn cả đội đứng nhà
+    const autoCo = () => { const d = m.score[p.team] - m.score[1 - p.team], left = Math.max(0, 1 - m.time / (m.dur || 90)); return { team: p.team, pass: 1, line: d < 0 ? Math.min(1, 0.5 + (1 - left) * 0.5) : d > 0 && left < 0.4 ? -0.3 : 0.3 }; };
+    const co = m.coach && m.coach.team === p.team ? m.coach : m.autoCoach ? autoCo() : null;
     if (rank > 0) {
       let tx, ty;
       const side = b.y < CY ? 1 : -1;
@@ -272,7 +274,9 @@
       } else if (rank === 1 || ownHalf) { tx = own + (b.x - own) * 0.32 + dir * 25; ty = CY + (b.y - CY) * 0.5 + (p.hy - CY) * 0.35; }
       else { tx = b.x - dir * 110; ty = CY + (p.hy - CY) * 0.9; }
       // vai trò HLV giao: hậu vệ đứng gần khung thành nhà, tiền đạo đứng cao; HLV hô dâng lên / lùi về thì cả đội dịch theo
-      if (p.role === 'def') tx = Math.min(tx * dir, (own + (b.x - own) * 0.3 + dir * 30) * dir) * dir;
+      if (p.role === 'def') tx = Math.min(tx * dir, (own + (b.x - own) * (m.autoCoach && poss ? 0.55 : 0.3) + dir * 30) * dir) * dir;
+      // ép sát: người gần bóng thứ hai khi đội không giữ bóng và bóng còn ở tầm 320px thì áp sát phía sau bóng (phía khung thành nhà) thay vì lùi về
+      if (m.autoCoach && !poss && rank === 1 && myD < 320 && p.role !== 'def') { tx = b.x + (own - b.x) * 0.18; ty = b.y + (CY - b.y) * 0.1; }
       else if (p.role === 'att' && !ownHalf) tx += dir * 50;
       if (co && co.line) tx += dir * co.line * 70;
       tx = Math.max(L + PR, Math.min(R - PR, tx)); ty = Math.max(T + PR, Math.min(B - PR, ty));
@@ -739,7 +743,7 @@
       const m = newMatch({ dur: o.dur || 90, map: o.map || 'classic', roster: ros });
       m.players.forEach((P, i) => { P.slowK = Math.max(0.62, Math.min(1.2, 0.6 + (meta[i].ovr - 40) / 62)); P.role = meta[i].role || null; });
       const myTeam = o.coachTeam || 0; m.myTeam = myTeam;
-      m.coach = { team: myTeam, line: 0, pass: 1 };
+      m.coach = { team: myTeam, line: 0, pass: 1 }; m.autoCoach = true;
       let speed = 1;
       open(pitchHtml('📋 ' + o.home.name + ' – ' + o.away.name + (o.title ? ' · ' + o.title : '')));
       document.getElementById('hxHint').textContent = 'Bạn là HLV (đội ' + NAMES[myTeam] + '): chỉ đạo bằng các nút bên dưới.';
