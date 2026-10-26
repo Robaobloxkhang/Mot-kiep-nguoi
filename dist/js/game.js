@@ -579,6 +579,7 @@
   const FIELD_JOBS = new Set(['streamer', 'casi', 'dienvien', 'nguoimau', 'nongdan', 'kinhdoanh', 'shipper', 'taixe', 'giangho', 'luadao', 'hlv']);
   function fieldJob(id) { const c = D.CAREERS[id]; return !!(c && (c.sport || FIELD_JOBS.has(id))); }
   function hire(id) {
+    if (id === 'luadao') S.flags.ld_invite = S.year; // vào đường dây bằng cách nào cũng tính là đã nhập hội
     const c = D.CAREERS[id]; if (!c) return;
     if (S.job && S.job.club) S.abroad = null;
     if (S.job && S.job.clubName) S.flags.lastClub = S.job.clubName;
@@ -4947,7 +4948,7 @@
   }
   function jobListings() {
     if (!S || P().age < 14) return [];
-    return Object.values(D.CAREERS).filter((c) => (c.id !== 'giangho' || S.flags.gh_invite) && (c.id !== 'luadao' || S.flags.ld_invite) && !(c.since && S.year < c.since - 15)).map((c) => {
+    return Object.values(D.CAREERS).filter((c) => (c.id !== 'giangho' || S.flags.gh_invite) && !(c.since && S.year < c.since - 15)).map((c) => {
       const reason = jobEligible(c);
       return Object.assign({ id: c.id, title: c.title, icon: c.icon, salaryText: payLabel(c, 0), reqText: reqTextOf(c), eligible: !reason, reason, talent: !!S.flags['talent_' + c.id] }, careerInfo(c));
     }).sort((a, b) => (b.eligible ? 1 : 0) - (a.eligible ? 1 : 0) || (b.talent ? 1 : 0) - (a.talent ? 1 : 0));

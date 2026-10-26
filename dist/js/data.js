@@ -158,7 +158,7 @@
     khoahoc: { title: 'Nhà khoa học', icon: '🔬', minAge: 24, req: { degree: true, minStat: { smarts: 80 } }, levels: [['Nghiên cứu viên', 12], ['Tiến sĩ', 25], ['Phó giáo sư', 40], ['Giáo sư đầu ngành', 65]], loc: 'university', style: 'coat' },
     nongdan: { title: 'Nông dân', icon: '🧑‍🌾', minAge: 16, levels: [['Làm ruộng thuê', 4], ['Chủ vườn', 9], ['Chủ trang trại', 28]], loc: 'countryside', style: 'tshirt' },
     moigioi: { title: 'Môi giới bất động sản', icon: '🏘️', minAge: 20, volatile: true, req: {}, levels: [['Nhân viên sale dự án', 8], ['Môi giới có khách quen', 25], ['Trưởng sàn giao dịch', 60], ['Chủ sàn bất động sản', 150]], loc: 'office', style: 'suit' },
-    luadao: { title: 'Đường dây lừa đảo', icon: '📱', minAge: 18, volatile: true, req: { flag: 'ld_invite' }, levels: [['Nhân viên gọi điện', 12], ['Tổ trưởng nhóm', 30], ['Quản lý đường dây', 75], ['Trùm đường dây', 180]], loc: 'office', style: 'jacket' },
+    luadao: { title: 'Đường dây lừa đảo', icon: '📱', minAge: 18, volatile: true, levels: [['Nhân viên gọi điện', 12], ['Tổ trưởng nhóm', 30], ['Quản lý đường dây', 75], ['Trùm đường dây', 180]], loc: 'office', style: 'jacket' },
     giangho: { title: 'Dân anh chị', icon: '🦹', minAge: 15, volatile: true, req: { flag: 'gh_invite' }, levels: [['Đàn em', 6], ['Tay chân thân tín', 15], ['Đàn anh khu phố', 35], ['Đại ca', 80], ['Trùm giang hồ', 200]], loc: 'street', style: 'jacket' },
   };
   // nghề chỉ có từ một thời điểm (sống theo thời đại)
