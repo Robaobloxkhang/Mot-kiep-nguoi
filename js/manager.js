@@ -33,6 +33,17 @@
     ['Virgil van Dijk', 'DF', 89, 34, 89, '🇳🇱', 16e9, 'VVD'], ['Rúben Dias', 'DF', 88, 28, 88, '🇵🇹', 30e9, ''], ['Achraf Hakimi', 'DF', 87, 27, 87, '🇲🇦', 28e9, ''],
     ['Quang Hải', 'MF', 74, 28, 74, '🇻🇳', 3.2e9, 'Nguyễn Quang Hải'], ['Công Phượng', 'FW', 72, 30, 72, '🇻🇳', 2.6e9, 'Nguyễn Công Phượng'], ['Nguyễn Tiến Linh', 'FW', 74, 28, 74, '🇻🇳', 3.4e9, 'Tiến Linh'],
     ['Đoàn Văn Hậu', 'DF', 73, 26, 76, '🇻🇳', 3e9, 'Văn Hậu'], ['Nguyễn Hoàng Đức', 'MF', 73, 28, 73, '🇻🇳', 2.8e9, 'Hoàng Đức'], ['Chanathip Songkrasin', 'MF', 76, 31, 76, '🇹🇭', 5e9, 'Messi Thái'],
+    ['Thibaut Courtois', 'GK', 89, 34, 89, '🇧🇪', 20e9, ''], ['Alisson Becker', 'GK', 89, 33, 89, '🇧🇷', 22e9, 'Alisson'], ['Ederson', 'GK', 87, 32, 87, '🇧🇷', 16e9, ''], ['Manuel Neuer', 'GK', 84, 40, 84, '🇩🇪', 4e9, 'Manu'],
+    ['Gianluigi Donnarumma', 'GK', 88, 27, 89, '🇮🇹', 30e9, 'Gigio'], ['Đặng Văn Lâm', 'GK', 72, 33, 72, '🇻🇳', 2.2e9, 'Lâm Tây'], ['Nguyễn Filip', 'GK', 70, 33, 70, '🇻🇳', 1.8e9, 'Filip'],
+    ['Trent Alexander-Arnold', 'DF', 86, 27, 87, '🇬🇧', 34e9, 'TAA'], ['Marquinhos', 'DF', 87, 31, 87, '🇧🇷', 18e9, ''], ['William Saliba', 'DF', 88, 25, 91, '🇫🇷', 52e9, ''], ['Theo Hernández', 'DF', 86, 28, 86, '🇫🇷', 26e9, ''],
+    ['Alphonso Davies', 'DF', 85, 25, 89, '🇨🇦', 30e9, 'Phonzie'], ['Josko Gvardiol', 'DF', 86, 24, 90, '🇭🇷', 48e9, ''], ['Antonio Rüdiger', 'DF', 86, 33, 86, '🇩🇪', 14e9, ''], ['Gabriel Magalhães', 'DF', 87, 28, 88, '🇧🇷', 32e9, ''],
+    ['Đỗ Duy Mạnh', 'DF', 72, 29, 72, '🇻🇳', 2.4e9, 'Duy Mạnh'], ['Bùi Tiến Dũng', 'DF', 71, 28, 72, '🇻🇳', 2.2e9, 'Tiến Dũng'], ['Quế Ngọc Hải', 'DF', 72, 33, 72, '🇻🇳', 2e9, 'Ngọc Hải'], ['Nguyễn Thanh Bình', 'DF', 69, 25, 74, '🇻🇳', 1.9e9, 'Thanh Bình'],
+    ['Bruno Fernandes', 'MF', 87, 31, 87, '🇵🇹', 24e9, 'BrunoF'], ['Jamal Musiala', 'MF', 88, 22, 94, '🇩🇪', 70e9, ''], ['Florian Wirtz', 'MF', 88, 22, 94, '🇩🇪', 75e9, ''], ['Federico Valverde', 'MF', 87, 27, 88, '🇺🇾', 40e9, 'Fede'],
+    ['Martin Ødegaard', 'MF', 88, 27, 89, '🇳🇴', 48e9, ''], ['Declan Rice', 'MF', 87, 27, 88, '🇬🇧', 44e9, ''], ['Joshua Kimmich', 'MF', 87, 31, 87, '🇩🇪', 20e9, ''], ['Lương Xuân Trường', 'MF', 71, 31, 71, '🇻🇳', 2e9, 'Xuân Trường'],
+    ['Đỗ Hùng Dũng', 'MF', 72, 33, 72, '🇻🇳', 1.9e9, 'Hùng Dũng'], ['Nguyễn Văn Quyết', 'FW', 72, 35, 72, '🇻🇳', 1.6e9, 'Văn Quyết'], ['Phan Văn Đức', 'MF', 71, 30, 71, '🇻🇳', 2.1e9, 'Văn Đức'], ['Võ Nguyên Hoàng', 'MF', 69, 26, 73, '🇻🇳', 1.8e9, 'Nguyên Hoàng'],
+    ['Robert Lewandowski', 'FW', 86, 38, 86, '🇵🇱', 8e9, 'Lewy'], ['Victor Osimhen', 'FW', 87, 27, 88, '🇳🇬', 40e9, ''], ['Marcus Rashford', 'FW', 83, 29, 83, '🇬🇧', 14e9, ''], ['Phil Foden', 'FW', 88, 26, 90, '🇬🇧', 55e9, ''],
+    ['Bukayo Saka', 'FW', 88, 25, 91, '🇬🇧', 60e9, ''], ['Rafael Leão', 'FW', 86, 27, 88, '🇵🇹', 36e9, ''], ['Lautaro Martínez', 'FW', 88, 28, 88, '🇦🇷', 42e9, 'El Toro'], ['Nguyễn Xuân Son', 'FW', 74, 29, 74, '🇻🇳', 3.2e9, 'Xuân Son'],
+    ['Nguyễn Văn Toàn', 'FW', 70, 29, 70, '🇻🇳', 1.9e9, 'Văn Toàn'], ['Hà Đức Chinh', 'FW', 69, 28, 70, '🇻🇳', 1.7e9, 'Đức Chinh'], ['Supachok Sarachat', 'FW', 75, 27, 75, '🇹🇭', 4.2e9, 'Supachok'], ['Marselino Ferdinan', 'MF', 73, 22, 80, '🇮🇩', 3.6e9, 'Marselino'],
   ];
   const starPlayer = (x) => ({ id: pid(), name: x[0], pos: x[1], ovr: x[2], age: x[3], pot: x[4], nat: x[5], val: x[6], alias: x[7], star: true, foreign: x[5] !== '🇻🇳', morale: RI(70, 85), goals: 0, apps: 0 });
   const POS = ['GK', 'DF', 'MF', 'FW'], POS_VN = { GK: 'Thủ môn', DF: 'Hậu vệ', MF: 'Tiền vệ', FW: 'Tiền đạo' }, POS_IC = { GK: '🧤', DF: '🛡️', MF: '⚙️', FW: '⚡' };
@@ -72,6 +83,7 @@
   function nationalPool(year) {
     // cầu thủ Việt Nam giỏi nhất hiện tại để triệu tập
     const out = []; ['DF', 'MF', 'FW'].forEach((pos) => { for (let i = 0; i < 8; i++) out.push(makePlayer(pos, 62 + R(-6, 14), RI(19, 32))); });
+    for (let i = 0; i < 2; i++) out.push(makePlayer('GK', 62 + R(-6, 10), RI(21, 33)));
     STARS.filter((x) => x[5] === '🇻🇳').forEach((x) => out.push(starPlayer(x)));
     return out.sort((a, b) => b.ovr - a.ovr);
   }
