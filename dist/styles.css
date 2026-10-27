@@ -1837,3 +1837,9 @@ details.more.risk p { margin: 0 0 8px; }
 @media (prefers-reduced-motion: reduce) { .dr-bar i, .dr-xp i, .btn { transition: none; } }
 
 .dgo { position: sticky; bottom: 0; padding: var(--s2) 0 2px; background: linear-gradient(transparent, var(--bg1) 30%); } .dgo .btn { width: 100%; min-height: 42px; font-size: 14px; }
+/* phóng to cửa sổ minigame */
+.mini-zoombtn { right: 118px; top: 10px; } .mini-pausebtn ~ .mini-zoombtn { right: 230px; }
+.mini-box.big { width: min(1500px, 100%); }
+.mini-box.big canvas { max-width: 100%; margin-left: auto; margin-right: auto; }
+.mini-box.big .hax-field { display: grid; justify-items: center; }
+@media (max-width: 700px) { .mini-zoombtn { display: none; } }
