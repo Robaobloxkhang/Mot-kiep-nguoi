@@ -748,20 +748,30 @@
       open(pitchHtml('📋 ' + o.home.name + ' – ' + o.away.name + (o.title ? ' · ' + o.title : '')));
       document.getElementById('hxHint').textContent = 'Bạn là HLV (đội ' + NAMES[myTeam] + '): chỉ đạo bằng các nút bên dưới.';
       const bar = document.createElement('div'); bar.className = 'hax-coach';
-      bar.innerHTML = '<button type="button" data-c="up">⬆️ Dâng cao</button><button type="button" data-c="mid" class="on">⏺️ Giữ vị trí</button><button type="button" data-c="down">⬇️ Lùi sâu</button><span></span><button type="button" data-c="pass">🎯 Chuyền ngắn</button><button type="button" data-c="direct">⚡ Đánh nhanh</button><span></span><button type="button" data-c="fast">⏩ Tua ×4</button><button type="button" data-c="skip">⏭️ Xem kết quả</button>';
+      bar.innerHTML = '<button type="button" data-c="up">⬆️ Dâng cao</button><button type="button" data-c="mid" class="on">⏺️ Giữ vị trí</button><button type="button" data-c="down">⬇️ Lùi sâu</button><span></span><button type="button" data-c="pass">🎯 Chuyền ngắn</button><button type="button" data-c="direct">⚡ Đánh nhanh</button><span></span><button type="button" data-c="ctl" title="Tự tay điều khiển một cầu thủ (Tab: đổi người)">🎮 Điều khiển</button><button type="button" data-c="fast">⏩ Tua ×4</button><button type="button" data-c="skip">⏭️ Xem kết quả</button>';
       document.querySelector('.hax-foot').before(bar);
       bar.querySelectorAll('button').forEach((b) => (b.onclick = () => {
         const c = b.dataset.c; sfx('click');
         if (c === 'up' || c === 'mid' || c === 'down') { m.coach.line = c === 'up' ? 1 : c === 'down' ? -1 : 0; bar.querySelectorAll('[data-c="up"],[data-c="mid"],[data-c="down"]').forEach((x) => x.classList.toggle('on', x === b)); }
         else if (c === 'pass' || c === 'direct') { const on = !b.classList.contains('on'); bar.querySelectorAll('[data-c="pass"],[data-c="direct"]').forEach((x) => x.classList.remove('on')); if (on) b.classList.add('on'); m.coach.pass = on ? (c === 'pass' ? 1.7 : 0.3) : 1; }
+        else if (c === 'ctl') { if (ctl >= 0) setCtl(-1); else setCtl(nearestMine()); b.classList.toggle('on', ctl >= 0); }
         else if (c === 'fast') { speed = speed === 4 ? 1 : 4; b.classList.toggle('on', speed === 4); }
         else if (c === 'skip') speed = 400;
       }));
-      runLocal(m, (mm) => owners.map((lv, i) => aiInput(mm, i, lv)), {
-        me: -1, myTeam, speed: () => speed,
+      // điều khiển tay: chọn một cầu thủ của đội mình, các cầu thủ khác vẫn do máy chơi
+      let ctl = -1; const mine = () => m.players.map((q, i) => i).filter((i) => m.players[i].team === myTeam && !m.players[i].out);
+      const nearestMine = () => { const l = mine(); l.sort((a, b2) => Math.hypot(m.players[a].x - m.ball.x, m.players[a].y - m.ball.y) - Math.hypot(m.players[b2].x - m.ball.x, m.players[b2].y - m.ball.y)); return l.length ? l[0] : -1; };
+      const setCtl = (i) => { if (ctl >= 0 && m.players[ctl]) { m.players[ctl].human = false; m.players[ctl].assist = false; } ctl = i; if (i >= 0) { m.players[i].human = true; m.players[i].assist = true; } const hb = document.getElementById('hxHint'); if (hb) hb.textContent = i >= 0 ? 'Bạn đang điều khiển ★ ' + (m.players[i].name || 'cầu thủ') + ' · WASD/mũi tên + Space sút · Q chạy nhanh · E xoạc · Tab đổi người' : 'Bạn là HLV (đội ' + NAMES[myTeam] + '): chỉ đạo bằng các nút bên dưới.'; const cb = bar.querySelector('[data-c="ctl"]'); if (cb) cb.classList.toggle('on', i >= 0); };
+      const kd = (e) => { if (!document.body.contains(bar)) { window.removeEventListener('keydown', kd, true); return; } if (ctl < 0) return; if (e.key === 'Tab' || /^[1-4]$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); const l = mine(); if (!l.length) return; const at = e.key === 'Tab' ? l[(Math.max(0, l.indexOf(ctl)) + 1) % l.length] : l[+e.key - 1]; if (at != null) setCtl(at); } };
+      window.addEventListener('keydown', kd, true);
+      const cv0 = document.getElementById('hxCv'); if (cv0) cv0.addEventListener('pointerdown', (e) => { if (ctl < 0) return; const r = cv0.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * cv0.width, y = (e.clientY - r.top) / r.height * cv0.height; let best = -1, bd = 60; mine().forEach((i) => { const d = Math.hypot(m.players[i].x - x, m.players[i].y - y); if (d < bd) { bd = d; best = i; } }); if (best >= 0) setCtl(best); });
+      const inputs = (mm) => owners.map((lv, i) => (i === ctl ? inAny() : aiInput(mm, i, lv)));
+      const opts0 = { myTeam, speed: () => speed,
         cupEnd: (gf, ga) => { const sc = []; Object.keys(m.goalsBy).forEach((i) => { const pl = meta[+i]; if (pl && m.players[+i].team === myTeam) sc.push({ id: pl.id, name: pl.name, n: m.goalsBy[i] }); }); const R2 = ratingsOf(m), mine2 = R2.list.filter((x) => x.team === myTeam && meta[x.i]).map((x) => ({ id: meta[x.i].id, name: meta[x.i].name || x.name, r: x.r, g: x.g, a: x.a })), mv = R2.mvp; setTimeout(() => { close(true); res({ gf, ga, scorers: sc, ratings: mine2, mvp: { name: (meta[mv.i] && meta[mv.i].name) || mv.name, r: mv.r, id: meta[mv.i] && meta[mv.i].id, mine: mv.team === myTeam } }); }, speed > 4 ? 50 : 150); },
         onQuit: () => { speed = 400; },
-      });
+      };
+      Object.defineProperty(opts0, 'me', { get: () => ctl });
+      runLocal(m, inputs, opts0);
     });
   }
   function playLocal2() {
