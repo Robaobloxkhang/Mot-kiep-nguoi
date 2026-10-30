@@ -627,15 +627,19 @@
     const T = CUPS[c.type], reached = cupReached(c), top = T.groups ? NR(c) + 1 : NR(c);
     if (c.rewarded || !reached) return '';
     c.rewarded = true; cupSave(c);
-    const money = Math.round(T.prizes[reached] * T.mult * (KN.Weekly && KN.Weekly.bonus('hax') ? 2 : 1));
+    const money = Math.round(T.prizes[reached] * T.mult * CUP_DIFF[Math.min(2, cfg.cupDiff || 0)][1] * (KN.Weekly && KN.Weekly.bonus('hax') ? 2 : 1));
     try { if (KN.Game && KN.Game.hasLife() && !KN.Game.isDead() && KN.Game.remoteEffect) { KN.Game.remoteEffect({ happy: reached === top ? 5 : 2, money }, reached === top ? '🏆 Bạn cùng đồng đội vô địch ' + T.name + ' mùa ' + c.season + '! Tiền thưởng ' + Math.round(money / 1e6) + ' triệu.' : '⚽ Đội bạn đi tới ' + (T.groups ? RN(c)[reached - 1] : RN(c)[reached]).toLowerCase() + ' ' + T.name + ' mùa ' + c.season + ', thưởng ' + Math.round(money / 1e6) + ' triệu.', '⚽'); } } catch (e) { /* */ }
     return ' 💰 Thưởng ' + Math.round(money / 1e6) + ' triệu.';
   }
+  // độ khó đối thủ giải đấu: 0 Thường · 1 Khốc liệt (bán kết/chung kết và lượt 3 vòng bảng là Huyền thoại) · 2 Huyền thoại mọi trận
+  const CUP_DIFF = [['Thường', 1], ['Khốc liệt', 1.25], ['Huyền thoại', 1.5]];
+  const cupLvl = (c, lvl) => { const d = cfg.cupDiff || 0; if (d >= 2) return 3; if (d === 1) { const late = c.stage === 'group' ? c.md >= 2 : c.round >= NR(c) - 2; return late ? 3 : lvl; } return lvl; };
   // chọn giải
   function cupMenu() {
     const rows = Object.keys(CUPS).sort((x, y) => (CUPS[x].real ? 1 : 0) - (CUPS[y].real ? 1 : 0)).map((k) => { const T = CUPS[k], c = cupLoad(k), st = !c ? 'Mùa 1' : c.round >= NR(c) ? 'Mùa ' + c.season + ' đã xong' : 'Mùa ' + c.season + ' đang đá' + (c.stage === 'group' ? ' · vòng bảng lượt ' + (c.md + 1) + '/3' : ' · ' + RN(c)[c.round].toLowerCase()); return '<button type="button" class="btn btn-soft cup-pick" data-cup="' + k + '"><b>' + T.icon + ' ' + T.name + '</b><small>' + T.desc + '</small><em>' + st + (c && c.titles ? ' · 🏆×' + c.titles : '') + '</em></button>'; }).join('');
-    open('<div class="hax-lobby"><h3>🏆 Các giải đấu Hax</h3><p class="sub">Chọn một giải. Mỗi giải lưu tiến độ riêng, đội máy mạnh dần theo vòng.</p><div class="hax-menu">' + rows + '<button type="button" class="btn btn-primary cup-pick" data-cup="friends"><b>👥 Giải đấu với bạn bè</b><small>2, 4 hoặc 8 người cùng một máy, loại trực tiếp, mỗi trận hai người đấu với nhau. Muốn chơi từ xa thì dùng Phòng online ở menu Hax.</small><em>' + (frLoad() && frLoad().champ == null ? 'Đang có giải dở dang' : 'Giải mới') + '</em></button></div><div class="btnrow"><button type="button" class="btn btn-ghost" id="cupBack">← Menu</button></div></div>');
+    open('<div class="hax-lobby"><h3>🏆 Các giải đấu Hax</h3><p class="sub">Chọn một giải. Mỗi giải lưu tiến độ riêng, đội máy mạnh dần theo vòng.</p><div class="hax-set"><span>Đối thủ</span><div>' + CUP_DIFF.map(([l, mu], i) => '<button type="button" data-set="cupDiff" data-v="' + i + '" class="' + ((cfg.cupDiff || 0) === i ? 'on' : '') + '" title="Thưởng ×' + mu + '">' + (i === 2 ? '⭐ ' : '') + l + '</button>').join('') + '</div></div><div class="hax-menu">' + rows + '<button type="button" class="btn btn-primary cup-pick" data-cup="friends"><b>👥 Giải đấu với bạn bè</b><small>2, 4 hoặc 8 người cùng một máy, loại trực tiếp, mỗi trận hai người đấu với nhau. Muốn chơi từ xa thì dùng Phòng online ở menu Hax.</small><em>' + (frLoad() && frLoad().champ == null ? 'Đang có giải dở dang' : 'Giải mới') + '</em></button></div><div class="btnrow"><button type="button" class="btn btn-ghost" id="cupBack">← Menu</button></div></div>');
     document.getElementById('cupBack').onclick = () => menu();
+    bindSettings(cupMenu);
     root.querySelectorAll('[data-cup]').forEach((b) => (b.onclick = () => (b.dataset.cup === 'friends' ? friendsScreen() : cupScreen(b.dataset.cup))));
   }
   function cupScreen(type) {
@@ -656,11 +660,11 @@
       cupSave(c);
     } else if (c.stage === 'group') {
       const g = c.groups.findIndex((grp) => grp.includes(0)), grp = c.groups[g], mi = grp.indexOf(0), f = FIX[c.md].find((x) => x.includes(mi)), foe = c.teams[grp[f[0] === mi ? f[1] : f[0]]];
-      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · <b>Vòng bảng ' + GROUP[g] + '</b> lượt ' + (c.md + 1) + '/3 · Gặp <b>' + esc(foe.name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó'][foeLvl(foe, Math.min(2, c.md))] + '). Thắng 3 điểm, hoà 1 điểm (không có bàn thắng vàng), nhất nhì bảng vào ' + RN(c)[0].toLowerCase() + '.</p>';
+      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · <b>Vòng bảng ' + GROUP[g] + '</b> lượt ' + (c.md + 1) + '/3 · Gặp <b>' + esc(foe.name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó', 'Huyền thoại'][cupLvl(c, foeLvl(foe, Math.min(2, c.md)))] + '). Thắng 3 điểm, hoà 1 điểm (không có bàn thắng vàng), nhất nhì bảng vào ' + RN(c)[0].toLowerCase() + '.</p>';
       btn = '<button type="button" class="btn btn-primary" id="cupPlay">▶ Đá lượt ' + (c.md + 1) + '</button><button type="button" class="btn btn-ghost" id="cupReset">Bỏ mùa này</button>';
     } else {
       const l = c.rounds[c.round], k = l.findIndex((t) => c.teams[t].me), foe = l[k % 2 ? k - 1 : k + 1];
-      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · Đối thủ ' + RN(c)[c.round].toLowerCase() + ': <b>' + esc(c.teams[foe].name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó'][foeLvl(c.teams[foe], lvlOf(c, c.round))] + '). Hoà hết giờ thì đá bàn thắng vàng.</p>';
+      msg = '<p class="sub">Mùa ' + c.season + (c.titles ? ' · 🏆×' + c.titles : '') + ' · ' + c.size + 'v' + c.size + ' · Đối thủ ' + RN(c)[c.round].toLowerCase() + ': <b>' + esc(c.teams[foe].name) + '</b> (máy ' + ['Dễ', 'Thường', 'Khó', 'Huyền thoại'][cupLvl(c, foeLvl(c.teams[foe], lvlOf(c, c.round)))] + '). Hoà hết giờ thì đá bàn thắng vàng.</p>';
       btn = '<button type="button" class="btn btn-primary" id="cupPlay">▶ Đá ' + RN(c)[c.round] + '</button><button type="button" class="btn btn-ghost" id="cupReset">Bỏ mùa này</button>';
     }
     const pr = T.prizes.map((v) => Math.round(v * T.mult / 1e6));
@@ -726,13 +730,14 @@
     } else {
       const l = c.rounds[c.round], k = l.findIndex((t) => c.teams[t].me); foe = c.teams[l[k % 2 ? k - 1 : k + 1]]; label = RN(c)[c.round]; lvl = foeLvl(foe, lvlOf(c, c.round));
     }
+    lvl = cupLvl(c, lvl);
     const n = c.size || 3, roster = [{ team: 0, name: myName() }], owners = ['me'];
     const pal = !!cfg.cupPal && n >= 2;
     for (let i = 1; i < n; i++) { roster.push({ team: 0, name: pal && i === 1 ? 'Bạn' : 'Đồng đội ' + i }); owners.push(pal && i === 1 ? 'p2' : 1); }
     if (pal) owners[0] = 'me1';
-    for (let i = 0; i < n; i++) { roster.push({ team: 1, name: foe.name.replace(/^\S+\s/, '').split(' ').pop() + ' ' + (i + 1) }); owners.push(lvl); }
+    for (let i = 0; i < n; i++) { roster.push({ team: 1, name: lvl === 3 ? ['Messi', 'CR7', 'Mbappé', 'Haaland'][i % 4] : foe.name.replace(/^\S+\s/, '').split(' ').pop() + ' ' + (i + 1) }); owners.push(lvl); }
     const m = newMatch({ dur: 120, map: c.map || 'classic', roster, noGolden }); m.players[0].human = true;
-    open(pitchHtml(CUPS[c.type].icon + ' ' + label + ' · ' + foe.name + ' · ' + MP.icon + ' ' + MP.name));
+    open(pitchHtml(CUPS[c.type].icon + ' ' + label + ' · ' + foe.name + (lvl === 3 ? ' · ⭐ Huyền thoại' : '') + ' · ' + MP.icon + ' ' + MP.name));
     document.getElementById('hxHint').textContent = (pal ? 'Bạn: WASD + Space · Bạn bè cùng đội: ↑↓←→ + Enter' : KEYS_HINT()) + ' · Esc: menu';
     if (pal) m.players[1].human = true;
     runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : o === 'me1' ? in1() : o === 'p2' ? in2() : aiInput(mm, i, o))), { cupEnd: (gf, ga) => { cupAdvance(c, gf, ga); setTimeout(() => cupScreen(c.type), 1200); }, onQuit: () => cupScreen(c.type) });
