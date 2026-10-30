@@ -241,7 +241,7 @@
   }
   function aiInput(m, i, lvl) {
     const p = m.players[i], b = m.ball, dir = p.team === 0 ? 1 : -1, own = MP.basket ? HOOPS[p.team][0] : p.team === 0 ? L : R, opp = MP.basket ? HOOPS[1 - p.team][0] : p.team === 0 ? R + 10 : L - 10;
-    const speed = ([0.58, 0.8, 0.95][lvl] ?? 0.8) * (p.slowK || 1); // máy chạy chậm hơn người một chút (trận trong cuộc đời còn chậm hơn nữa)
+    const speed = ([0.58, 0.8, 0.95, 1.1][lvl] ?? 0.8) * (p.slowK || 1); // máy chạy chậm hơn người một chút (trận trong cuộc đời còn chậm hơn nữa)
     const go = (tx, ty, s) => { const dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy) || 1, sp = (s || speed) * Math.min(1, dl / 14 + 0.2); return { jx: dx / dl * sp, jy: dy / dl * sp }; };
     if (m.phase === 'kickoff' && p.team !== m.kickoff) return go(p.hx, p.hy, 0.5);
     if (m.phase === 'setpiece' && p.team !== m.kickoff) { if (i === m.keeper) return go(p.x, Math.max(CY - GH + PR, Math.min(CY + GH - PR, b.y)), 0.6); const own2 = p.team === 0 ? L : R; return go(b.x + (own2 - b.x) * 0.35, b.y + (CY - b.y) * 0.4, 0.6); }
@@ -276,22 +276,23 @@
       // vai trò HLV giao: hậu vệ đứng gần khung thành nhà, tiền đạo đứng cao; HLV hô dâng lên / lùi về thì cả đội dịch theo
       if (p.role === 'def') tx = Math.min(tx * dir, (own + (b.x - own) * (m.autoCoach && poss ? 0.55 : 0.3) + dir * 30) * dir) * dir;
       // ép sát: người gần bóng thứ hai khi đội không giữ bóng và bóng còn ở tầm 320px thì áp sát phía sau bóng (phía khung thành nhà) thay vì lùi về
-      if (m.autoCoach && !poss && rank === 1 && myD < 320 && p.role !== 'def') { tx = b.x + (own - b.x) * 0.18; ty = b.y + (CY - b.y) * 0.1; }
+      if ((m.autoCoach || lvl === 3) && !poss && rank === 1 && myD < 320 && p.role !== 'def') { tx = b.x + (own - b.x) * 0.18; ty = b.y + (CY - b.y) * 0.1; }
       else if (p.role === 'att' && !ownHalf) tx += dir * 50;
       if (co && co.line) tx += dir * co.line * 70;
       tx = Math.max(L + PR, Math.min(R - PR, tx)); ty = Math.max(T + PR, Math.min(B - PR, ty));
       const v = go(tx, ty, speed * (poss ? 0.95 : 0.9));
       v.k = !justPassed && myD < KICK_RANGE && dir * (b.x - p.x) > 0;
+      if (lvl === 3) { p.stam = Math.min(100, (p.stam ?? 100) + 0.55); if ((p.stam ?? 100) > 12 && m.phase === 'play') v.s = true; }
       return v;
     }
-    const look = [3, 7, 11][lvl] ?? 7, bx = b.x + b.vx * look, by = b.y + b.vy * look;
+    const look = [3, 7, 11, 16][lvl] ?? 7, bx = b.x + b.vx * look, by = b.y + b.vy * look;
     let aimX = opp, aimY = MP.basket ? CY : Math.max(CY - GH + 16, Math.min(CY + GH - 16, by)), pw = 1;
     // quyết định: sút / chuyền / dẫn bóng — giữ quyết định khoảng nửa giây cho khỏi giật cục
     if (mates.length && m.phase === 'play' && myD < 70) {
       if (!p.plan || p.plan.until < m.phaseT) {
         const goalD = Math.hypot(opp - b.x, CY - b.y), pass = pickPass(m, i, dir);
-        const shootR = MP.basket ? MP.arc + 20 : [200, 240, 280][lvl] ?? 240;
-        const rate = ([0.25, 0.45, 0.6][lvl] ?? 0.45) * (co ? co.pass : 1);
+        const shootR = MP.basket ? MP.arc + 20 : [200, 240, 280, 340][lvl] ?? 240;
+        const rate = ([0.25, 0.45, 0.6, 0.72][lvl] ?? 0.45) * (co ? co.pass : 1);
         let plan = { until: m.phaseT + 30 };
         if (goalD < shootR && !(pass && pass.sc > 140 && Math.random() < 0.3)) plan.shoot = true;
         else if (pass && (foeD < 70 || (pass.sc > 60 && Math.random() < rate))) { plan.j = pass.j; plan.until = m.phaseT + 45; }
@@ -307,16 +308,18 @@
     let tx = bx - ux * (PR + BR - 2), ty = by - uy * (PR + BR - 2);
     const rel = (p.x - bx) * ux + (p.y - by) * uy;
     if (rel > -6) { const sd = (p.x - bx) * -uy + (p.y - by) * ux >= 0 ? 1 : -1; tx = bx - ux * (PR + BR + 14) - uy * sd * (PR + BR + 12); ty = by - uy * (PR + BR + 14) + ux * sd * (PR + BR + 12); }
-    if (foeD + 25 < myD && ownHalf && !mates.length) { const t = lvl === 2 ? 0.42 : 0.55; tx = b.x + (own - b.x) * t; ty = b.y + (CY - b.y) * t; }
+    if (foeD + 25 < myD && ownHalf && !mates.length) { const t = lvl >= 2 ? 0.42 : 0.55; tx = b.x + (own - b.x) * t; ty = b.y + (CY - b.y) * t; }
     const v = go(tx, ty);
+    // Huyền thoại: bẻ lái qua người khi bị áp sát, che bóng và tăng tốc, thể lực gần như không cạn
+    if (lvl === 3) { p.stam = Math.min(100, (p.stam ?? 100) + 0.55); if (myD < 60 && foeD < 80 && !(p.plan && p.plan.j != null)) { const sd = Math.sin(m.phaseT / 11 + i) > 0 ? 1 : -1; v.jx += -uy * sd * 0.9; v.jy += ux * sd * 0.9; v.s = true; } }
     // chạy nước rút khi còn xa bóng; xoạc khi đối thủ đang dẫn bóng ngay trước mặt (máy giỏi xoạc chuẩn hơn, máy dở hay phạm lỗi)
-    if (lvl >= 1 && myD > 110 && (p.stam ?? 100) > 45 && m.phase === 'play') v.s = true;
+    if (lvl >= 1 && myD > 110 && (p.stam ?? 100) > (lvl === 3 ? 12 : 45) && m.phase === 'play') v.s = true;
     const carrier = foes.find((f) => !f.out && dist(f) < PR + BR + 8);
-    if (carrier && m.phase === 'play' && !(p.tCool > 0) && Math.hypot(carrier.x - p.x, carrier.y - p.y) < 42 && Math.random() < [0.006, 0.009, 0.013][lvl] * (p.slowK ? 0.4 : 1)) { const dx = (lvl === 2 ? b.x : carrier.x) - p.x, dy = (lvl === 2 ? b.y : carrier.y) - p.y, dl = Math.hypot(dx, dy) || 1; v.jx = dx / dl; v.jy = dy / dl; v.t = true; }
+    if (carrier && m.phase === 'play' && !(p.tCool > 0) && Math.hypot(carrier.x - p.x, carrier.y - p.y) < 42 && Math.random() < [0.006, 0.009, 0.013, 0.03][lvl] * (p.slowK ? 0.4 : 1)) { const dx = (lvl >= 2 ? b.x : carrier.x) - p.x, dy = (lvl >= 2 ? b.y : carrier.y) - p.y, dl = Math.hypot(dx, dy) || 1; v.jx = dx / dl; v.jy = dy / dl; v.t = true; }
     const fx = b.x - p.x, fy = b.y - p.y, fl = Math.hypot(fx, fy) || 1, align = (fx * ux + fy * uy) / fl;
     const passing = p.plan && p.plan.j != null;
     if (passing) { v.k = myD < KICK_RANGE && align > 0.82; v.pw = pw; }
-    else v.k = myD < KICK_RANGE && (align > [0.35, 0.55, 0.72][lvl] || (ownHalf && dir * fx > 0)) && Math.random() < [0.3, 0.65, 1][lvl];
+    else v.k = myD < KICK_RANGE && (align > [0.35, 0.55, 0.72, 0.72][lvl] || (ownHalf && dir * fx > 0)) && Math.random() < [0.3, 0.65, 1, 1][lvl];
     if (MP.basket && v.k && !passing && !ownHalf && Math.hypot(b.x - opp, b.y - CY) > 300) v.k = false; // bóng rổ: xa rổ thì dẫn bóng, lại gần mới ném
     return v;
   }
@@ -523,9 +526,9 @@
   function playAI() {
     const n = cfg.size, lvl = cfg.lvl, roster = [{ team: 0, name: myName() }], owners = ['me'];
     for (let i = 1; i < n; i++) { roster.push({ team: 0, name: 'Đồng đội' }); owners.push(1); }
-    for (let i = 0; i < n; i++) { roster.push({ team: 1, name: n > 1 ? 'Máy ' + (i + 1) : 'Máy' }); owners.push(lvl); }
+    for (let i = 0; i < n; i++) { roster.push({ team: 1, name: lvl === 3 ? ['Messi', 'CR7', 'Mbappé', 'Haaland'][i % 4] : n > 1 ? 'Máy ' + (i + 1) : 'Máy' }); owners.push(lvl); }
     const m = newMatch({ dur: cfg.dur, map: mapOf(), roster }); m.players[0].human = true;
-    open(pitchHtml('Đấu với máy · ' + n + 'v' + n + ' · ' + ['Dễ', 'Thường', 'Khó'][lvl] + ' · ' + MP.icon + ' ' + MP.name));
+    open(pitchHtml('Đấu với máy · ' + n + 'v' + n + ' · ' + ['Dễ', 'Thường', 'Khó', 'Huyền thoại'][lvl] + ' · ' + MP.icon + ' ' + MP.name));
     document.getElementById('hxHint').textContent = KEYS_HINT() + ' · Esc: menu';
     runLocal(m, (mm) => owners.map((o, i) => (o === 'me' ? inAny() : aiInput(mm, i, o))), { again: playAI });
   }
@@ -1143,7 +1146,7 @@
     return '<div class="hax-set"><span>Môn</span><div>' + chips('sport', [['foot', '⚽ Bóng đá'], ['basket', '🏀 Bóng rổ']]) + '</div>' + (cfg.sport === 'basket' ? '' : '<span>Bản đồ</span><div>' + chips('map', Object.keys(MAPS).filter((k) => !MAPS[k].basket).map((k) => [k, MAPS[k].icon + ' ' + MAPS[k].name])) + '</div>') +
       '<span>Thời lượng</span><div>' + chips('dur', [[120, '2 phút'], [180, '3 phút'], [300, '5 phút']]) + '</div>' +
       (online ? '' : '<span>Số người</span><div>' + chips('size', [[1, '1v1'], [2, '2v2'], [3, '3v3'], [4, '4v4']]) + '</div>') +
-      '<span>Máy</span><div>' + chips('lvl', [[0, 'Dễ'], [1, 'Thường'], [2, 'Khó']]) + '</div></div>' +
+      '<span>Máy</span><div>' + chips('lvl', [[0, 'Dễ'], [1, 'Thường'], [2, 'Khó'], [3, 'Huyền thoại']]) + '</div></div>' +
       '<p class="p-sub hax-mapdesc">' + (cfg.sport === 'basket' ? 'Bóng rổ: dẫn bóng bằng cách chạy đẩy bóng, bấm sút để NÉM. Bóng lọt vòng rổ cam = 2 điểm, ném từ ngoài vạch cong 3 điểm = 3 điểm. Dẫn bóng chạm rổ không tính!' : ({ classic: 'Sân tiêu chuẩn.', futsal: 'Sân nhỏ trong nhà, bóng nảy nhanh, hợp 1v1–2v2.', big: 'Sân rộng cho 3v3, 4v4.', ice: 'Mặt băng trơn trượt: khó phanh, bóng lăn rất xa!', beach: 'Cát lún: chạy nặng, bóng mau dừng.', street: 'Sân hẻm hẹp, khung thành nhỏ, va chạm liên tục.' }[cfg.map] || '')) + '</p>';
   }
   function bindSettings(redraw) {
